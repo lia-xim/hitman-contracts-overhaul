@@ -9,7 +9,7 @@ These checks do not prove live AI behavior or rendering. A release candidate is 
 3. Recover field intelligence and verify the moving target marker.
 4. Reset all Cheat Trainer settings, if installed.
 5. Let an HCO guard confirm the player and verify that the detail enters combat and fires.
-6. Damage one guard without immediately killing the target; verify a drone deployment notice, visible moving drones, rotor audio, scan cones, and destructibility.
+6. Fire at least three player shots within eight seconds or damage one guard without immediately killing the target; verify `DRONE SUPPORT INBOUND`, the doctrine deployment notice, visible moving drones, rotor audio, scan cones, and destructibility.
 7. Let a drone detect the player and verify coordinated pressure toward the last known position.
 8. Resolve the target and verify the compact completion banner, sound, payout, and persistence after reload.
 

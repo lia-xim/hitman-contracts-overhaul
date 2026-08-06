@@ -361,6 +361,22 @@ function director.notifySensorEvidence(state, sensor, source)
 	end
 end
 
+function director.notifyPlayerGunfire(state, player)
+	local security = state and state.security
+	if not security or not player or not util.isAlive(state.target) then return end
+	local now = curTime or 0
+	if not security.gunfireWindowStarted or now - security.gunfireWindowStarted > config.DRONE_GUNFIRE_WINDOW then
+		security.gunfireWindowStarted = now
+		security.playerGunshots = 0
+	end
+	security.playerGunshots = (security.playerGunshots or 0) + 1
+	if security.playerGunshots >= config.DRONE_GUNFIRE_THRESHOLD and not security.dronesTriggeredByGunfire then
+		security.dronesTriggeredByGunfire = true
+		local x, y = util.getPos(player)
+		mobilizeProtection(state, x, y, "sustained-player-gunfire")
+	end
+end
+
 local function rankSearchSectors(security)
 	local lastKnown = security.lastKnown
 	local ranked = {}

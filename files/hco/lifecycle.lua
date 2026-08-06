@@ -1,6 +1,7 @@
 local config = require("hco/config")
 local core = require("hco/contracts/core")
 local diagnostics = require("hco/diagnostics")
+local securityDirector = require("hco/security/director")
 local stateModule = require("hco/state")
 local util = require("hco/util")
 
@@ -91,6 +92,14 @@ local function dispatchEvent(state, event, ...)
 		onTargetNeutralized(state, ...)
 	elseif event == actor.EVENTS.DIED then
 		onTargetDied(state, ...)
+	elseif weapons and weapons.EVENTS and event == weapons.EVENTS.FIRED then
+		local weaponObject = ...
+		local owner = weaponObject and weaponObject.owner
+		if owner and owner.PLAYER then
+			for _, context in ipairs(stateModule.getContexts(state)) do
+				securityDirector.notifyPlayerGunfire(context, owner)
+			end
+		end
 	end
 end
 
@@ -131,6 +140,7 @@ function lifecycle.start(state)
 	addEvent(game.EVENTS.PLAYER_SET)
 	addEvent(actor.EVENTS.NEUTRALIZED)
 	addEvent(actor.EVENTS.DIED)
+	addEvent(weapons and weapons.EVENTS and weapons.EVENTS.FIRED)
 
 	events:addDirectReceiver(listener, catchable)
 

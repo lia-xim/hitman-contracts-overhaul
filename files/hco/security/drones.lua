@@ -7,6 +7,7 @@ local drones = {}
 local CLASS_ID = "hco_search_drone"
 local registered = false
 local sprite, quads
+local droneClass
 
 local function loadSprite()
 	if sprite or not love or not love.graphics or type(love.graphics.newImage) ~= "function" then return end
@@ -166,6 +167,7 @@ function drones.initialize()
 	end
 
 	objects.registerNew(drone, "security_camera")
+	droneClass = drone
 	registered = true
 	loadSprite()
 	return true
@@ -177,7 +179,32 @@ local function spawn(context, index)
 	if not x then return nil end
 	if not registered then drones.initialize() end
 	local ok, instance = pcall(objects.create, CLASS_ID)
-	if not ok or not instance then return nil, "create-failed: " .. tostring(instance) end
+	local usedFallback = false
+	local customError = not ok and tostring(instance) or (not instance and "custom class returned nil" or nil)
+	if not ok or not instance then
+		ok, instance = pcall(objects.create, "security_camera")
+		usedFallback = true
+	end
+	if not ok or not instance then return nil, "create-failed custom=" .. tostring(customError) .. " fallback=" .. tostring(instance) end
+	if usedFallback and droneClass then
+		-- Some game builds do not accept a class registered after the native
+		-- object registry has finalized. A vanilla camera is still a fully native
+		-- physical/light object, so decorate that instance with the HCO movement,
+		-- rendering, damage, and cleanup methods instead of losing the drone.
+		instance.getDrawColor = droneClass.getDrawColor
+		instance.postDraw = droneClass.postDraw
+		instance.update = droneClass.update
+		instance.breakCam = droneClass.breakCam
+		instance.onHitBullet = droneClass.onHitBullet
+		instance.remove = droneClass.remove
+		instance.hcoDetect = 0
+		instance.hcoFrameTime = 0
+		instance.hcoFrame = 1
+		instance.hcoSearchStep = 0
+		loadSprite()
+		instance.hcoRotorSound = audio.startRotor(instance)
+		util.log(config, "drone custom class unavailable; native security-camera fallback active")
+	end
 	local angle = index * math.pi * 2 / math.max(1, config.DRONE_DEPLOY_COUNT)
 	instance.hcoContext = context
 	instance.hcoIndex = index
@@ -185,6 +212,7 @@ local function spawn(context, index)
 	instance.hcoSpeed = doctrine.speed or 1
 	instance.hcoDetectScale = doctrine.detect or 1
 	instance.hcoArmor = doctrine.armor or 1
+	instance.hcoFallback = usedFallback
 	instance.radius = config.DRONE_SCAN_RADIUS * (doctrine.radius or 1)
 	instance:setPos(x + math.cos(angle) * 100, y + math.sin(angle) * 100)
 	instance:setViewAngle(math.deg(angle))
@@ -201,6 +229,10 @@ function drones.request(context, count, reason)
 	if not security then return end
 	security.droneDeploymentRequested = math.max(security.droneDeploymentRequested or 0, count or (security.droneDoctrine and security.droneDoctrine.count) or config.DRONE_DEPLOY_COUNT)
 	security.droneDeploymentReason = reason
+	if not security.droneRequestNoticeShown then
+		security.droneRequestNoticeShown = true
+		feedback.show("DRONE SUPPORT INBOUND — " .. tostring(reason or "security escalation"))
+	end
 	util.log(config, "drone deployment queued slot=" .. tostring(context.slot or 1) .. " count=" .. tostring(security.droneDeploymentRequested) .. " reason=" .. tostring(reason))
 end
 
@@ -220,6 +252,7 @@ function drones.update(context, dt)
 	for index = 1, math.min(wanted, room) do local drone, spawnError = spawn(context, #live + index) if drone then table.insert(security.drones, drone) launched = launched + 1 else lastError = spawnError end end
 	security.droneDeploymentRequested = 0
 	security.droneCooldown = config.DRONE_REDEPLOY_COOLDOWN
+	security.droneRequestNoticeShown = false
 	if launched > 0 then
 		if sound and type(sound.play) == "function" then pcall(sound.play, sound, "radio_disrupt_end") end
 		feedback.show(string.upper((security.droneDoctrine and security.droneDoctrine.name) or "SECURITY DRONES") .. " DEPLOYED — Search pattern active")

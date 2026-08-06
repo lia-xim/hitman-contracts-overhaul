@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0-rc10 — 2026-08-06
+
+- Added a deterministic drone escalation after three player shots within eight seconds during an active contract.
+- Added an on-screen `DRONE SUPPORT INBOUND` acknowledgement when a deployment is queued.
+- Added a physical native-security-camera fallback when the engine rejects creation of the registered HCO drone class.
+- Added automated coverage for fallback creation, movement, and diagnostics.
+
 ## 0.10.0-rc9 — 2026-08-06
 
 - Exempted HCO security from the companion trainer's disabled-detection mode.
