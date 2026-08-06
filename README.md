@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.13.2-rc31`
+**Current build:** `0.13.2-rc32`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate release. RC31 gives every drone family an unmistakable generated damage/wreck atlas and makes destruction terminal: queued fire, detection, rotor audio and the native searchlight buffer are removed before the crash begins. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate release. RC32 keeps destroyed airframes in a dedicated registered native wreck batch and extends free-fire collision checks across the projectile's real muzzle-to-current path, so visible Heavy rotor hits no longer depend on right-click target selection. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 

@@ -10,7 +10,7 @@ end
 local function assertTrue(value, message) if not value then error(message) end end
 
 local imageDraws, batchUpdates, treeInserts = 0, 0, 0
-local lastSpriteUpdate, lastDirectDraw, flightEffectRectangles = nil, nil, 0
+local lastSpriteUpdate, lastWreckUpdate, flightEffectRectangles = nil, nil, 0
 love = {graphics={}}
 love.errorhandler = function(message) io.stderr:write("HCO_AIRFRAME_SMOKE_ERROR: " .. tostring(message) .. "\n" .. debug.traceback() .. "\n") os.exit(1) end
 function love.graphics.newImage(path) return {path=path,setFilter=function() end} end
@@ -60,7 +60,8 @@ function spriteBatchController:newSpriteBatch(id)
 	function container:getVisibility() return self.visibility end
 	function container:updateSprite(slot,quad,x,y,rotation,sx,sy,ox,oy)
 		batchUpdates=batchUpdates+1
-		lastSpriteUpdate={slot=slot,x=x,y=y,rotation=rotation,sx=sx,sy=sy,ox=ox,oy=oy}
+		local update={slot=slot,quad=quad,x=x,y=y,rotation=rotation,sx=sx,sy=sy,ox=ox,oy=oy}
+		if self.id=="hco_drone_wreck_airframes" then lastWreckUpdate=update else lastSpriteUpdate=update end
 	end
 	self.containers[id]=container
 	return container,true
@@ -143,15 +144,18 @@ local landX,landY=airframes.crash(shell,owner,crashStartX,crashStartY)
 assertTrue(landX~=crashStartX or landY~=crashStartY,"destroyed airframe receives a real tumble destination")
 local crashStats=airframes.diagnostics()
 assertTrue(crashStats.airframes==0 and crashStats.wrecks==1,"crashing shell leaves the active roster and enters wreck lifecycle")
+assertTrue(crashStats.wreckBatchReady,"crashing shell immediately acquires the dedicated native wreck batch")
 curTime=2.4
 shell:draw()
-assertTrue(lastDirectDraw.image and lastDirectDraw.image:find("drone%-wreck%-atlas"),"destroyed airframe switches to the dedicated wreck atlas")
-assertTrue(lastDirectDraw.x~=crashStartX or lastDirectDraw.y~=crashStartY,"mid-crash wreck sprite moves away from its flight position")
-assertTrue(math.abs(lastDirectDraw.rotation-(0.4-math.pi*0.5))>0.2,"mid-crash wreck visibly tumbles")
+assertTrue(lastWreckUpdate~=nil,"destroyed airframe updates the dedicated native wreck batch")
+assertTrue(lastWreckUpdate.x~=crashStartX or lastWreckUpdate.y~=crashStartY,"mid-crash wreck sprite moves away from its flight position")
+assertTrue(math.abs(lastWreckUpdate.rotation-(0.4-math.pi*0.5))>0.2,"mid-crash wreck visibly tumbles")
 assertTrue(shell.hcoSlot==nil,"destroyed airframe releases the cached intact sprite-batch slot")
+assertTrue(shell.hcoWreckSlot~=nil,"destroyed airframe retains a visible native wreck slot")
+assertTrue(priorityRenderer.activeRenderMap[spriteBatchController.containers.hco_drone_wreck_airframes]~=nil,"wreck batch remains registered in the priority renderer")
 curTime=3.2
 shell:draw()
-assertTrue(lastDirectDraw.quad.x==288,"landed drone persists as the unmistakable final wreck frame")
+assertTrue(lastWreckUpdate.quad.x==288,"landed drone persists as the unmistakable final wreck frame")
 assertTrue(not airframes.drawOutline(shell),"landed wreck never keeps an aim outline")
 airframes.clearContext(owner.hcoContext)
 assertTrue(not shell:isValid(),"context cleanup removes persistent crash wrecks")

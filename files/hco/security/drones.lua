@@ -111,8 +111,11 @@ end
 local function processPlayerBulletFallback(drone, dt)
 	-- The native fixture is authoritative. This narrow fallback covers runtime
 	-- builds/mod combinations that fail to expose a late-created generic-object
-	-- fixture to the bullet raycast. It uses the bullet's actual one-frame path,
-	-- after world collision processing, so walls still stop shots first.
+	-- fixture to the bullet raycast. A weapon advances a fresh projectile once
+	-- before inserting it into activeBullets, so the first sweep must begin at the
+	-- recorded muzzle position instead of reconstructing only the latest frame.
+	-- A bullet present here has already survived native world collision handling,
+	-- so walls remain authoritative.
 	local bullets = game and game.activeBullets
 	if type(bullets) ~= "table" then return false end
 	local centerX, centerY = drone:getAimPos()
@@ -124,6 +127,22 @@ local function processPlayerBulletFallback(drone, dt)
 	local consumed = false
 	for index = #bullets, 1, -1 do
 		local bullet = bullets[index]
+		if bullet and not bullet.stored then
+			-- Native bullets are pooled. Never let a consumed-hit flag or sweep map
+			-- survive when the same table is retrieved for a later shot.
+			local shotNumber = bullet.shotNumber
+			local shootX, shootY = tonumber(bullet.shootX), tonumber(bullet.shootY)
+			if not bullet._hcoDroneSweepInitialized
+				or bullet._hcoDroneSweepShotNumber ~= shotNumber
+				or bullet._hcoDroneSweepShootX ~= shootX
+				or bullet._hcoDroneSweepShootY ~= shootY then
+				bullet._hcoDroneSweeps = nil
+				bullet._hcoDroneHit = nil
+				bullet._hcoDroneSweepInitialized = true
+				bullet._hcoDroneSweepShotNumber = shotNumber
+				bullet._hcoDroneSweepShootX, bullet._hcoDroneSweepShootY = shootX, shootY
+			end
+		end
 		if bullet and not bullet.stored and not bullet._hcoDroneHit then
 			local firer = bullet.firer
 			if type(bullet.getFirer) == "function" then
@@ -131,8 +150,24 @@ local function processPlayerBulletFallback(drone, dt)
 				if ok then firer = value end
 			end
 			if firer and (firer == game.playerActor or firer.PLAYER) and tonumber(bullet.x) and tonumber(bullet.y) then
-				local travelX, travelY = tonumber(bullet.travelX) or 0, tonumber(bullet.travelY) or 0
-				local startX, startY = bullet.x - travelX * dt, bullet.y - travelY * dt
+				local sweeps = bullet._hcoDroneSweeps
+				if type(sweeps) ~= "table" then sweeps = {} bullet._hcoDroneSweeps = sweeps end
+				local previous = sweeps[drone]
+				local startX, startY
+				if previous then
+					startX, startY = previous.x, previous.y
+				else
+					startX, startY = tonumber(bullet.shootX), tonumber(bullet.shootY)
+					if (not startX or not startY) and type(bullet.getShootPos) == "function" then
+						local ok, x, y = pcall(bullet.getShootPos, bullet)
+						if ok then startX, startY = tonumber(x), tonumber(y) end
+					end
+					if not startX or not startY then
+						local frameTravelX, frameTravelY = tonumber(bullet.travelX) or 0, tonumber(bullet.travelY) or 0
+						startX, startY = bullet.x - frameTravelX * dt, bullet.y - frameTravelY * dt
+					end
+				end
+				sweeps[drone] = {x = bullet.x, y = bullet.y}
 				local hit, hitX, hitY = segmentHitsCircle(startX, startY, bullet.x, bullet.y, centerX, centerY, radius)
 				if hit then
 					bullet._hcoDroneHit = true
@@ -715,7 +750,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC31 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", live/wreck sprites " .. (stats.spriteReady and stats.wreckSpriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC32 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batches " .. (stats.batchReady and stats.wreckBatchReady and "READY" or "MISSING") .. ", live/wreck sprites " .. (stats.spriteReady and stats.wreckSpriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)

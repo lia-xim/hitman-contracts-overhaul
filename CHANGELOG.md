@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.2-rc32 — 2026-08-07
+
+- Moved destroyed airframes from an unreliable direct quadtree texture draw into a second registered native sprite batch dedicated to the wreck atlas. The intact slot is still released atomically, while the tumble stages and final wreck retain their own durable renderer slot until context cleanup.
+- Corrected free-fire hit registration for newly fired player bullets. The fallback now covers the engine's real muzzle-to-current segment, including the initial projectile advance that occurs before `activeBullets` insertion, rather than seeing only the latest frame.
+- Kept per-drone sweep history so later projectile frames remain bounded and each visible drone is tested independently without requiring right-click aim assistance. Pooled bullet reuse resets all HCO sweep/hit state from the native shot identity.
+- Expanded automated coverage for native wreck-batch registration, persistent final-wreck slots and a Heavy rotor-edge hit whose current-frame segment alone no longer crosses the target.
+
 ## 0.13.2-rc31 — 2026-08-06
 
 - Added an original generated 4×7 wreck atlas: every Scout, light and heavy family now has impact, damaged tumble, hard-crash and final inert-wreck frames instead of reusing a darkened intact sprite.

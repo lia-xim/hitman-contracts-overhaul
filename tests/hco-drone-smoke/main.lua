@@ -258,12 +258,23 @@ assertTrue(capContext.security.drones[1].hcoArmor==3 and capContext.security.dro
 local heavy=capContext.security.drones[1]
 assertTrue(heavy.hcoHitboxSize==54,"heavy target uses the forgiving full-diagonal carrier")
 local heavyX,heavyY=heavy:getAimPos()
-local edgeBullet={x=heavyX+35,y=heavyY+25.5,travelX=70,travelY=0,firer=game.playerActor,stored=false}
+-- Native weapons advance a fresh bullet before adding it to activeBullets. The
+-- recorded muzzle-to-current sweep must still hit a visible rotor edge even
+-- though the latest one-frame reconstruction no longer crosses the drone.
+local edgeBullet={shootX=heavyX-80,shootY=heavyY+25.5,x=heavyX+35,y=heavyY+25.5,travelX=70,travelY=0,firer=game.playerActor,stored=false}
 function edgeBullet:getFirer() return self.firer end
 function edgeBullet:makeInactive() self.inactive=true self.stored=true end
 game.activeBullets={edgeBullet}
 heavy:update(1)
 assertTrue(edgeBullet.inactive and heavy.hcoArmor==2,"fallback registers a shot across the visible heavy rotor edge")
+edgeBullet.stored,edgeBullet.inactive=false,false
+edgeBullet.shotNumber=99
+edgeBullet.shootX,edgeBullet.shootY=heavyX-90,heavyY-24
+edgeBullet.x,edgeBullet.y=heavyX+35,heavyY-24
+edgeBullet.travelX,edgeBullet.travelY=80,0
+game.activeBullets={edgeBullet}
+heavy:update(1)
+assertTrue(edgeBullet.inactive and heavy.hcoArmor==1,"pooled bullet reuse clears the prior hit flag and receives an independent Heavy edge sweep")
 heavy.body.destroyed=true
 heavy.fixture.destroyed=true
 heavy.initHitbox=function() error("simulated persistent fixture failure") end

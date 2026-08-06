@@ -5,6 +5,7 @@ local util = require("hco/util")
 local airframes = {}
 local CLASS_ID = "hco_drone_airframe"
 local BATCH_ID = "hco_drone_roster_airframes"
+local WRECK_BATCH_ID = "hco_drone_wreck_airframes"
 local BATCH_DEPTH = 68
 local SPRITE_FORWARD_OFFSET = -math.pi * 0.5
 local CELL_SIZE = 96
@@ -12,7 +13,7 @@ local FRAME_COUNT = 4
 local TYPE_COUNT = 7
 local classData
 local sprite, quads, batch
-local wreckSprite, wreckQuads
+local wreckSprite, wreckQuads, wreckBatch
 local live = {}
 local drawPasses = 0
 
@@ -69,13 +70,13 @@ local function loadSprite()
 	return false
 end
 
-local function ensureBatchRegistered()
-	if not batch then return false end
-	local registered = priorityRenderer and priorityRenderer.activeRenderMap and priorityRenderer.activeRenderMap[batch]
-	if registered and type(priorityRenderer.findObject) == "function" then registered = priorityRenderer:findObject(batch) ~= nil end
+local function ensureBatchRegistered(container)
+	if not container then return false end
+	local registered = priorityRenderer and priorityRenderer.activeRenderMap and priorityRenderer.activeRenderMap[container]
+	if registered and type(priorityRenderer.findObject) == "function" then registered = priorityRenderer:findObject(container) ~= nil end
 	if not registered and priorityRenderer and type(priorityRenderer.add) == "function" then
-		if priorityRenderer.activeRenderMap then priorityRenderer.activeRenderMap[batch] = nil end
-		priorityRenderer:add(batch, BATCH_DEPTH)
+		if priorityRenderer.activeRenderMap then priorityRenderer.activeRenderMap[container] = nil end
+		priorityRenderer:add(container, BATCH_DEPTH)
 	end
 	return true
 end
@@ -92,6 +93,20 @@ local function ensureBatch()
 	if not ok or not container then return false end
 	batch = container
 	if type(batch.setShouldSortSprites) == "function" then batch:setShouldSortSprites(false) end
+	return true
+end
+
+local function ensureWreckBatch()
+	if wreckBatch and spriteBatchController and spriteBatchController.getContainer then
+		local current = spriteBatchController:getContainer(WRECK_BATCH_ID)
+		if current == wreckBatch then return true end
+		wreckBatch = nil
+	end
+	if not loadWreckSprite() or not spriteBatchController or type(spriteBatchController.newSpriteBatch) ~= "function" then return false end
+	local ok, container = pcall(spriteBatchController.newSpriteBatch, spriteBatchController, WRECK_BATCH_ID, wreckSprite, 32, "stream", BATCH_DEPTH, false, true, false, true)
+	if not ok or not container then return false end
+	wreckBatch = container
+	if type(wreckBatch.setShouldSortSprites) == "function" then wreckBatch:setShouldSortSprites(false) end
 	return true
 end
 
@@ -113,7 +128,29 @@ local function ensureSlot(self)
 		self.hcoSlot = slot
 		if type(batch.increaseVisibility) == "function" then batch:increaseVisibility() end
 	end
-	ensureBatchRegistered()
+	ensureBatchRegistered(batch)
+	return true
+end
+
+local function releaseWreckSlot(self)
+	if not self.hcoWreckSlot or not wreckBatch then self.hcoWreckSlot = nil return end
+	if type(wreckBatch.getAllocatedSlot) ~= "function" or wreckBatch:getAllocatedSlot(self.hcoWreckSlot) then
+		pcall(wreckBatch.deallocateSlot, wreckBatch, self.hcoWreckSlot)
+		if type(wreckBatch.getVisibility) ~= "function" or wreckBatch:getVisibility() > 0 then pcall(wreckBatch.decreaseVisibility, wreckBatch) end
+	end
+	self.hcoWreckSlot = nil
+end
+
+local function ensureWreckSlot(self)
+	if not ensureWreckBatch() then return false end
+	if self.hcoWreckSlot and type(wreckBatch.getAllocatedSlot) == "function" and not wreckBatch:getAllocatedSlot(self.hcoWreckSlot) then self.hcoWreckSlot = nil end
+	if not self.hcoWreckSlot then
+		local ok, slot = pcall(wreckBatch.allocateSlot, wreckBatch)
+		if not ok or not slot then return false end
+		self.hcoWreckSlot = slot
+		if type(wreckBatch.increaseVisibility) == "function" then wreckBatch:increaseVisibility() end
+	end
+	ensureBatchRegistered(wreckBatch)
 	return true
 end
 
@@ -146,6 +183,7 @@ function airframes.initialize()
 		self.hcoTypeIndex = 1
 		self.hcoRenderScale = 0.34
 		self.hcoSlot = nil
+		self.hcoWreckSlot = nil
 		self.hcoMoveX, self.hcoMoveY = 0, 0
 		self.hcoPhase = 0
 		self.hcoAccent = {70, 225, 255}
@@ -375,12 +413,13 @@ function airframes.initialize()
 
 	function visual:enterVisibilityRange()
 		self._visible = true
-		if not self.hcoCrashAt then ensureSlot(self) end
+		if self.hcoCrashAt then ensureWreckSlot(self) else ensureSlot(self) end
 	end
 
 	function visual:leaveVisibilityRange()
 		self._visible = false
 		releaseSlot(self)
+		releaseWreckSlot(self)
 	end
 
 	function visual:draw()
@@ -404,18 +443,19 @@ function airframes.initialize()
 			drawFlightEffects(self, drawX, drawY, renderAngle)
 		end
 		if self.hcoCrashAt then
-			-- A wreck must never leave the intact frame cached in the shared active
-			-- sprite batch. The dedicated damage atlas is drawn by the same native
-			-- world-quadtree object, but directly, so its texture can change per shell.
+			-- The engine renders durable world sprites through registered batches.
+			-- Keeping wrecks in their own batch prevents the intact frame from being
+			-- cached while ensuring the crash and landed shell survive every draw pass.
 			releaseSlot(self)
-			if loadWreckSprite() and wreckQuads then
+			if ensureWreckSlot(self) and wreckSprite and wreckQuads then
 				local typeQuads = wreckQuads[self.hcoTypeIndex or 1] or wreckQuads[1]
 				local frame = crashProgress < 1 and math.min(FRAME_COUNT - 1, math.floor(crashProgress * (FRAME_COUNT - 1)) + 1) or FRAME_COUNT
-				love.graphics.setColor(255, 255, 255, 255)
-				love.graphics.draw(wreckSprite, typeQuads[frame], drawX, drawY, renderAngle, scale, scale, 48, 48)
+				wreckBatch:setColor(255, 255, 255, 255)
+				wreckBatch:updateSprite(self.hcoWreckSlot, typeQuads[frame], drawX, drawY, renderAngle, scale, scale, 48, 48)
 				return
 			end
 		end
+		releaseWreckSlot(self)
 		if ensureSlot(self) and sprite and quads then
 			local alpha = self.hcoDisrupted and (110 + math.floor(math.abs(math.sin(time * 17)) * 100)) or 255
 			if self.hcoHitFlash and self.hcoHitFlash > 0 then
@@ -439,6 +479,7 @@ function airframes.initialize()
 	function visual:remove()
 		if not self:isValid() then return end
 		releaseSlot(self)
+		releaseWreckSlot(self)
 		if game and game.worldObject then
 			local handler = game.worldObject.getDecorQuadTreeVisHandler and game.worldObject:getDecorQuadTreeVisHandler()
 			if handler and type(handler.removeObject) == "function" then pcall(handler.removeObject, handler, self) end
@@ -533,6 +574,11 @@ function airframes.crash(shell, owner, fallbackX, fallbackY)
 	shell.hcoArmor, shell.hcoArmorDisplay = 0, 0
 	shell.hcoAimTargetX, shell.hcoAimTargetY = nil, nil
 	shell.hcoWeaponState = "DESTROYED"
+	-- Switch renderer ownership immediately. Waiting until the next quadtree draw
+	-- can leave a one-frame intact ghost or, on some builds, lose the shell when
+	-- its only visible slot is released.
+	releaseSlot(shell)
+	if shell._visible then ensureWreckSlot(shell) end
 	return endX, endY
 end
 
@@ -572,7 +618,7 @@ function airframes.diagnostics()
 			if shell.hcoCrashAt then wrecks = wrecks + 1 else count = count + 1 end
 		end
 	end
-	return {drawPasses = drawPasses, spriteReady = sprite ~= nil, wreckSpriteReady = wreckSprite ~= nil, batchReady = batch ~= nil, airframes = count, wrecks = wrecks}
+	return {drawPasses = drawPasses, spriteReady = sprite ~= nil, wreckSpriteReady = wreckSprite ~= nil, batchReady = batch ~= nil, wreckBatchReady = wreckBatch ~= nil, airframes = count, wrecks = wrecks}
 end
 
 return airframes

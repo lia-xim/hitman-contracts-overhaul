@@ -172,6 +172,15 @@ HCO scales existing camera detection for valid disguises and records camera disr
 
 RC31 mirrors `security_camera:breakCam()` but strengthens it for runtime drone carriers: `broken` is set before callbacks, queued HCO weapon/detection state is cancelled, the carrier is explicitly removed from the dynamic list, and the owned light buffer is made non-casting/non-renderable, removed, stopped and destroyed before its reference is cleared. The independent native-world airframe then owns only the generated damage/wreck animation.
 
+## RC32 renderer and projectile timing correction
+
+Sources: `engine/spritebatchcontroller.lua`, `game/bullet.lua`, `game/weapon.lua`
+
+- `controlledSpriteBatch:increaseVisibility()` registers the batch with `priorityRenderer`; `decreaseVisibility()` removes it when visibility reaches zero. RC32 therefore gives wrecks a distinct batch/visibility count rather than releasing the intact slot and relying on a direct texture draw from the decor callback.
+- `weapon:createPlayerBullet()` calls `bul:update(shotDelta)` before `game.addBullet(bul)`. A fallback that only reconstructs `bullet.x - travel * dt` after list insertion can miss the complete first flight segment.
+- Every bullet records its muzzle through `setShootPos(x, y)` before that update. RC32 uses this native origin for the first sweep, then stores a previous point per bullet and drone.
+- Bullets come from `objectBuffer:retrieve()` and return through `store()`. The native shot number/muzzle identity resets HCO's consumed-hit and sweep tables when a pooled bullet object begins another player shot.
+
 ## Known real-engine validation boundary
 
 The interfaces above are source-verified and exercised by mocks with their important return semantics. Only the final in-game pass can prove cross-system timing, map-specific path quality, rendered objective behavior, and AI-state interactions in a live mission.
