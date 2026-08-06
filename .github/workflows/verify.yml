@@ -1,0 +1,21 @@
+name: Verify
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify payload
+        shell: pwsh
+        run: ./scripts/verify.ps1
+      - name: Build archive
+        shell: pwsh
+        run: ./scripts/package.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hitman-Contracts-Overhaul
+          path: dist/*.zip

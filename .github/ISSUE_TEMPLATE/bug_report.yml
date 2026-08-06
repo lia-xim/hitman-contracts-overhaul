@@ -1,0 +1,41 @@
+name: Bug report
+description: Report a reproducible HCO problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: input
+    id: game-version
+    attributes:
+      label: Intravenous 2 version
+    validations:
+      required: true
+  - type: input
+    id: map
+    attributes:
+      label: Mission or map
+    validations:
+      required: true
+  - type: textarea
+    id: mods
+    attributes:
+      label: Active mods and Cheat Trainer settings
+    validations:
+      required: true
+  - type: dropdown
+    id: load
+    attributes:
+      label: Mission entry
+      options: [Fresh mission start, Mid-mission save, Mission restart, Standalone map]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: HCO log or traceback
+      render: text

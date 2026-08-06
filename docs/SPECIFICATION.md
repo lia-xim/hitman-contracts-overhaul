@@ -1,0 +1,1124 @@
+# Hitman Contracts Overhaul
+
+## Product and Technical Specification
+
+**Status:** Source of truth; Phase 0–5 RC implemented, automated validation complete, final in-game validation pending  
+**Target game:** Intravenous 2  
+**Verified game version:** 1.4.12HF3  
+**Working title:** Hitman Contracts Overhaul  
+**Short name:** HCO  
+**Document purpose:** Preserve all product decisions, technical findings, implementation boundaries, phases, and acceptance criteria for future Codex agents and human contributors.
+
+---
+
+## 1. Executive summary
+
+Hitman Contracts Overhaul adds optional assassination contracts to compatible campaign missions and combines them with a native-feeling social-stealth and security simulation.
+
+Each supported mission may contain an additional high-value target. The target is not a stationary objective or a bullet-sponge boss. It follows a believable routine, moves between authored or derived locations, is protected by elite security, retreats into safer areas when threatened, and may attempt to escape during a confirmed attack.
+
+The player can complete the contract through direct combat, conventional stealth, stolen uniforms, stolen credentials, sabotage, or carefully manipulated security responses. The system must integrate with Intravenous 2's existing objectives, interactions, suspicion feedback, inventory, keycards, cameras, radio behavior, weapons, money, saving, and mission lifecycle. It must not feel like a separate minigame or an unnecessary overlay.
+
+The first implementation is a narrow vertical slice: one compatible mission, one selected target, one mobile routine, one elite escort group, one native optional objective, one reward, and one functional disguise class. Later phases expand the same systems rather than replacing them.
+
+### Live-validation expansion decision — 2026-08-06
+
+The vertical slice has now been observed working in a real `1.4.12HF3` campaign mission. The full product direction is expanded as follows:
+
+- Compatible large maps may host one to three simultaneous contracts. Count is deterministic but varies by map capacity and seed.
+- Every target, escort, objective, marker, reward, terminal state, and disguise/security reference must be contract-scoped. Targets and guards may not be shared between active contracts.
+- Protection is deliberately intimidating: Broker 5, Executive 8, Fixer 11, and Commander up to 15 guards when the map has enough safe non-story actors.
+- The protection pool may recruit safe armed unnamed goons without an existing patrol route; the actual contract target still requires a validated mobile route.
+- Guards use native elite competence and health, layered roles, radios, existing strong weapons, physical search routes, and fair information propagation. Targets remain lethal rather than becoming bullet sponges.
+- The desired sensor escalation includes audible and visible drone or thermal-surveillance pressure. Engine inspection found no native drone or thermal actor/API in `1.4.12HF3`, so physical drones require a custom actor, presentation assets, navigation, damage/disruption behavior, and explicit counterplay; camera/radio/search integration is not to be mislabeled as a physical drone.
+- Money is paid through `game.playthrough:changeMoney`; native objective `funds` auto-claim is forbidden because it dereferences the hideout-only `studio` global and crashes campaign missions.
+
+---
+
+## 2. Vision
+
+The intended player reaction is:
+
+> "This feels like it was always supposed to be part of the game. I cannot believe how much deeper the same mission became."
+
+HCO should make existing maps support a second layer of infiltration without rewriting the main campaign. A familiar mission should become meaningfully different because the target, its security detail, and the player's social identity create new opportunities and new failure states.
+
+The mod is not a quest log, a challenge checklist, a stat dashboard, or a generic mutator pack. It is a systemic expansion of the game world.
+
+---
+
+## 3. Non-negotiable design pillars
+
+### 3.1 Native first
+
+- Use the existing objective list for contracts.
+- Use existing interaction prompts for bodies, credentials, and disguises.
+- Use existing suspicion and detection feedback wherever possible.
+- Use existing money and skill systems for rewards.
+- Use existing actor, patrol, alert, radio, keycard, camera, and pathfinding systems.
+- Add new UI only when no native surface can communicate the required information.
+- Never require a permanent floating contract dashboard.
+- Never require a separate out-of-game executable.
+
+### 3.2 Systemic, not scripted theater
+
+- Target behavior reacts to actual world state.
+- Security knowledge propagates through observation, nearby warnings, cameras, and radio.
+- A compromised disguise is caused by discoverable evidence and communicated knowledge.
+- Guards search last-known areas rather than reading the player's current coordinates.
+- Darkness, noise, doors, bodies, credentials, weapons, and access levels interact consistently.
+
+### 3.3 Lethality stays Intravenous
+
+- Targets are not health-sponges.
+- A clean headshot or appropriately powerful hit can kill a target.
+- Difficulty comes from access, positioning, protection, sensors, response, and escape pressure.
+- Elite guards may have better armor, weapons, awareness, and tactics, but they remain governed by normal damage rules.
+
+### 3.4 Fair counterplay
+
+- Every strong security feature must have readable behavior and at least one counter.
+- Thermal cameras do not see through solid walls.
+- Drones require line of sight and can be disrupted or destroyed.
+- Radio calls take time and can be interrupted.
+- A target escape must be telegraphed and must use a physical route.
+- Search teams use evidence and last-known information, not omniscience.
+
+### 3.5 Campaign safety
+
+- Contracts are optional unless a future dedicated HCO campaign explicitly says otherwise.
+- Failure or target escape must never block the original mission.
+- Story-critical actors must never be selected as random targets.
+- HCO data must be namespaced and must not corrupt vanilla saves.
+- If a map is unsupported or cannot produce a safe contract, HCO quietly skips it.
+
+---
+
+## 4. Core player loop
+
+1. A compatible mission begins.
+2. HCO deterministically creates or restores a contract for the mission.
+3. The native objective display announces the target, broad location, and reward.
+4. The target begins a believable routine among valid locations.
+5. The player gathers access through observation, stealth, stolen clothing, credentials, or force.
+6. Security reacts to suspicious behavior and evidence.
+7. The target adapts to the threat: routine, caution, relocation, lockdown, or evacuation.
+8. The player kills or neutralizes the target, or the target escapes.
+9. Contract resolution is communicated through the native objective system.
+10. A successful contract grants normal campaign money and, where technically safe, normal earned skill experience.
+11. The original mission continues normally.
+
+---
+
+## 5. Contract lifecycle
+
+### 5.1 Eligibility
+
+A contract may start only when all required conditions are true:
+
+- The world and player actor exist.
+- The map is explicitly supported or passes a conservative generic compatibility check.
+- The mission is not a cutscene-only map, hideout, tutorial segment, or known story-sensitive sequence.
+- There is at least one eligible non-story NPC or a validated spawn profile.
+- There are enough valid navigation locations for a mobile target.
+- The native objective handler can accept the optional objective without replacing existing objectives.
+
+### 5.2 Deterministic selection
+
+Each contract has a seed based on stable mission and playthrough information. The seed controls:
+
+- target archetype;
+- eligible target selection or target spawn profile;
+- initial routine;
+- safe-area ordering;
+- escort composition;
+- reward range;
+- optional conditions.
+
+Reloading a save must not reroll the contract into an easier result. Restarting a mission should normally preserve the contract for fairness and reproducibility. A future setting may permit full rerolls, but it is not part of the first release.
+
+### 5.3 Contract states
+
+- `INACTIVE`: no contract for this map.
+- `PREPARING`: world exists; target and security are being validated.
+- `ACTIVE`: target is alive and contract can be completed.
+- `COMPLETED`: target was killed or neutralized according to the contract.
+- `FAILED_ESCAPED`: target physically reached an escape point.
+- `FAILED_INVALID`: target became invalid because of an external script or incompatible map behavior.
+- `CLEANED_UP`: hooks, markers, listeners, and temporary references are removed.
+
+`FAILED_INVALID` must fail quietly and must never punish the player.
+
+---
+
+## 6. Target system
+
+### 6.1 Target identity
+
+Every contract target receives runtime metadata:
+
+- stable HCO contract ID;
+- target display name;
+- archetype;
+- security tier;
+- routine node set;
+- safe node set;
+- evacuation node set;
+- escort references;
+- current target state;
+- threat knowledge;
+- last valid position and movement progress;
+- completion and escape status.
+
+The target should use a normal actor class whenever possible. New actor subclasses are allowed only when the vanilla actor cannot safely express required behavior.
+
+### 6.2 Target archetypes
+
+Initial archetypes:
+
+- **Executive:** avoids fighting, relies on security, evacuates early.
+- **Fixer:** armed, cautious, changes rooms regularly, may fight when cornered.
+- **Commander:** heavily protected, can coordinate nearby guards, retreats methodically.
+- **Broker:** moves between public and restricted zones, creating strong disguise opportunities.
+
+Later archetypes:
+
+- paranoid recluse;
+- corrupt official;
+- field operative;
+- protected witness;
+- mobile convoy leader.
+
+### 6.3 The target must not be stationary
+
+The target owns a dedicated movement director. It moves for a reason, not simply to create noise.
+
+Routine locations may include:
+
+- office or workstation;
+- meeting point;
+- balcony or smoking area;
+- security room;
+- storage or archive room;
+- dining or break area;
+- patrol inspection point;
+- private room;
+- vehicle or exit staging area.
+
+The target pauses for a believable duration, performs an available idle interaction when possible, then selects another suitable node.
+
+### 6.4 Target behavior state machine
+
+#### `ROUTINE`
+
+- Selects from public and semi-private routine nodes.
+- Moves with normal escort spacing.
+- May occasionally remain in place for 8-25 seconds.
+- Avoids repeating the same two nodes in a loop.
+- Does not know the player's location.
+
+#### `UNEASY`
+
+Triggered by local suspicion, a disrupted camera, a missing check-in, nearby noise, or an unexplained body that has not yet confirmed an attack.
+
+- Cancels low-security destinations.
+- Moves toward a semi-secure node.
+- Close escort tightens formation.
+- Outer guards may inspect the disturbance.
+- Returns to `ROUTINE` only after a substantial calm period and no confirming evidence.
+
+#### `THREATENED`
+
+Triggered by confirmed hostile activity, a compromised perimeter, a nearby body, a direct sighting, or a security message.
+
+- Chooses the best currently viable safe node.
+- Uses a physical path.
+- Close escorts move with the target.
+- Security guards cover likely approaches.
+- The target may lock or pass through controlled doors using assigned credentials.
+- If the chosen safe node becomes compromised, another is selected.
+
+#### `SHELTERED`
+
+- Remains inside a validated secure area.
+- Re-evaluates safety periodically.
+- May move between two defensive positions to avoid becoming trivially static.
+- May initiate evacuation if pressure continues, the safe area is breached, or too many guards are lost.
+
+#### `EVACUATING`
+
+- Chooses a validated exit or extraction node.
+- The route is physical and interruptible.
+- Remaining guards form a moving escort or delay the player.
+- The objective displays a native warning that the target is escaping.
+- Reaching the extraction node resolves the contract as escaped.
+
+#### `CORNERED`
+
+Archetype-dependent behavior:
+
+- surrender;
+- hide;
+- use a sidearm;
+- move between nearby cover;
+- attempt one final alternate escape route.
+
+#### `NEUTRALIZED`, `DEAD`, `ESCAPED`
+
+Terminal states.
+
+### 6.5 Secure-area selection
+
+A safe node has attributes:
+
+- minimum security tier;
+- map position;
+- optional associated room or area ID;
+- nearby door count or controlled door reference;
+- camera coverage;
+- guard capacity;
+- escape route availability;
+- whether it is suitable during a power outage;
+- whether it is compromised.
+
+Selection score should consider:
+
+- distance from player last-known position;
+- distance from current target position;
+- path validity;
+- living guard presence;
+- intact camera coverage;
+- controlled-door availability;
+- known bodies or disturbances nearby;
+- whether the player was recently seen in the area;
+- whether the node was used recently.
+
+The highest score is not always selected. A small deterministic variance prevents identical behavior while preserving reproducibility.
+
+### 6.6 Anti-stuck movement contract
+
+Mobile targets must never become permanently stuck and invalidate the contract.
+
+The target director records movement progress at a low frequency. It checks:
+
+- current destination;
+- path existence;
+- distance to destination;
+- distance reduction since last sample;
+- actor state compatibility;
+- number of recent path failures;
+- time spent without meaningful progress.
+
+Recovery sequence:
+
+1. Ask the native destination/path handler to adjust the destination.
+2. Recompute the path to the same node.
+3. Select a different valid node of the same security tier.
+4. Fall back to the nearest validated pathfinding tile.
+5. Cancel relocation and enter a temporary defensive hold if no route is safe.
+
+Teleportation is not a normal recovery mechanism. If a future last-resort teleport is ever added, it may occur only when the target is far off-screen, not visible to the player, and after a long irrecoverable failure. The initial release must not teleport targets.
+
+Acceptance requirement: no target may remain in a failed movement state for more than ten seconds without a recovery action.
+
+### 6.7 Target marking
+
+- Use native objective tracking and position indicators.
+- Do not permanently reveal the target through walls.
+- Initial information may mark a broad search area rather than exact coordinates.
+- Exact tracking may be granted after obtaining a phone, terminal record, camera observation, or target confirmation.
+- A confirmed visual may briefly update the marker.
+- Losing intelligence may return the marker to an approximate area.
+
+The vertical slice may use a direct native position marker as a temporary development simplification, but the full design uses imperfect intelligence.
+
+Implementation note for `0.9.0-rc2`: the RC intentionally retains the direct native moving marker so the first end-to-end gameplay test can validate target selection, movement, escape, and reload behavior without an additional intelligence layer. Imperfect-information tracking remains a post-RC improvement and is not silently claimed as complete.
+
+---
+
+## 7. Security ecosystem
+
+### 7.1 Security roles
+
+- **Close protection:** stays near the target and prioritizes evacuation.
+- **Outer security:** controls approaches and investigates disturbances.
+- **Response unit:** uses strong weapons and reacts to confirmed danger.
+- **Radio operator:** propagates high-confidence information and requests backup.
+- **Camera operator:** monitors camera alerts and disruptions.
+- **Drone operator:** supports drone deployment in later phases.
+
+### 7.2 Elite guard properties
+
+Elite guards may receive:
+
+- elite native experience level;
+- stronger but existing weapons;
+- armor appropriate to the mission;
+- radios and flashlights;
+- increased vision competence within fair limits;
+- better cover and backup behavior;
+- lower likelihood of abandoning the target without reason;
+- role-specific priorities.
+
+They must not receive exact player coordinates without a valid information source.
+
+### 7.3 Moving security bubble
+
+Security moves with the target in layers:
+
+- one or two close guards remain within a short leash;
+- one advance guard may move toward the next routine node;
+- outer guards remain at useful choke points or nearby patrol routes;
+- during evacuation, the formation compresses and response units cover rear approaches.
+
+If an escort cannot path with the target, it must not block the target. The escort either chooses a nearby reachable support position or relinquishes the close-protection slot to another living guard.
+
+---
+
+## 8. Security knowledge and hunt behavior
+
+### 8.1 No hive mind
+
+Each security actor has knowledge rather than universal truth:
+
+- last known player position;
+- last known disguise class;
+- visible weapon or behavior;
+- confidence;
+- timestamp;
+- source: direct sight, nearby warning, camera, radio, body, sound, or alarm.
+
+Knowledge can be shared through:
+
+- nearby warning;
+- completed radio transmission;
+- camera operator response;
+- alarm panel interaction;
+- direct observation.
+
+### 8.2 Hunt phases
+
+- `LOCAL_REACTION`: nearby guards respond to direct evidence.
+- `CONTAIN`: exits and key approaches are covered.
+- `SEARCH`: teams inspect the last-known sector and adjacent rooms.
+- `PRESSURE`: confirmed sightings cause flanking and suppression.
+- `DECAY`: confidence falls when no new evidence appears.
+- `STAND_DOWN`: guards return to heightened patrol rather than instantly forgetting.
+
+### 8.3 Smart search requirements
+
+- Search the last-known location first.
+- Expand through physically connected areas.
+- Check likely escape routes, doors, vents, and hiding areas when supported by the map.
+- Avoid a single-file rush into a known kill zone.
+- Use two-person teams where enough guards remain.
+- Leave protection with the target.
+- Do not endlessly converge on the player's live coordinates.
+
+---
+
+## 9. Disguise and social-stealth system
+
+### 9.1 Acquiring a disguise
+
+Eligible unconscious or dead NPCs expose a native body interaction:
+
+- `Search body`
+- `Take keycard`
+- `Steal uniform`
+
+The initial version may combine these into a single context action if the native interaction list cannot safely show multiple entries.
+
+### 9.2 Disguise data
+
+A disguise contains:
+
+- uniform class;
+- faction or security company;
+- access tier;
+- source actor ID;
+- clean or compromised state;
+- bloodied or visibly damaged state;
+- allowed weapon families;
+- familiarity group;
+- acquisition timestamp.
+
+Initial uniform classes:
+
+- civilian/staff;
+- regular security;
+- elite security;
+
+### 9.3 Recognition model
+
+Disguise effectiveness modifies detection; it does not make the player invisible.
+
+Suspicion factors:
+
+- distance;
+- time observed;
+- observer experience;
+- same-unit familiarity;
+- restricted-zone mismatch;
+- running or sprinting;
+- aiming;
+- visible weapon mismatch;
+- reloading or firing;
+- lockpicking, bashing, sabotage, or body interaction;
+- blood or damage on the disguise;
+- compromised uniform class;
+- player proximity to a fresh disturbance;
+- repeated lingering near the target.
+
+Normal walking with a valid uniform and plausible weapon should remain credible at medium distance. Elite or same-unit guards identify inconsistencies faster.
+
+### 9.4 Access tiers
+
+- `PUBLIC`: civilians and all uniforms allowed.
+- `STAFF`: staff or security uniform required.
+- `SECURITY`: security uniform required.
+- `ELITE`: elite security identity or credentials required.
+- `PRIVATE_TARGET`: only target, close protection, and specifically authorized identities.
+
+Access checks should reuse the game's off-limits and frustration/suspicion behavior rather than create a completely separate detection channel.
+
+### 9.5 Weapons and behavior
+
+- A civilian disguise with a visible rifle is immediately implausible.
+- Regular security may carry common security weapons.
+- Elite security may carry heavier mission-appropriate weapons.
+- Holstered or concealed weapon state should be respected if exposed by the game.
+- Aiming at anyone breaks social cover immediately.
+- Gunfire compromises the current disguise to direct witnesses and communicated recipients.
+
+### 9.6 Compromised disguises
+
+When the source body is discovered and correctly processed:
+
+1. The investigating guard identifies missing clothing or credentials.
+2. The guard gains a high-confidence disguise warning.
+3. Nearby guards are warned.
+4. If radio is available and undisrupted, the warning is transmitted.
+5. Recipients treat that disguise class as compromised for the contract.
+
+If the body is hidden or the radio call is interrupted, global compromise does not occur. Direct witnesses may still know.
+
+Compromise can be scoped:
+
+- specific stolen identity;
+- uniform class;
+- faction-wide, only at maximum alert.
+
+The first implementation uses uniform-class compromise because it is observable and testable. Later versions may distinguish individual identities.
+
+### 9.7 Appearance
+
+The player must visibly change enough for the mechanic to be readable. Preferred order:
+
+1. Reuse an existing compatible actor animation/appearance set.
+2. Apply a dedicated uniform layer or color/variant supported by player sprites.
+3. Add authored player-compatible sprites for missing uniforms.
+
+Detection logic must not ship without any visual indication that a disguise is active.
+
+---
+
+## 10. Keycards and credentials
+
+- NPCs may already carry keycards or keychains.
+- Searching or neutralizing eligible guards may expose their credentials.
+- HCO should use native keycard objects and door verification.
+- Contract targets and elite guards may receive access appropriate to their safe areas.
+- A uniform and a keycard solve different problems: clothing reduces suspicion; credentials open controlled access.
+- A stolen keycard may remain valid even after a uniform is compromised unless security explicitly enters a future credential-lockdown state.
+
+---
+
+## 11. Cameras, thermal cameras, and drones
+
+### 11.1 Existing cameras
+
+- Integrate with native security camera behavior.
+- Disguises affect camera suspicion based on zone and visible behavior.
+- Broken or disrupted cameras create security information, not instantaneous omniscience.
+- Camera operators are meaningful security roles.
+
+### 11.2 Thermal cameras
+
+Thermal cameras are a later system built on the native camera class where possible.
+
+Rules:
+
+- require line of sight;
+- ignore normal darkness penalties;
+- do not see through solid walls;
+- may have wider long-range detection but readable sweep behavior;
+- can be disrupted by EMP/disruptor effects;
+- can be disabled through power or operator sabotage;
+- may be partially degraded by dense smoke or environmental obstruction if technically supportable.
+
+### 11.3 Drones
+
+Drones are phase-three content, not part of the first playable slice.
+
+Rules:
+
+- follow authored patrol zones or validated aerial paths;
+- use line of sight and a visible sensor direction;
+- detect exposed weapons, bodies, or unauthorized identities;
+- update a last-known position rather than track through walls;
+- communicate through radio/security systems;
+- can be shot down or electronically disrupted;
+- crashing or disappearing creates a localized alert;
+- must have unique sprites, sounds, and readable states.
+
+---
+
+## 12. Contract types
+
+Initial:
+
+- eliminate target;
+- neutralize target.
+
+Expansion:
+
+- eliminate without raising a confirmed alarm;
+- eliminate without civilian casualties;
+- neutralize and extract intelligence;
+- steal data from the target, then optionally eliminate;
+- prevent target escape;
+- eliminate while preserving the close-protection team;
+- staged accident or environmental kill, only if the map supports it;
+- specific weapon-family condition;
+- no-disguise or disguise-only variant.
+
+Optional conditions increase rewards. They should not obscure the primary contract condition.
+
+---
+
+## 13. Rewards and progression
+
+- Use normal campaign money.
+- Manual HCO rewards must be granted once only.
+- Rewards become persistent through the normal campaign save path.
+- The contract seed and resolution state must prevent duplicate reward exploits after reload.
+- Earned skill experience may be granted only after the exact progression path is verified.
+- Do not add a separate contract currency in the initial product.
+- Do not add an external progression tree merely to inflate scope.
+
+Reward drivers:
+
+- target security tier;
+- map difficulty;
+- optional conditions;
+- alarm state at resolution;
+- target escape risk;
+- non-lethal extraction versus elimination.
+
+---
+
+## 14. Native presentation
+
+### 14.1 Allowed presentation
+
+- existing objective list;
+- existing objective start indicator;
+- existing position indicator;
+- existing interaction prompts;
+- existing pickup notifications;
+- existing suspicion/detection visualization;
+- mobile dialogue or radio lines;
+- existing money/reward feedback;
+- subtle outline or icon behavior already used by the game.
+
+### 14.2 Disallowed presentation
+
+- permanent custom contract dashboard;
+- floating health bar above the target;
+- MMO-style quest arrows visible through all geometry;
+- custom currency panel;
+- separate F-key menu during normal play;
+- constant textual explanation of AI state;
+
+### 14.3 Required player information
+
+The player must be able to understand:
+
+- who the target is;
+- approximate target area or last known information;
+- current primary contract condition;
+- whether the target is escaping;
+- whether a disguise is active;
+- whether the current disguise has become compromised;
+- whether the contract completed or failed.
+
+This information should be delivered with the least new UI possible.
+
+---
+
+## 15. Map compatibility model
+
+### 15.1 Authored profiles
+
+High-quality support uses a profile per map:
+
+- excluded story actor IDs;
+- eligible target actor IDs or spawn definitions;
+- routine nodes;
+- safe nodes;
+- evacuation nodes;
+- security anchor nodes;
+- restricted zones;
+- camera and power relationships;
+- target archetype whitelist;
+- unsupported mission phases;
+- reward modifier.
+
+### 15.2 Generic fallback
+
+Generic mode may select an existing eligible goon and reuse its patrol route. It must remain conservative:
+
+- never select named/story NPCs;
+- never select actors referenced by vanilla objectives;
+- require a valid active patrol route or several reachable fallback points;
+- require enough other guards to create protection;
+- skip the map when confidence is low.
+
+Generic support is not a substitute for authored profiles on important campaign maps.
+
+---
+
+## 16. Persistence and reload semantics
+
+Persist:
+
+- contract seed;
+- selected target identity or reconstruction data;
+- target state where safe;
+- contract completion/failure;
+- reward-granted state;
+- active disguise;
+- compromised disguise classes;
+- relevant security knowledge only when save compatibility allows it.
+
+On mission reload:
+
+- the same contract must be reconstructed;
+- rewards must not duplicate;
+- target and escort references must be rebound by stable IDs, never stale Lua object references;
+- invalid references must fail closed and skip the contract rather than crash;
+- vanilla mission state must remain authoritative.
+
+On returning to the main menu:
+
+- remove dynamic listeners;
+- clear runtime actor references;
+- restore hooked methods only if the module owns them and restoration is safe;
+- leave registered data classes idempotent for the process lifetime.
+
+---
+
+## 17. Technical findings already verified
+
+The following capabilities exist in Intravenous 2 1.4.12HF3 and are relevant to HCO:
+
+- `game.EVENTS.MAP_LOADED`, `GAME_UNLOADED`, `RESET_STARTED`, `RESET_FINISHED`, `LEVEL_FINISHED`, `PLAYER_SET`, and related lifecycle events.
+- `game.worldObject:getNPCs()` exposes loaded NPCs.
+- Actor classes can be resolved through `actor.getClassData("goon")` in the Workshop environment.
+- The goon class exposes native detection methods including `increaseDetection`, `setDetection`, and `setEnemyInSight`.
+- Goon actors expose experience levels, radios, flashlights, vision ranges, keycards, keychains, inventory, patrol routes, destination handlers, suspicion, alert, combat, body, unconscious, and death state.
+- Native objective tasks include `kill_enemy`, `neutralize_enemy`, `optional_task`, sequence tasks, progress tracking, and position markers.
+- `objectiveHandler:registerNewObjective`, `addObjectivesToList`, `createObjective`, and `fillObjectives` provide a path for native dynamic objectives.
+- Objective rewards can use normal funds and auto-claim behavior.
+- Native security cameras expose detection and disruption behavior.
+- Native keycards and keycard doors already support physical credential pickup and verification.
+- Native radio states and backup requests already exist.
+- Native body investigation, missing patrol, suspicion, alert, and combat behavior can be extended rather than replaced.
+
+Important compatibility lesson from the existing Cheat Trainer:
+
+- The restricted Workshop environment may not expose the internal `goon` global. Always resolve the registered class through the public actor registry.
+- Hooks must be idempotent because a mod may accidentally be loaded both locally and from Workshop.
+- Never replace global weapon input/fire handling for HCO.
+- Never interfere with mouse capture or GUI ownership; HCO does not need a custom in-mission menu.
+
+---
+
+## 18. Proposed module architecture
+
+```text
+Hitman-Contracts-Overhaul/
+  preview.jpg
+  files/
+    main.lua
+    hco/
+      bootstrap.lua
+      constants.lua
+      runtime.lua
+      lifecycle.lua
+      diagnostics.lua
+      contracts/
+        catalog.lua
+        generator.lua
+        contract.lua
+        rewards.lua
+      targets/
+        target_director.lua
+        target_states.lua
+        routing.lua
+        archetypes.lua
+      security/
+        security_director.lua
+        knowledge.lua
+        hunt.lua
+        escorts.lua
+      disguises/
+        disguise.lua
+        recognition.lua
+        body_interactions.lua
+        access.lua
+      sensors/
+        cameras.lua
+        thermal_camera.lua
+        drone.lua
+      integration/
+        objectives.lua
+        actors.lua
+        keycards.lua
+        radio.lua
+        saves.lua
+      maps/
+        registry.lua
+        generic.lua
+        iv2_mapX.lua
+      localization/
+        english.lua
+```
+
+The initial slice may contain fewer physical files, but responsibilities must remain separable. Do not recreate a single giant `main.lua`.
+
+---
+
+## 19. Runtime ownership
+
+One process-wide namespaced state should own:
+
+- installation version;
+- installed hook references;
+- registered listeners;
+- current world generation token;
+- current contract;
+- actor metadata maps;
+- disguise state;
+- cleanup functions;
+- diagnostic level.
+
+Recommended namespace:
+
+```lua
+playerActor._hcoState
+```
+
+or another globally reachable game-owned table that survives duplicate mod loads without depending on a mission player instance. The final owner must be chosen after runtime validation.
+
+Every event callback must validate:
+
+- current world token;
+- object existence;
+- object validity where `isValid()` exists;
+- expected actor type;
+- contract state.
+
+---
+
+## 20. Implementation phases
+
+**Implementation checkpoint (`0.9.0-rc2`, 2026-08-06):** Phases 0–5 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation, and rollback tests. These are implementation results, not substitutes for real-game proof. Per the user's explicit decision, the coherent RC was built first and is now tested in-game as one integrated build. Phase 6 physical thermal-camera and drone actors remains a post-v1 expansion; the RC only integrates existing cameras with disguise and sensor-evidence behavior.
+
+### Phase 0: Runtime probe
+
+Goal: collect stable public runtime fields and confirm lifecycle ordering without altering gameplay.
+
+- Listen to `MAP_LOADED`, `RESET_FINISHED`, `GAME_UNLOADED`, and actor neutralization/death events.
+- Enumerate eligible NPC IDs, names, classes, patrol-route availability, experience, weapon, radio, keycard, and state.
+- Log map ID and objective IDs.
+- Prove cleanup across reload and main menu.
+
+Exit criteria:
+
+- no crashes;
+- no duplicate listeners;
+- useful diagnostics from at least two missions;
+- stable target eligibility rules can be written.
+
+### Phase 1: Contract vertical slice
+
+Goal: one native assassination contract in one mission.
+
+- Select a non-story target conservatively.
+- Mark it with namespaced runtime metadata.
+- Register and start a native optional objective.
+- Detect target death/neutralization.
+- Grant one normal money reward.
+- Make selected nearby guards elite using existing experience and equipment APIs.
+- Keep the original mission fully functional.
+
+Exit criteria:
+
+- objective appears in native UI;
+- target completion resolves exactly once;
+- reload does not duplicate rewards;
+- target is lethal under normal rules;
+- no custom overlay.
+
+### Phase 2: Mobile target and security bubble
+
+- Give target a routine of at least three valid nodes.
+- Implement `ROUTINE`, `UNEASY`, `THREATENED`, `SHELTERED`, and `EVACUATING`.
+- Implement anti-stuck watchdog and alternate-node recovery.
+- Assign close-protection guards.
+- Target relocates to safer areas when alerted.
+- Target can physically escape.
+
+Exit criteria:
+
+- target never remains stationary for the entire mission unless its archetype and state justify it;
+- target reacts to nearby danger;
+- target reaches at least two different nodes during a normal observation test;
+- no unresolved movement failure exceeds ten seconds;
+- guards do not permanently block target navigation.
+
+### Phase 3: First disguise
+
+- Add body interaction for eligible regular-security NPCs.
+- Apply visible player disguise.
+- Reduce detection for compatible guards during plausible behavior.
+- Preserve normal detection for weapons, aiming, off-limits behavior, and close familiarity.
+- Support one access tier.
+- Restore default appearance when disguise is removed or invalidated.
+
+Exit criteria:
+
+- player can cross a guarded public/semi-restricted area while behaving normally;
+- aiming or carrying an implausible weapon breaks cover;
+- normal combat remains unchanged when no disguise is active.
+
+### Phase 4: Compromise and smarter hunt
+
+- Body discovery compromises uniform class after valid communication.
+- Radio interruption prevents remote propagation.
+- Search uses last-known position and sectors.
+- Target changes safe area after a breach.
+- Elite guards contain exits and avoid uncontrolled single-file rushing where native APIs allow.
+
+### Phase 5: Full contract product
+
+- Authored profiles for multiple campaign missions.
+- Several target archetypes.
+- Three disguise tiers.
+- Keycard integration.
+- Multiple contract conditions.
+- Target escape and differentiated rewards.
+- Localization-ready text.
+- Workshop packaging and visual assets.
+
+### Phase 6: Advanced security
+
+- Thermal camera subtype.
+- Drone actors and operators.
+- Power/security relationships.
+- Advanced evidence and identity knowledge.
+
+---
+
+## 21. Vertical-slice acceptance test
+
+The first playable slice is accepted only when all are true:
+
+1. The game reaches the main menu without HCO errors.
+2. Loading an unsupported mission does not create a contract and does not crash.
+3. Loading the supported test mission creates exactly one contract.
+4. The objective appears through the native objective system.
+5. The target is an eligible non-story NPC.
+6. The target has a stable HCO ID and visible/trackable contract identity.
+7. The target moves between validated positions.
+8. Danger causes the target to select a safer position.
+9. A blocked route triggers recovery rather than permanent stalling.
+10. Nearby assigned guards use elite native settings.
+11. Killing or neutralizing the target resolves the objective once.
+12. The normal mission can still be completed.
+13. Reloading cannot award the same contract twice.
+14. Returning to the main menu removes runtime references.
+15. The Cheat Trainer remains untouched and independently functional.
+
+---
+
+## 22. Test matrix
+
+### Lifecycle
+
+- cold game start;
+- local mod only;
+- Workshop mod only;
+- accidental local plus Workshop duplicate;
+- new mission;
+- mission restart;
+- save and load;
+- return to main menu;
+- finish mission;
+- enter another mission.
+
+### Target
+
+- target killed quietly;
+- target knocked unconscious;
+- target killed by environment;
+- target killed by another NPC;
+- target loses all escorts;
+- target route blocked by door;
+- target route becomes inaccessible;
+- safe area compromised;
+- target reaches evacuation;
+- target removed by vanilla script.
+
+### Disguise
+
+- clean uniform at medium distance;
+- close inspection by same-unit elite;
+- visible legal weapon;
+- visible illegal weapon;
+- aiming;
+- running;
+- restricted zone;
+- body discovered without radio;
+- body discovered with radio;
+- disrupted radio;
+- combat started while disguised;
+- save/load while disguised.
+
+### Compatibility
+
+- no Cheat Trainer installed;
+- Cheat Trainer local installation present;
+- several subscribed weapon mods;
+- custom map without HCO profile;
+- map with no NPCs;
+- map with story-critical named NPCs.
+
+---
+
+## 23. Risk register
+
+### High risk
+
+- Reliable dynamic injection of native objectives after vanilla objective setup.
+- Determining story-critical actors generically.
+- Changing player appearance with complete weapon/stance animation coverage.
+- Controlling target routes without fighting vanilla actor state logic.
+- Adding drone navigation and sprites.
+
+### Medium risk
+
+- Clean reward persistence across every reload path.
+- Identifying restricted zones without authored map profiles.
+- Propagating compromised-disguise knowledge through native radio behavior.
+- Keeping close escorts useful without blocking the target.
+- Compatibility with mods that also override goon detection.
+
+### Low risk
+
+- Selecting NPCs from `worldObject:getNPCs()`.
+- Listening for actor death/neutralization.
+- Assigning native experience levels and weapons.
+- Reading patrol-route and keycard data.
+- Using normal funds as rewards after completion.
+
+Mitigation principle: unknown or unsafe behavior causes HCO to skip a feature or contract, never to modify unrelated campaign state speculatively.
+
+---
+
+## 24. Explicit non-goals for the first release
+
+- New standalone campaign.
+- Procedural generation of map geometry.
+- Full Hitman-style civilian conversation simulation.
+- Perfect disguises for every faction and every player animation.
+- Wall-penetrating or indestructible drones; physical search drones are now part of RC6.
+- Thermal vision through walls.
+- Target health bars or boss phases.
+- Online daily contracts.
+- Leaderboards.
+- Separate currencies or battle-pass progression.
+- Replacing every vanilla enemy AI state.
+
+---
+
+## 25. Future-agent handoff rules
+
+1. Read this entire specification before changing HCO code.
+2. Treat this file as the source of truth unless the user explicitly changes a decision.
+3. Do not edit `Intravenous2-CheatMenu` while implementing HCO.
+4. Keep HCO in a separate source, local-mod, and Workshop-staging directory.
+5. Preserve native UI and avoid custom overlays.
+6. Preserve the user's consolidated-RC decision: maintain the integrated Phase 0–5 build, run the final in-game validation as one coherent pass, then fix observed engine issues without reverting completed systems to isolated probes.
+7. Never claim disguise, objectives, movement, or persistence work from a syntax test alone.
+8. Record discovered runtime APIs and map-specific IDs in a dedicated evidence file.
+9. Use idempotent hooks and restore or neutralize them on game unload.
+10. Prefer authored compatibility profiles over risky generic behavior.
+11. Never make security omniscient to simulate difficulty.
+12. Never make the target a bullet sponge.
+13. Never use teleportation as normal target movement.
+14. Add new assets only with complete attribution and Workshop-safe licensing.
+15. Update this specification when a user decision materially changes the product.
+
+---
+
+## 26. RC6 implementation decision — multi-contract intelligence and physical drones
+
+The user's 2026-08-06 direction supersedes the former single-target/drone-future boundary:
+
+- Compatible maps may create one, two, or three isolated contracts according to safe actor population.
+- Every contract owns its target, protection roster, objective/marker UID, AI, security knowledge, reward, and terminal state.
+- Campaign persistence uses a v3 bundle and migrates a v2 single record into slot one.
+- Targets are reserved before protection assignment; no target or guard may be shared between contracts.
+- The first marker leads to a persistent field-intelligence dead drop near mission entry. Proximity reveals the exact moving target marker; a 55-second fallback prevents inaccessible generated clues from blocking play.
+- Protection remains heavy: five to fifteen elite guards per target, fairly capped when several details share one map.
+- A body discovery by contract security requests a three-drone search deployment. Drones fly physical map-space sector patterns, use line-of-sight scan cones and shadow-mapped searchlights, can be shot or disrupted, and share only confirmed sightings.
+- A confirmed drone sighting raises PRESSURE, sends the last-known player position to living response units, and triggers distributed native alert/search movement.
+- Drone artwork is original generated project artwork stored in `files/assets/hco`; no external copyrighted asset is used.
+
+Validate `0.10.0-rc6` in Intravenous 2 `1.4.12HF3` as an integrated build:
+
+- confirm clean boot and one-to-three native optional objectives in a compatible campaign mission;
+- follow each initial clue marker, acquire the intelligence, and confirm the marker switches to its own moving target;
+- confirm targets and protection rosters are distinct and each detail has at least five guards on a sufficiently populated map;
+- observe routine movement, threat relocation, shelter reselection, and physical escape behavior;
+- expose a corpse near the protection team, confirm several visible drones launch and search separate sectors, then shoot one down;
+- let a drone confirm the player and verify the scanlight changes state and response units converge on the reported position;
+- acquire a disguise from an unconscious or dead guard and verify appearance, keycard access, plausible detection reduction, behavior exposure, local body evidence, radio propagation, and radio disruption;
+- neutralize or kill targets and confirm exactly one campaign-money payout per contract without any `studio` traceback;
+- reload during an active contract and after a terminal result to confirm stable target identity and no duplicate objective or reward;
+- complete the vanilla mission and return to the main menu without errors;
+- capture `[HCO]` diagnostics and any crash log, then correct only failures observed against the real engine.
+
+Do not claim RC6's new visual drone layer as in-game verified until this pass is complete.
+
+### RC7 archetype identity decision
+
+- Full replacement character animation atlases are not used unless every stance, weapon, cover, hit, body, and death frame can be authored and registered safely.
+- HCO instead assigns complete native animation variants per archetype and overlays a small original faction patch through the existing actor post-draw pass.
+- Executive uses `gideon`/`bodyg`/`police` with a gold diamond.
+- Commander uses `merc`/`police` with a red military chevron.
+- Broker uses `bandit`/`motor` variants with a violet broker-serpent mark.
+- Fixer uses `bodyg`/`merc`/`gideon` with a cyan crosshair.
+- Original animation variants and HCO visual metadata must be restored during teardown and reload rollback.
+- Drone behavior is archetype-specific: Watcher, Smuggler Eye, Hunter Swarm, and Interceptor doctrines vary count, speed, range, acquisition time, and armor.
+
+### RC8 audiovisual feedback decision
+
+- A confirmed nearby or radio-relayed hostile sighting deploys drones even without body evidence; body discovery remains an independent trigger.
+- Every live drone has a seamless original rotor loop whose volume follows player distance and is stopped on destruction/removal.
+- Contract completion uses a compact fading native HUD indicator containing archetype, payout and optional-condition result, plus an original chime and native confirmation cue.
+- Custom audio failure must fall back to verified native sound IDs without affecting contract settlement.
+- ElevenLabs voice/SFX is reserved for a later authored radio-callout pack after custom voice localization, volume ducking and Workshop asset-loading behavior are live-verified.

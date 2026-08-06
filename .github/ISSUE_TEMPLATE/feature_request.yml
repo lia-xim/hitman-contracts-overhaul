@@ -1,0 +1,21 @@
+name: Feature request
+description: Propose a native-first contract or social-stealth feature
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: fantasy
+    attributes:
+      label: Player fantasy and problem
+    validations:
+      required: true
+  - type: textarea
+    id: system
+    attributes:
+      label: Proposed systemic behavior
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Vanilla compatibility and failure behavior
