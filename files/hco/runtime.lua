@@ -104,8 +104,8 @@ function runtime.install(state)
 		-- Some engine builds create priorityRenderer after local mods are loaded.
 		-- Retry the idempotent native-layer registration from the live update path.
 		state.droneRendererRetry = math.max(0, (state.droneRendererRetry or 0) - dt)
-		if state.droneRendererRetry <= 0 and (not state.hooks or not state.hooks.hcoDroneRenderLayer) then
-			pcall(visuals.initialize, state)
+		if state.droneRendererRetry <= 0 then
+			pcall(visuals.ensureDroneRenderer, state)
 			state.droneRendererRetry = 0.5
 		end
 		if not game.worldObject then

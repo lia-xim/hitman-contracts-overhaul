@@ -12,13 +12,24 @@ local droneRenderLayer = {
 local function installDroneRenderer(state)
 	state.hooks = state.hooks or {}
 	if not priorityRenderer or type(priorityRenderer.add) ~= "function" then return false end
-	if priorityRenderer.activeRenderMap and priorityRenderer.activeRenderMap[droneRenderLayer] then
+	local registered = priorityRenderer.activeRenderMap and priorityRenderer.activeRenderMap[droneRenderLayer]
+	if registered and type(priorityRenderer.findObject) == "function" then
+		registered = priorityRenderer:findObject(droneRenderLayer) ~= nil
+	end
+	if registered then
 		state.hooks.hcoDroneRenderLayer = droneRenderLayer
 		return true
 	end
+	-- Map transitions rebuild renderOrder independently in the live game. Clear
+	-- a stale map entry or priorityRenderer:add() will return without reinserting.
+	if priorityRenderer.activeRenderMap then priorityRenderer.activeRenderMap[droneRenderLayer] = nil end
 	priorityRenderer:add(droneRenderLayer, droneRenderLayer.priority)
 	state.hooks.hcoDroneRenderLayer = droneRenderLayer
 	return true
+end
+
+function visuals.ensureDroneRenderer(state)
+	return installDroneRenderer(state)
 end
 
 local function loadSheet()

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0-rc19 — 2026-08-06
+
+- Fixed the live map-transition failure where the engine rebuilt `priorityRenderer.renderOrder` but HCO retained a stale `activeRenderMap` registration.
+- The runtime now validates the actual render list every half-second and safely reinserts the drone layer whenever a map or renderer reset removes it.
+- Updated the one-shot airframe diagnostic to identify RC19 explicitly.
+
 ## 0.10.0-rc18 — 2026-08-06
 
 - Decoupled drone rendering from faction/NPC visual initialization so a temporarily unavailable goon class can no longer disable drone bodies for the whole session.

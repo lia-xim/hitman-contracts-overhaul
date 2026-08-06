@@ -323,7 +323,7 @@ local function updateRenderDiagnostic(security, dt)
 	if diagnostic.remaining > 0 then return end
 	security.droneRenderDiagnostic = nil
 	local rendered = renderPasses > diagnostic.startPasses
-	feedback.show("HCO RC18 DRONE CHECK — renderer " .. (rendered and "ACTIVE" or "NOT CALLED") .. ", sprite " .. (sprite and "READY" or "MISSING") .. ", airframes " .. tostring(#activeDrones))
+	feedback.show("HCO RC19 DRONE CHECK — renderer " .. (rendered and "ACTIVE" or "NOT CALLED") .. ", sprite " .. (sprite and "READY" or "MISSING") .. ", airframes " .. tostring(#activeDrones))
 end
 
 function drones.request(context, count, reason, quiet)
