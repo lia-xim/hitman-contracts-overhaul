@@ -51,6 +51,32 @@ local function chooseDestination(self)
 	return targetX, targetY
 end
 
+local function angleDifference(a, b)
+	local diff = (a - b + math.pi) % (math.pi * 2) - math.pi
+	return math.abs(diff)
+end
+
+local function canSeePlayer(self, player)
+	local px, py = util.getPos(player)
+	if not px then return false end
+	local sx, sy = (self.x or 0) + 13, (self.y or 0) + 13
+	local dx, dy = px - sx, py - sy
+	local distance = math.sqrt(dx * dx + dy * dy)
+	if distance > (self.radius or config.DRONE_SCAN_RADIUS) then return false end
+	local heading = self.curViewAngRad or 0
+	if angleDifference(math.atan2(dy, dx), heading) > math.rad((self.lightFOV or config.DRONE_FOV) * 0.5) then return false end
+
+	-- Geometry is authoritative. A failed/unsupported raycast falls back to the
+	-- cone result; a real blocking fixture still prevents wall vision.
+	if type(self.runGenericRaycast) ~= "function" then return true end
+	local ok, hitData = pcall(self.runGenericRaycast, self, sx, sy, px, py, player)
+	if not ok or not hitData then return true end
+	local fixture = hitData.fixture
+	if not fixture then return true end
+	local okFixture, playerFixture = util.call(player, "getFixture")
+	return okFixture and fixture == playerFixture
+end
+
 local function notifyConfirmedSighting(self, player)
 	local context = self.hcoContext
 	if not context or not context.security then return end
@@ -149,11 +175,9 @@ function drones.initialize()
 		end
 
 		local player = game and game.playerActor
-		local visible = false
-		if player and util.isAlive(player) then
-			local ok, hit = pcall(self.checkVision, self, player)
-			visible = ok and hit == true
-		end
+		local visible = player and util.isAlive(player) and canSeePlayer(self, player) or false
+		if visible then self.hcoSightGrace = 0.4 else self.hcoSightGrace = math.max(0, (self.hcoSightGrace or 0) - dt) end
+		visible = visible or (self.hcoSightGrace or 0) > 0
 		if visible then
 			local detectTime = config.DRONE_DETECT_TIME * (self.hcoDetectScale or 1) * (aggressive and 1 or config.DRONE_PATROL_DETECT_MULTIPLIER)
 			self.hcoDetect = math.min(detectTime, self.hcoDetect + dt)

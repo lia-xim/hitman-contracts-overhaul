@@ -12,7 +12,7 @@ These checks do not prove live AI behavior or rendering. A release candidate is 
 5. Let an HCO guard confirm the player. Verify the response deployment notice, that the target flees away with its close bodyguards, and that only the separate response units converge and fire.
 6. Verify that passive patrol drones have a clearly visible animated four-rotor body above the active searchlight, move around the protected target, and produce distance-reactive rotor audio. Three suppressed player shots and NPC fire must not trigger aggressive mode.
 7. Fire at least three loud player shots within eight seconds or damage one guard without immediately killing the target; verify `DRONE SUPPORT INBOUND`, the aggressive-search notice, faster drones, rotor audio, scan cones, and destructibility.
-8. Let a drone detect the player and verify coordinated pressure toward the last known position.
+8. Stand visibly inside a drone cone for at least one second. Verify the cone changes color, `DRONE CONTACT` appears, and response units receive and move toward that last-known position.
 9. Resolve the target and verify the compact completion banner, sound, payout, and persistence after reload.
 
 If drone construction fails, RC13 displays either `HCO DRONE SUPPORT OFFLINE` with the concrete spawn reason or `HCO DRONE RUNTIME ERROR` with the failing subsystem call. Capture that full message in the report.

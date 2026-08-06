@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0-rc15 — 2026-08-06
+
+- Corrected the render hook after engine inspection proved that the main renderer never invokes `world:postDraw()`.
+- Drone bodies now render immediately after `world:drawActors()` while the world camera transform is active.
+- Replaced stationary-camera detection assumptions with explicit distance, cone-angle, and obstruction checks.
+- Added a short sight-contact grace period so a moving drone cannot lose a player between adjacent samples.
+- Reduced aggressive confirmation time to 0.55 seconds and passive patrol confirmation to roughly one second.
+- Added deterministic coverage for sustained in-cone player detection and confirmed drone sightings.
+
 ## 0.10.0-rc14 — 2026-08-06
 
 - Fixed invisible drone bodies while their searchlights remained active.
