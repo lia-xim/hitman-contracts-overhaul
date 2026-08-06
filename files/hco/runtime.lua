@@ -99,6 +99,7 @@ function runtime.install(state)
 	local updateState = {}
 
 	function updateState:update(dt)
+		feedback.update(dt)
 		if not game.worldObject then
 			return
 		end

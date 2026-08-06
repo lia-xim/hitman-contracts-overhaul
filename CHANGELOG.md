@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0-rc13 — 2026-08-06
+
+- Fixed the live `quadStruct` crash caused by sending runtime-created camera carriers through finalized native sprite batches.
+- Drone carriers now bypass native sprite updates and use the bundled animated flight sheet for rendering.
+- Replaced simultaneous fading-text indicators with a deduplicating sequential notification queue.
+- Moved HCO tactical notices to the lower third to avoid native objective announcements.
+- Made contract completion the only notification that can pre-empt stale tactical messages.
+- Reset pending notifications across map unload, reset, level completion, and main-menu transitions.
+
 ## 0.10.0-rc12 — 2026-08-06
 
 - Replaced late custom drone-class creation with per-instance behavior on an engine-owned security-camera carrier.

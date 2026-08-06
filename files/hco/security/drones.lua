@@ -115,10 +115,14 @@ function drones.initialize()
 	end
 
 	function drone:getDrawColor()
-		-- Keep the native camera body visible as a guaranteed in-engine marker.
-		-- The animated flight sheet is layered over it when available.
-		return 255, 255, 255, 255
+		return 255, 255, 255, 0
 	end
+
+	-- Runtime cameras have no sprite-batch quadStruct because the map has
+	-- already finalized its native sprite batches. Custom drone rendering owns
+	-- the visuals, so the native sprite update must be bypassed entirely.
+	function drone:getDrawPosition() return self.x, self.y end
+	function drone:updateSprite() return end
 
 	function drone:postDraw()
 		if self.broken or not sprite or not quads then return end
@@ -208,6 +212,8 @@ local function spawn(context, index)
 		-- behavior of this instance. This avoids relying on late class registration,
 		-- which silently failed in the live Workshop/local-mod runtime.
 		instance.getDrawColor = droneClass.getDrawColor
+		instance.getDrawPosition = droneClass.getDrawPosition
+		instance.updateSprite = droneClass.updateSprite
 		instance.postDraw = droneClass.postDraw
 		instance.update = droneClass.update
 		instance.breakCam = droneClass.breakCam

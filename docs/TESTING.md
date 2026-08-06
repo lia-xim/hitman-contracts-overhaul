@@ -7,6 +7,7 @@ These checks do not prove live AI behavior or rendering. A release candidate is 
 1. Reach the main menu without an HCO traceback.
 2. Start a compatible mission from the beginning and confirm at least one native optional contract.
 3. Recover field intelligence and verify the moving target marker.
+   HCO tactical notices must appear one at a time in the lower third and must not overlap the native contract/objective announcement.
 4. Reset all Cheat Trainer settings, if installed.
 5. Let an HCO guard confirm the player. Verify the response deployment notice, that the target flees away with its close bodyguards, and that only the separate response units converge and fire.
 6. Verify that passive patrol drones are already moving around the protected target and produce distance-reactive rotor audio. Three suppressed player shots and NPC fire must not trigger aggressive mode.
@@ -14,6 +15,6 @@ These checks do not prove live AI behavior or rendering. A release candidate is 
 8. Let a drone detect the player and verify coordinated pressure toward the last known position.
 9. Resolve the target and verify the compact completion banner, sound, payout, and persistence after reload.
 
-If drone construction fails, RC12 displays either `HCO DRONE SUPPORT OFFLINE` with the concrete spawn reason or `HCO DRONE RUNTIME ERROR` with the failing subsystem call. Capture that full message in the report.
+If drone construction fails, RC13 displays either `HCO DRONE SUPPORT OFFLINE` with the concrete spawn reason or `HCO DRONE RUNTIME ERROR` with the failing subsystem call. Capture that full message in the report.
 
 Open issues must include the game version, map, active mods, whether the mission began fresh or from a save, exact reproduction steps, and any `[HCO]` log or traceback.

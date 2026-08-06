@@ -1,6 +1,7 @@
 local config = require("hco/config")
 local core = require("hco/contracts/core")
 local diagnostics = require("hco/diagnostics")
+local feedback = require("hco/feedback")
 local securityDirector = require("hco/security/director")
 local stateModule = require("hco/state")
 local util = require("hco/util")
@@ -79,6 +80,7 @@ end
 
 local function dispatchEvent(state, event, ...)
 	if event == game.EVENTS.MAP_LOADED then
+		feedback.reset()
 		local initialLoad = ...
 		state.lastMapInitialLoad = initialLoad
 		assignTarget(state, initialLoad and "map-loaded-initial" or "map-loaded-save")
@@ -87,6 +89,7 @@ local function dispatchEvent(state, event, ...)
 	elseif event == game.EVENTS.RESET_FINISHED then
 		assignTarget(state, "reset-finished")
 	elseif event == game.EVENTS.RESET_STARTED or event == game.EVENTS.GAME_UNLOADED or event == game.EVENTS.RETURNING_TO_MAIN_MENU or event == game.EVENTS.PRE_REMOVE_GAME or event == game.EVENTS.LEVEL_FINISHED then
+		feedback.reset()
 		core.clearMap(state)
 	elseif event == actor.EVENTS.NEUTRALIZED then
 		onTargetNeutralized(state, ...)
