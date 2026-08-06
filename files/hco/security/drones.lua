@@ -180,7 +180,10 @@ local function hasLineOfSight(self, target, requireCone, maximumRange, requireRa
 end
 
 local function hasPlayerLineOfSight(self, player, requireCone)
-	return hasLineOfSight(self, player, requireCone)
+	-- Armed drones are never allowed to infer visibility. A completed native
+	-- geometry trace is mandatory so a roof/wall can never protect the drone
+	-- from player bullets while its weapon still damages the player.
+	return hasLineOfSight(self, player, requireCone, nil, true)
 end
 
 local function canSeePlayer(self, player)
@@ -329,7 +332,8 @@ function drones.initialize()
 	end
 	function drone:setPos(x, y)
 		drone.baseClass.setPos(self, x, y)
-		syncPhysicalBody(self)
+		local synced = syncPhysicalBody(self)
+		if self.hcoHitboxSize then self.hcoHitboxReady = synced end
 	end
 	function drone:updateSprite() return end
 	function drone:drawOutline()
@@ -345,7 +349,7 @@ function drones.initialize()
 
 	function drone:update(dt)
 		if self.broken then return false end
-		maintainPhysicalHitbox(self)
+		local hitboxReady = maintainPhysicalHitbox(self)
 		self.hcoHitFlash = math.max(0, (self.hcoHitFlash or 0) - dt)
 		self.hcoImpactPulse = math.max(0, (self.hcoImpactPulse or 0) - dt)
 		self.hcoArmorDisplay = math.max(0, (self.hcoArmorDisplay or 0) - dt)
@@ -355,6 +359,39 @@ function drones.initialize()
 		audio.updateRotor(self.hcoRotorSound, self)
 		self.hcoFrameTime = self.hcoFrameTime + dt
 		if self.hcoFrameTime >= 0.09 then self.hcoFrameTime = 0 self.hcoFrame = self.hcoFrame % 4 + 1 end
+		local offset = centerOffset(self)
+		local centerX, centerY = (self.x or 0) + offset, (self.y or 0) + offset
+		local safePosition = flight.isSafeCombatPoint(centerX, centerY, math.max(10, offset * 0.8))
+		if not safePosition and (self.hcoNextSafetyRecoveryAt or 0) <= (curTime or 0) then
+			self.hcoNextSafetyRecoveryAt = (curTime or 0) + 0.5
+			local recoveryX, recoveryY = flight.recoveryPoint(self)
+			if recoveryX then
+				self:setPos(recoveryX - offset, recoveryY - offset)
+				self.hcoDestX, self.hcoDestY = nil, nil
+				hitboxReady = maintainPhysicalHitbox(self)
+				safePosition = flight.isSafeCombatPoint(recoveryX, recoveryY, math.max(10, offset * 0.8))
+			end
+		end
+		local airframeReady = self.hcoAirframe ~= nil
+		if airframeReady and type(self.hcoAirframe.isValid) == "function" then
+			local ok, valid = pcall(self.hcoAirframe.isValid, self.hcoAirframe)
+			airframeReady = ok and valid == true
+		end
+		if not hitboxReady or not safePosition or not airframeReady then
+			-- Fairness invariant: an invisible, indoor or currently unhittable drone
+			-- is inert. It may repair/relocate briefly, but can never acquire or fire.
+			self.hcoUnsafeTime = (self.hcoUnsafeTime or 0) + dt
+			self.hcoDetect, self.hcoTracking, self.hcoSightGrace = 0, 0, 0
+			droneWeapons.update(self, game and game.playerActor, false, math.pi, dt, false)
+			local result = drone.baseClass.update(self, dt)
+			airframes.sync(self.hcoAirframe, self)
+			if self.hcoUnsafeTime >= 0.75 and not self.broken then
+				self.hcoSafetyRetired = true
+				self:breakCam(nil, true)
+			end
+			return result
+		end
+		self.hcoUnsafeTime = 0
 		if self.disrupted then
 			self.hcoDetect = 0
 			self.hcoTracking = 0
@@ -383,10 +420,14 @@ function drones.initialize()
 			if self.hcoTracking <= 0 then flight.beginTracking(self, player) else self.hcoTracking = 2.2 end
 		end
 		flight.updateTactics(self, player, aggressive, tacticalContact)
-		local offset = centerOffset(self)
-		local centerX, centerY = (self.x or 0) + offset, (self.y or 0) + offset
+		offset = centerOffset(self)
+		centerX, centerY = (self.x or 0) + offset, (self.y or 0) + offset
 		local destDistance = math.sqrt(((self.hcoDestX or centerX) - centerX)^2 + ((self.hcoDestY or centerY) - centerY)^2)
-		if not self.hcoDestX or destDistance < 36 or self.hcoTracking > 0 then self.hcoDestX, self.hcoDestY = chooseDestination(self) end
+		local now = curTime or 0
+		if not self.hcoDestX or destDistance < 36 or now >= (self.hcoDestRefreshAt or 0) then
+			self.hcoDestX, self.hcoDestY = chooseDestination(self)
+			self.hcoDestRefreshAt = now + (self.hcoTracking > 0 and 0.3 or 1.1)
+		end
 		local requestedSpeed = config.DRONE_SPEED * (self.hcoSpeed or 1) * modeSpeed
 		local maximumSpeed = aggressive and config.DRONE_MAX_AGGRESSIVE_SPEED or config.DRONE_MAX_PATROL_SPEED
 		local _, velocityAngle, movedDistance = flight.move(self, dt, math.min(requestedSpeed, maximumSpeed))
@@ -437,7 +478,9 @@ function drones.initialize()
 			aimError = flight.angleDifference(math.atan2(py - ((self.y or 0) + offset), px - ((self.x or 0) + offset)), self.hcoSensorAngle or 0)
 		end
 		local confirmed = aggressive and self.hcoTracking > 0 and ((curTime or 0) - (self.hcoLastConfirmedAt or -100)) < 3
-		droneWeapons.update(self, player, visible, aimError, dt, confirmed)
+		local attackOffset = centerOffset(self)
+		local attackReady = self.hcoHitboxReady == true and flight.isSafeCombatPoint((self.x or 0) + attackOffset, (self.y or 0) + attackOffset, math.max(10, attackOffset * 0.8))
+		droneWeapons.update(self, player, visible, aimError, dt, confirmed and attackReady)
 		airframes.sync(self.hcoAirframe, self)
 		return result
 	end
@@ -464,7 +507,7 @@ function drones.initialize()
 			self.hcoRotorSound = nil
 		end
 		local security = self.hcoContext and self.hcoContext.security
-		if security then
+		if security and not self.hcoSafetyRetired then
 			security.dronesDestroyed = (security.dronesDestroyed or 0) + 1
 			security.droneCrashEvidence = {x=crashX,y=crashY,time=curTime or 0,breaker=breaker}
 			security.droneMode = "AGGRESSIVE"
@@ -544,6 +587,9 @@ local function spawn(context, index)
 	if not x then return nil, "target-position-unavailable" end
 	if not registered then drones.initialize() end
 	if not droneClass and not drones.initialize() then return nil, "native-camera-class-unavailable" end
+	if not flight.roofMapReady() then return nil, "native-roof-map-not-ready" end
+	local spawnX, spawnY = flight.spawnPoint(context, index)
+	if not spawnX then return nil, "outdoor-spawn-point-unavailable" end
 	local ok, instance = pcall(objects.create, "security_camera")
 	local usedFallback = true
 	if not ok or not instance then return nil, "native-camera-create-failed: " .. tostring(instance) end
@@ -603,8 +649,6 @@ local function spawn(context, index)
 	instance.lightFOV = definition.fov or config.DRONE_FOV
 	instance.hitboxW, instance.hitboxH = hitbox, hitbox
 	if type(instance.setSize) == "function" then pcall(instance.setSize, instance, hitbox, hitbox) end
-	local spawnX, spawnY = flight.spawnPoint(context, index)
-	if not spawnX then return nil, "safe-spawn-point-unavailable" end
 	local initialAngle = math.atan2(y - spawnY, x - spawnX)
 	instance.hcoBodyAngle, instance.hcoSensorAngle = initialAngle, initialAngle
 	instance:setPos(spawnX - instance.hcoCenterOffset, spawnY - instance.hcoCenterOffset)
@@ -613,11 +657,15 @@ local function spawn(context, index)
 	local placed, placeError = pcall(function()
 		instance:onPlacedIntoMap()
 		instance.hcoHitboxReady = ensurePhysicalHitbox(instance, hitbox)
-		if not instance.hcoHitboxReady then util.log(config, "WARNING drone physical hitbox unavailable model=" .. tostring(definition.id)) end
+		if not instance.hcoHitboxReady then error("physical-hitbox-unavailable") end
 		if type(instance.makeAimable) == "function" then instance:makeAimable() end
 		game.addDynamicObject(instance)
 	end)
-	if not placed then return nil, "placement-failed: " .. tostring(placeError) end
+	if not placed then
+		pcall(game.removeDynamicObject, instance)
+		pcall(instance.remove, instance)
+		return nil, "placement-failed: " .. tostring(placeError)
+	end
 	local shell, shellError = airframes.create(instance, instance.x + instance.hcoCenterOffset, instance.y + instance.hcoCenterOffset)
 	if not shell then
 		pcall(game.removeDynamicObject, instance)
@@ -646,7 +694,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC29 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC30 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)
@@ -670,6 +718,9 @@ function drones.update(context, dt)
 	security.droneCooldown = math.max(0, (security.droneCooldown or 0) - dt)
 	local wanted = security.droneDeploymentRequested or 0
 	if wanted <= 0 or security.droneCooldown > 0 then return end
+	-- Keep the request queued until Intravenous 2 has finalized roof obstruction
+	-- data. Consuming it earlier was the source of indoor/locked-room spawns.
+	if not flight.roofMapReady() then return end
 	security.drones = security.drones or {}
 	local live = {}
 	for _, drone in ipairs(security.drones) do if drone and not drone.broken then table.insert(live, drone) end end

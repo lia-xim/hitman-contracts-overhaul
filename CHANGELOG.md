@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.13.1-rc30 — 2026-08-06
+
+- Replaced pathability-only drone placement with Intravenous 2's finalized native roof-obstruction map. Armed drones now deploy, patrol and recover only on fully clear outdoor footprints; roofed patrol-route points and locked interiors are rejected.
+- Added deterministic local outdoor search plus a spawn-only whole-map fallback, so large covered compounds retain drone support without accepting an unreachable indoor attacker.
+- Changed walls, doors, windows, roofs and map boundaries into hard flight constraints while retaining intentional traversal over low outdoor cover.
+- Made native raycast completion mandatory for player acquisition and attacks. Missing or failed geometry queries now mean no detection and no fire instead of optimistic wall vision.
+- Added a combat-readiness invariant: no drone may attack unless its visible airframe, centered Box2D bullet target and outdoor position are all valid in the same update.
+- Deployment now fails closed when a physical hitbox cannot be created. A hitbox lost at runtime is repaired briefly; persistent invisible/unhittable carriers are inert and quietly retired.
+- Kept deployment requests queued until the engine finishes building roof data and throttled tracking-destination refreshes to avoid map-query churn.
+- Added regressions for roofed path tiles, indoor-to-outdoor migration, strict geometry authority, roof-map readiness and automatic retirement of persistently unhittable drones.
+
 ## 0.13.0-rc29 — 2026-08-06
 
 - Added native-difficulty balance snapshots. Easy/Normal/Hard/True and bounded Custom settings now scale response count, guard/target health, drone count, sensor range/acquisition, displayed threat and payout together.

@@ -102,6 +102,28 @@ local _,_,wallMove,avoided=flight.move(drone,1,60)
 assertTrue(avoided and wallMove>0,"building wall triggers an active avoidance maneuver instead of a standstill")
 assertTrue(drone.x+13<340,"building avoidance does not cross the blocked wall tile")
 
+-- Intravenous 2 exposes its finalized indoor map through envController. A
+-- pathable tile under a roof is still an invalid armed-drone location.
+game.worldObject.getPFGridValue=function() return world.PATHFIND_TILE_STATE.WALKABLE end
+game.worldObject.getBestPFPoint=function(_,_,_,targetX,targetY) return {x=targetX,y=targetY} end
+testGrid.indexToWorld=function(_,index) return index.x,index.y end
+envController={
+	getRoofReady=function() return true end,
+	getPosUnderRoof=function(_,x) return x<600 end
+}
+assertTrue(not flight.isSafeCombatPoint(300,300),"roofed pathable floor is rejected as a combat position")
+local outdoorX,outdoorY=flight.snapToPlayable(300,300,300,300)
+assertTrue(outdoorX and outdoorX>=622 and flight.isSafeCombatPoint(outdoorX,outdoorY),"indoor route point is migrated to a fully clear outdoor footprint")
+drone.x,drone.y=650-13,420-13
+drone.hcoDestX,drone.hcoDestY=300,420
+local _,_,roofMove,roofAvoided=flight.move(drone,1,120)
+assertTrue(roofAvoided and roofMove>0 and drone.x+13>=600,"lag-sized movement step cannot tunnel through a roofed building footprint")
+local getFloorTileGrid=game.worldObject.getFloorTileGrid
+game.worldObject.getFloorTileGrid=function() return nil end
+assertTrue(not flight.isSafeCombatPoint(700,300),"ready roof controller with missing floor geometry fails closed")
+game.worldObject.getFloorTileGrid=getFloorTileGrid
+envController=nil
+
 drone.hcoBodyAngle=0
 drone.hcoSensorAngle=0
 flight.updateAim(drone,0.1,player,true,0)

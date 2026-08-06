@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.13.0-rc29`  
+**Candidate:** `0.13.1-rc30`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 
@@ -24,9 +24,9 @@ Drones are pressure tools, not bullet sponges. Scout and Light airframes die in 
 - Maximum two Heavy and two Laser airframes per contract.
 - Baseline identity acquisition is 0.55 seconds before model, doctrine, mode and difficulty modifiers.
 - A calm valid disguise reduces routine acquisition to 22% speed; aggressive security never falls below 72% speed.
-- Every attack requires current line of sight, range, gimbal alignment, a readable aim/charge cue and cooldown readiness.
+- Every attack requires a completed native geometry trace, an outdoor roof-map footprint, a valid visible airframe, a centered physical bullet target, range, gimbal alignment, a readable aim/charge cue and cooldown readiness.
 - Release diagnostics are off by default. Player-facing notices are rate-limited and use the native feedback layer.
-- Moving fixtures self-repair, follow the visible aim center and retain a post-world-collision projectile fallback for runtime combinations that omit late fixtures.
+- Moving fixtures self-repair, follow the visible aim center and retain a post-world-collision projectile fallback for runtime combinations that omit late fixtures. A persistently unhittable carrier is inert and automatically retired.
 
 ## Automated release gate
 
@@ -54,7 +54,7 @@ Run with the Cheat Trainer reset unless compatibility itself is being tested.
 4. Routine patrol, loud-fire escalation, direct HCO-guard contact, body evidence and protection-casualty deployment paths.
 5. Calm disguise, suspicious disguise, same-unit scrutiny, disrupted radio and a drone discovering the stolen uniform source.
 6. Scout plus every Light/Heavy Pistol, SMG and Laser row: silhouette, scale, heading, sound, attack cue, damage and cooldown.
-7. Player LOS loss, wall/door/window steering, world-edge containment, wing separation, idle recovery and at least 30 seconds of aggressive search.
+7. Player LOS loss, zero roofed/indoor spawns, wall/door/window steering, world-edge containment, wing separation, idle recovery and at least 30 seconds of aggressive search.
 8. EMP/disruption, Light one-hit destruction, Heavy two/three-hit destruction, outer-rotor hits, crash landing, wreck cleanup and crash-site response.
 9. Target routine, shelter, reselection, evacuation and resolution; exactly-one payout after reload.
 10. No HCO traceback, stuck update, duplicate local/Workshop copy, broken vanilla objective, blocked player input or lingering audio after returning to menu.

@@ -1,4 +1,13 @@
-# Automated Test Report — 0.13.0-rc29
+# Automated Test Report — 0.13.1-rc30
+
+## RC30 indoor-spawn and one-way-combat blocker correction
+
+- Engine tracing identified `envController:getRoofReady()`, `getPosUnderRoof()` and `floorTileGrid.tiles[index].roofObstructed` as the authoritative indoor/outdoor contract. Walkable patrol points are no longer treated as proof of an exterior flight cell.
+- Flight coverage proves a roofed but pathable tile is rejected and deterministically migrated to a fully clear exterior footprint. Movement retains low-cover traversal while rejecting roofs, walls, doors, windows and map boundaries.
+- Deployment coverage proves requests remain queued until roof data is finalized and that a carrier without a physical bullet target never becomes active.
+- Perception coverage proves an absent native geometry trace cannot produce detection, tracking or weapon state.
+- Runtime coverage destroys a carrier body/fixture, forces repair to fail, and proves the drone becomes inert and safely retires instead of continuing one-way fire.
+- Live approval remains mandatory on the reported map for zero indoor spawns, reliable destruction of every exterior Scout/Light/Heavy model and wall-blocked ballistic/Laser attacks.
 
 ## RC29 production-candidate balance, perception and presentation
 
@@ -160,17 +169,17 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 32 Lua modules parse, including the RC29 balance snapshot and RC28 fixture/crash lifecycle.
+- Lua syntax: **PASS** — all 32 Lua modules parse, including the RC30 roof/fairness gate, RC29 balance snapshot and RC28 fixture/crash lifecycle.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test evidence collector: **PASS** — installed `0.13.0-rc29`, 32 source Lua files, 32 installed Lua files and 0 mismatches. The game was not running; the newest stored crash log predates this installation and the current debug log is empty.
+- Post-test evidence collector: **PASS** — installed `0.13.1-rc30`, 32 source Lua files, 32 installed Lua files and 0 mismatches. The game was not running; the newest stored crash log predates this installation and the current debug log is empty.
 - Source/output/install relative-file parity: **PASS** — 41 payload files including 32 Lua modules and nine runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.13.0-rc29.zip` contains all 41 payload files below the required nested `files/` root and has SHA-256 `D2CFDFFC65C06F0EA5B41E42A47B761F7E729B860BCC5814354BC4DAF6FF9BD3`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.13.0-rc29 payload=41`.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.13.1-rc30.zip` contains all 41 payload files below the required nested `files/` root and has SHA-256 `1D8C1CC2A93CCE9F50C3869BE3EEE54C554E7ED23C3C66C26EF598B02329AA45`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.13.1-rc30 payload=41`.
 
-The markers above were collected from RC29 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC30 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

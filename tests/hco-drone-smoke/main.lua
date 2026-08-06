@@ -206,6 +206,14 @@ detector.disrupted=true
 for _=1,5 do detector:update(0.1) end
 assertTrue(context.security.droneSighting==nil and detector.hcoDetect==0,"electronic disruption suppresses HCO acquisition and relay")
 detector.disrupted=false
+context.security.droneMode="AGGRESSIVE"
+detector.hcoDetect,detector.hcoTracking,detector.hcoSightGrace=0,0,0
+detector.runGenericRaycast=false
+local strictX,strictY=detector:getAimPos()
+game.playerActor.x,game.playerActor.y=strictX+55,strictY
+detector:update(0.2)
+assertTrue(detector.hcoDetect==0 and detector.hcoTracking==0 and detector.hcoWeaponState=="IDLE","missing native geometry trace cannot grant detection or weapon authority")
+detector.runGenericRaycast=base.runGenericRaycast
 local bulletCenterX,bulletCenterY=detector:getAimPos()
 local fallbackBullet={x=bulletCenterX+12,y=bulletCenterY,travelX=120,travelY=0,firer=game.playerActor,stored=false}
 function fallbackBullet:getFirer() return self.firer end
@@ -239,5 +247,18 @@ function edgeBullet:makeInactive() self.inactive=true self.stored=true end
 game.activeBullets={edgeBullet}
 heavy:update(1)
 assertTrue(edgeBullet.inactive and heavy.hcoArmor==2,"fallback registers a shot across the visible heavy rotor edge")
+heavy.body.destroyed=true
+heavy.fixture.destroyed=true
+heavy.initHitbox=function() error("simulated persistent fixture failure") end
+heavy.hcoDetect,heavy.hcoTracking,heavy.hcoWeaponState=0.4,2,"AIMING"
+heavy:update(0.8)
+assertTrue(heavy.broken and heavy.hcoSafetyRetired and heavy.hcoDetect==0 and heavy.hcoWeaponState=="IDLE","persistently unhittable drone is inert and safely retired before it can attack")
+
+envController={getRoofReady=function() return false end}
+local pendingContext={slot=4,target=actorObject(160,160),security={sectorPoints={{x=600,y=600}},guards={},drones={},droneCooldown=0}}
+drones.request(pendingContext,1,"roof-readiness-test",true)
+drones.update(pendingContext,0.1)
+assertTrue(#pendingContext.security.drones==0 and pendingContext.security.droneDeploymentRequested==1,"deployment remains queued until the native roof map is finalized")
+envController=nil
 print("HCO_DRONE_SMOKE_PASS")
 os.exit(0)

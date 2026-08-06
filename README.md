@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.13.0-rc29`
+**Current build:** `0.13.1-rc30`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate release. RC29 adds native-difficulty balancing, threat ratings, bounded multi-contract fleets, semantic drone evidence/identity sensing and final per-family combat presentation. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate release. RC30 closes the indoor/unreachable-drone fairness blocker by using the game's native roof map and requiring a visible, hittable, outdoor airframe plus strict geometry before any attack. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 
@@ -20,8 +20,8 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Seven physical, actor-scaled drone models: one unarmed Scout plus light/heavy Pistol, SMG and Laser airframes.
 - A global twelve-airframe ceiling plus per-contract Heavy/Laser limits prevents multi-contract missions from turning into an unreadable or expensive 21-drone pile-up.
 - Stable standoff pursuit replaces continuous player orbiting; bodies turn with flight while independent sensor gimbals retain the player inside their allowed arc.
-- Native floor-grid endpoint validation and wing separation keep drones out of unreachable void and prevent stacked airframes; unused roster models are preferred before duplicates.
-- Armed drones fire only after confirmed line-of-sight tracking. Pistol/SMG models create native game bullets; lasers expose an aim line and full charge window before damage.
+- Native roof-map and floor-grid footprint validation keep armed drones outside buildings, out of unreachable void and apart from other airframes; unused roster models are preferred before duplicates.
+- Armed drones fire only after a completed native line-of-sight trace and while their centered bullet target is valid. Pistol/SMG models create native game bullets; lasers expose an aim line and full charge window before damage.
 - Light/heavy rotor profiles and laser one-shots are adapted from creator-supplied audio, while ballistic drones retain native weapon sounds.
 - Native-airframe flight presentation with hover motion, rotor/sensor pulses, a short pixel wake, family-colored effects, real laser-charge progress, damage smoke and a readable sensor heading.
 - One to three archetype-scaled drones patrol around each protected target from contract start, then switch to a faster and more exact aggressive search after escalation.
