@@ -65,6 +65,28 @@ local function segmentHitsCircle(x1, y1, x2, y2, cx, cy, radius)
 	return offX * offX + offY * offY <= radius * radius, hitX, hitY
 end
 
+local function readBulletNumber(bullet, methodName, fieldName)
+	if not bullet then return 0 end
+	local method = bullet[methodName]
+	if type(method) == "function" then
+		local ok, value = pcall(method, bullet)
+		if ok and tonumber(value) then return math.max(0, tonumber(value)) end
+	end
+	return math.max(0, tonumber(bullet[fieldName]) or 0)
+end
+
+local function getArmorDamage(bullet)
+	local damage = readBulletNumber(bullet, "getDamage", "damage")
+	local penetration = readBulletNumber(bullet, "getArmorPenetration", "armorPenetration")
+	-- The Model 700, high-caliber rifles and similarly penetrating weapons must
+	-- feel materially stronger than a pistol. Heavy describes the drone's weapon
+	-- package, not a large health pool: ordinary rounds take 2–3 hits, while a
+	-- powerful rifle can tear through the complete airframe in one clean hit.
+	if damage >= 55 or penetration >= 9 then return 3, damage, penetration end
+	if damage >= 35 or penetration >= 6 then return 2, damage, penetration end
+	return 1, damage, penetration
+end
+
 local function processPlayerBulletFallback(drone, dt)
 	-- The native fixture is authoritative. This narrow fallback covers runtime
 	-- builds/mod combinations that fail to expose a late-created generic-object
@@ -76,6 +98,7 @@ local function processPlayerBulletFallback(drone, dt)
 	local radius = math.max(drone.hitboxW or 0, drone.hitboxH or 0) * 0.55
 	if radius <= 0 then return false end
 
+	local consumed = false
 	for index = #bullets, 1, -1 do
 		local bullet = bullets[index]
 		if bullet and not bullet.stored and not bullet._hcoDroneHit then
@@ -92,13 +115,14 @@ local function processPlayerBulletFallback(drone, dt)
 					bullet._hcoDroneHit = true
 					drone:onHitBullet(bullet, {x = hitX, y = hitY, fraction = 1})
 					if type(bullet.makeInactive) == "function" then pcall(bullet.makeInactive, bullet) end
-					return true
+					consumed = true
+					if drone.broken then return true end
 				end
 			end
 		end
 	end
 
-	return false
+	return consumed
 end
 
 local function chooseDestination(self)
@@ -237,6 +261,8 @@ function drones.initialize()
 	function drone:update(dt)
 		if self.broken then return false end
 		self.hcoHitFlash = math.max(0, (self.hcoHitFlash or 0) - dt)
+		self.hcoImpactPulse = math.max(0, (self.hcoImpactPulse or 0) - dt)
+		self.hcoArmorDisplay = math.max(0, (self.hcoArmorDisplay or 0) - dt)
 		processPlayerBulletFallback(self, dt)
 		if self.broken then return false end
 		audio.updateRotor(self.hcoRotorSound, self)
@@ -369,10 +395,21 @@ function drones.initialize()
 	end
 
 	function drone:onHitBullet(bullet, hitData)
-		self.hcoArmor = (self.hcoArmor or 1) - 1
-		self.hcoHitFlash = 0.16
+		if self.broken then return end
+		local armorDamage, bulletDamage, penetration = getArmorDamage(bullet)
+		self.hcoArmor = math.max(0, (self.hcoArmor or 1) - armorDamage)
+		self.hcoHitFlash = 0.42
+		self.hcoImpactPulse = 0.42
+		self.hcoArmorDisplay = 0.95
+		self.hcoLastArmorDamage = armorDamage
+		self.hcoLastBulletDamage = bulletDamage
+		self.hcoLastPenetration = penetration
 		local offset = centerOffset(self)
-		if sound and type(sound.playWorld) == "function" then pcall(sound.playWorld, sound, "impact_ricochet", self, (self.x or 0) + offset, (self.y or 0) + offset, 0.55, 1.15) end
+		self.hcoImpactX = hitData and tonumber(hitData.x) or (self.x or 0) + offset
+		self.hcoImpactY = hitData and tonumber(hitData.y) or (self.y or 0) + offset
+		if sound and type(sound.playWorld) == "function" then
+			pcall(sound.playWorld, sound, "impact_ricochet", self, self.hcoImpactX, self.hcoImpactY, 0.9, armorDamage >= 2 and 0.82 or 1.08)
+		end
 		local firer
 		if bullet and type(bullet.getFirer) == "function" then local ok, value = pcall(bullet.getFirer, bullet) if ok then firer = value end end
 		if self.hcoArmor <= 0 then self:breakCam(firer) end
@@ -441,7 +478,10 @@ local function spawn(context, index)
 	local doctrine = context.security and context.security.droneDoctrine or {}
 	instance.hcoSpeed = (definition.speed or 1) * (doctrine.speed or 1)
 	instance.hcoDetectScale = (definition.detect or 1) * (doctrine.detect or 1)
-	instance.hcoArmor = math.max(definition.armor or 1, math.floor((definition.armor or 1) * (doctrine.armor or 1) + 0.5))
+	local baseArmor = definition.armor or 1
+	local armorCap = definition.heavy and 3 or 1
+	instance.hcoArmor = math.min(armorCap, math.max(baseArmor, math.floor(baseArmor * (doctrine.armor or 1) + 0.5)))
+	instance.hcoArmorMax = instance.hcoArmor
 	instance.hcoFallback = usedFallback
 	instance.radius = config.DRONE_SCAN_RADIUS * (definition.scanRadius or 1) * (doctrine.radius or 1)
 	instance.lightFOV = definition.fov or config.DRONE_FOV
@@ -489,7 +529,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC26 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC27 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)

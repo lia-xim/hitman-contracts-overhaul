@@ -1,14 +1,16 @@
 [h1]HITMAN CONTRACTS OVERHAUL[/h1]
 [b]Intravenous 2 meets Hitman: optional HVT contracts, mobile targets, heavy protection details, disguises, social stealth and physical security-drone wings — integrated into the native game.[/b]
 
-[h2]NEW IN RC22 — SEVEN-MODEL DRONE WINGS[/h2]
+[h2]NEW IN RC27 — FRAGILE, READABLE DRONE COMBAT[/h2]
 [list]
 [*]One unarmed Scout plus light/heavy Pistol, SMG and Laser drone designs
 [*]Distinct native-scale pixel silhouettes, hover/rotor animation, movement wakes and independent sensor gimbals
 [*]Stable standoff tracking instead of blindly orbiting or flying through the player
 [*]Varied map-safe deployment, native floor-grid endpoint validation and wing separation
 [*]Pistol/SMG drones fire native projectiles; Laser drones expose a cancellable 0.9/1.4-second charge
-[*]Light/heavy rotor profiles, separate laser sounds, hit sparks, reinforced armor, EMP disruption and bullet destruction
+[*]Light drones die in one hit; heavy drones in two or three ordinary hits, with high-caliber weapons tearing through faster
+[*]Full-airframe impact tint, expanding spark ring, remaining-armor pips and louder spatial metal impacts
+[*]Light/heavy rotor profiles, separate laser sounds, EMP disruption and bullet destruction
 [/list]
 
 [h2]CONTRACT SYSTEM[/h2]
@@ -45,7 +47,7 @@ Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a l
 The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.12.2-rc26[/b] — active release candidate. RC26 fixes a long-session follower-state crash, centers moving drone hit targets correctly and adds a wall-safe player-projectile fallback. The seven-model roster, attacks, tracking, adapted audio and building-edge behavior are being finalized through live mission testing. Diagnostic [b][HCO][/b] logs remain enabled.
+[b]0.12.3-rc27[/b] — active release candidate. RC27 makes every light drone a one-hit target, caps heavy drones at two or three normal hits, lets native damage/penetration accelerate armor breaks and makes every surviving hit obvious. The seven-model roster, attacks, tracking, adapted audio and building-edge behavior are being finalized through live mission testing. Diagnostic [b][HCO][/b] logs remain enabled.
 
 [h2]OPEN SOURCE[/h2]
 Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.

@@ -1,8 +1,8 @@
-# Completion Audit — 0.12.2-rc26
+# Completion Audit — 0.12.3-rc27
 
 **Audit date:** 2026-08-06  
 **Goal status:** active; the native drone-render breakthrough is proven, but the full specification and final live acceptance are not complete  
-**Authority inspected:** RC26 source, `SPECIFICATION.md`, current smoke harnesses, decompiled `1.4.12HF3` follower/camera/projectile/damage/outline/physics/path-grid interfaces and user-supplied live screenshots/errors
+**Authority inspected:** RC27 source, `SPECIFICATION.md`, current smoke harnesses, decompiled `1.4.12HF3` follower/camera/projectile/damage/outline/physics/path-grid interfaces and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -21,7 +21,7 @@
 | Drone detection relay | Pass | Prior cone did not consistently prove contact | Live test required |
 | Drone tracking/gimbal | RC22 pass in harness | Earlier cone swept away from player | Live fix confirmation required |
 | Armed drone attacks | Native bullet and charged-laser harness pass | Not yet observed | Live test required |
-| Drone EMP/destruction | RC22 pass in harness | Not yet observed after RC22 | Live test required |
+| Drone EMP/destruction | RC27 armor/impact pass in harness | Small drone destruction confirmed after RC26; heavy response rejected | Heavy live pass required |
 | Vanilla mission/coexistence | No mock can prove fully | Normal shooting issue was mission-script behavior, not HCO | Broader live pass required |
 
 ## Requirement verdict
@@ -37,6 +37,6 @@ The core optional-contract product exists and works far enough to be played. HCO
 7. Live-test and tune the implemented Pistol/SMG/Laser attacks after native projectile and damage API verification. Every attack must remain telegraphed and counterable.
 8. Complete map profiles, localization, audio callouts and the full reload/compatibility matrix.
 
-## RC26 acceptance
+## RC27 acceptance
 
-RC26 is approved for local testing, not final Workshop release. The next live pass must first prove that a visible light drone can be shot down and that heavy armor registers repeated hits while moving. It must also prove the former `getWatchBack` crash cannot recur when response units enter combat/search, then validate search-ring exploration, flank relocations, idle recovery and real-map building boundaries. The remaining weapon/audio/EMP/counterplay behaviors must run without a traceback.
+RC27 is approved for local testing, not final Workshop release. Small-drone destruction is now live-proven. The next pass must prove that every heavy model gives the expanding spark/tint/pip response and falls after two or three ordinary hits, with high-caliber rifles removing multiple points. It must also prove the former `getWatchBack` crash cannot recur when response units enter combat/search, then validate search-ring exploration, flank relocations, idle recovery and real-map building boundaries. The remaining weapon/audio/EMP/counterplay behaviors must run without a traceback.

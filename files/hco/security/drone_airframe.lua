@@ -213,10 +213,24 @@ function airframes.initialize()
 			graphics.circle("fill", muzzleX, muzzleY, self.hcoHeavy and 4 or 3)
 		end
 		if self.hcoHitFlash and self.hcoHitFlash > 0 then
-			graphics.setColor(255, 225, 120, 235)
-			for index = 1, 5 do
+			local pulseLife = math.min(1, self.hcoHitFlash / 0.42)
+			local expansion = 1 - pulseLife
+			graphics.setLineWidth(self.hcoLastArmorDamage and self.hcoLastArmorDamage >= 2 and 3 or 2)
+			graphics.setColor(255, 235, 155, 100 + math.floor(pulseLife * 155))
+			graphics.circle("line", drawX, drawY, 9 + expansion * 19)
+			graphics.setColor(255, 205, 80, 245)
+			for index = 1, 9 do
 				local angle = self.hcoPhase + index * 1.31
-				graphics.rectangle("fill", math.floor(drawX + math.cos(angle) * (8 + index)), math.floor(drawY + math.sin(angle) * (8 + index)), 2, 2)
+				local distance = 8 + expansion * 20 + index * 0.8
+				graphics.rectangle("fill", math.floor(drawX + math.cos(angle) * distance), math.floor(drawY + math.sin(angle) * distance), index % 3 == 0 and 3 or 2, 2)
+			end
+		end
+		if self.hcoArmorDisplay and self.hcoArmorDisplay > 0 and (self.hcoArmorMax or 1) > 1 then
+			local maximum = math.min(3, self.hcoArmorMax or 1)
+			local width = maximum * 6 - 2
+			for index = 1, maximum do
+				if index <= (self.hcoArmor or 0) then graphics.setColor(95, 220, 255, 230) else graphics.setColor(255, 85, 55, 175) end
+				graphics.rectangle("fill", math.floor(drawX - width * 0.5 + (index - 1) * 6), math.floor(drawY + 17), 4, 3)
 			end
 		end
 		graphics.setColor(255, 255, 255, 255)
@@ -240,7 +254,7 @@ function airframes.initialize()
 		drawFlightEffects(self, drawX, drawY, renderAngle)
 		if ensureSlot(self) and sprite and quads then
 			local alpha = self.hcoDisrupted and (110 + math.floor(math.abs(math.sin((curTime or 0) * 17)) * 100)) or 255
-			batch:setColor(255, 255, 255, alpha)
+			if self.hcoHitFlash and self.hcoHitFlash > 0 then batch:setColor(255, 185, 95, alpha) else batch:setColor(255, 255, 255, alpha) end
 			local typeQuads = quads[self.hcoTypeIndex or 1] or quads[1]
 			local scale = self.hcoRenderScale or 0.55
 			batch:updateSprite(self.hcoSlot, typeQuads[self.hcoFrame or 1], drawX, drawY, renderAngle, scale, scale, 48, 48)
@@ -295,6 +309,11 @@ function airframes.sync(shell, owner)
 		shell.hcoAimTargetX, shell.hcoAimTargetY = owner.hcoAimTargetX, owner.hcoAimTargetY
 		shell.hcoLaserPulse, shell.hcoMuzzleFlash = owner.hcoLaserPulse, owner.hcoMuzzleFlash
 		shell.hcoHitFlash = owner.hcoHitFlash
+		shell.hcoImpactPulse = owner.hcoImpactPulse
+		shell.hcoImpactX, shell.hcoImpactY = owner.hcoImpactX, owner.hcoImpactY
+		shell.hcoArmorDisplay = owner.hcoArmorDisplay
+		shell.hcoArmor, shell.hcoArmorMax = owner.hcoArmor, owner.hcoArmorMax
+		shell.hcoLastArmorDamage = owner.hcoLastArmorDamage
 		local definition = owner.hcoType or {}
 		local offset = owner.hcoCenterOffset or 13
 		shell:setPose((owner.x or 0) + offset, (owner.y or 0) + offset, owner.hcoBodyAngle or owner.curViewAngRad or 0, owner.hcoSensorAngle or owner.curViewAngRad or 0, owner.hcoFrame or 1, definition.index or 1, definition.renderScale or 0.34)

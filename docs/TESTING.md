@@ -4,7 +4,7 @@ Automated checks validate Lua syntax, bootstrap isolation, contract lifecycle, p
 
 These checks do not prove live AI behavior or rendering. A release candidate is promoted only after this in-game pass on Intravenous 2 1.4.12HF3:
 
-RC26 specifically reports `HCO RC26 DRONE ROSTER`. The expected values are `quadtree ACTIVE`, `batch READY`, `sprite READY`, and at least one body. The four fields isolate world-entity visibility, native batch creation, atlas loading, and spawn state respectively.
+RC27 specifically reports `HCO RC27 DRONE ROSTER`. The expected values are `quadtree ACTIVE`, `batch READY`, `sprite READY`, and at least one body. The four fields isolate world-entity visibility, native batch creation, atlas loading, and spawn state respectively.
 
 1. Reach the main menu without an HCO traceback.
 2. Start a compatible mission from the beginning and confirm at least one native optional contract.
@@ -17,7 +17,7 @@ RC26 specifically reports `HCO RC26 DRONE ROSTER`. The expected values are `quad
 8. Stand visibly inside a drone cone for at least one second. Verify the cone changes color, stays attached to the player instead of sweeping away, `DRONE CONTACT` appears, and response units receive the last-known position. Move around the drone and verify gimbal-first/body-second rotation plus a stable standoff slot.
 9. Electronically disrupt a drone. It must flicker blue and stop acquiring/relaying until disruption ends.
 10. Trigger at least two escalated wings and identify different entry directions and models. Verify every destination remains inside the playable map and no drone parks behind an unreachable world boundary.
-11. Face a Pistol or SMG drone. Its visible aim must precede native bullets, obstruction must block fire, and the native weapon sound must play. Light variants take one hit; heavy variants require reinforced armor hits.
+11. Face a Pistol or SMG drone. Its visible aim must precede native bullets, obstruction must block fire, and the native weapon sound must play. Light variants take one hit. Heavy variants take two or three ordinary hits, show a full-airframe tint, expanding sparks and armor pips on every surviving hit, and may fall in one high-caliber hit.
 12. Face light and heavy Laser drones. Their aim lines must remain on target through visible 0.9/1.4-second charges; breaking LOS or leaving the gimbal cancels the charge. The adapted light/heavy fire sounds and cooldowns must differ.
 13. Shoot down a drone. Its body, light and loop sound must stop, a local crash alert must occur and available response guards should investigate the crash position.
 14. Resolve the target and verify the compact completion banner, sound, payout, and persistence after reload.
