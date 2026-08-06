@@ -176,12 +176,21 @@ function escort.attach(state, report)
 		end
 		util.call(actorObject, "maxOutHealth")
 
-		if index == 1 or (index - 1) % 3 == 0 then
-			leader = state.target
-		end
+		if data.role == "close_protection" then
+			if index == 1 or (index - 1) % 3 == 0 then
+				leader = state.target
+			end
 
-		makeFollow(actorObject, leader)
-		leader = actorObject
+			makeFollow(actorObject, leader)
+			leader = actorObject
+		else
+			-- Response units are autonomous search/combat actors. Putting them into
+			-- the native follower chain leaves their leader holding a stale follower
+			-- reference as soon as HCO changes the response unit to alert/combat. The
+			-- leader then calls follower-only methods such as getWatchBack() on a
+			-- combat state and crashes the mission.
+			util.call(actorObject, "setFollower", nil)
+		end
 		table.insert(state.escorts, data)
 	end
 
@@ -216,10 +225,10 @@ function escort.update(state)
 	for _, data in ipairs(state.escorts or {}) do
 		local actorObject = data.actor
 
-		if util.isAlive(actorObject) then
+		if data.role == "close_protection" and util.isAlive(actorObject) then
 			if state.targetAI.phase == "ROUTINE" and util.distance(actorObject, leader) > config.ESCORT_REJOIN_DISTANCE then
 				makeFollow(actorObject, leader)
-			elseif state.targetAI.phase ~= "ROUTINE" and data.role == "close_protection" then
+			elseif state.targetAI.phase ~= "ROUTINE" then
 				-- Close protection evacuates with the principal. Response units are
 				-- deliberately left under the security director's search orders.
 				makeFollow(actorObject, state.target)

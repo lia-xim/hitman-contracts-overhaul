@@ -1,4 +1,13 @@
-# Automated Test Report — 0.12.1-rc25
+# Automated Test Report — 0.12.2-rc26
+
+## RC26 live blocker correction
+
+- Live RC25 evidence on `iv2_map6` produced `attempt to call method 'getWatchBack' (a nil value)` after a long mission and still did not allow the player to shoot down a drone.
+- Engine tracing identified two independent causes: response units remained referenced as native followers after HCO moved them to states without the follower interface, and the generic-object Box2D body followed top-left `x/y` instead of the visible aim center.
+- Runtime coverage now proves response units never enter or remain in protected-target/bodyguard follower chains.
+- Drone coverage proves body/aim-center parity and destroys a light drone through an actual one-frame player-projectile segment rather than directly invoking the damage callback.
+- The fallback observes bullets only after native world collision processing; a bullet stopped by geometry is no longer active and cannot reach the fallback.
+- Live boundary: RC26 still requires immediate real-game confirmation of light/heavy hits and a longer response-unit combat pass without the former traceback.
 
 ## RC25 idle-recovery and building-boundary correction
 
@@ -123,7 +132,7 @@ Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
 
 ## Final results
 
-- Lua syntax: **PASS** — all 31 Lua modules parse, including the RC25 building-boundary and idle-recovery correction.
+- Lua syntax: **PASS** — all 31 Lua modules parse, including the RC26 follower and projectile corrections.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
@@ -131,7 +140,7 @@ Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Post-test evidence collector: **PASS** — `HCO_EVIDENCE_COLLECTOR_PASS` with 0 hash mismatches.
 - Source/install relative-file parity: **PASS** — 40 payload files including 31 Lua modules and nine runtime media files.
-- Source/install SHA-256 parity: **PASS** — every installed RC25 payload file matches the repository source; zero extras.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.12.1-rc25.zip` contains the required nested `files/` root and has SHA-256 `A29018D8728B89CD4B397B1A202C6AE24C49584533FDC3FF850EDBBF0E2AEFEB`.
+- Source/install SHA-256 parity: **PASS** — every installed RC26 payload file matches the repository source; zero extras.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.12.2-rc26.zip` contains the required nested `files/` root and has SHA-256 `F1CCBAB4356593AB0711550B9FE1C773E9B7F862BBB2A8E894E4E7A7D6334AC8`.
 
 The report will be updated with the final markers and package hashes before handoff. Automated results prove internal behavior and failure handling only; they do not replace the final live-mission pass.

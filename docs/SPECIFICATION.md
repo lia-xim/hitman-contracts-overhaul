@@ -834,7 +834,7 @@ Every event callback must validate:
 
 ## 20. Implementation phases
 
-**Implementation checkpoint (`0.12.1-rc25`, 2026-08-06):** Phases 0–5 and the seven-model physical-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. Live RC23 evidence accepted firing but rejected sprite size, physical counterplay and static-feeling aggression. RC24 responded with compact silhouettes, synchronized bullet fixtures, centered aiming, immediate coordinated reaction to shared line-of-sight intelligence, timed search rings and periodic flank relocations. RC25 adds native path-grid footprint checks, deterministic building-edge steering and a short idle-recovery watchdog. A crash-free live acceptance pass remains mandatory. Thermal cameras, operators and power relationships remain incomplete. Automated results are not substitutes for real-game proof.
+**Implementation checkpoint (`0.12.2-rc26`, 2026-08-06):** Phases 0–5 and the seven-model physical-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. RC24 added compact silhouettes, synchronized bullet fixtures and tactical search/flank behavior; RC25 added native path-grid footprint checks, building-edge steering and idle recovery. Live RC25 evidence then exposed a stale response-unit follower and an offset generic-object physics center. RC26 separates autonomous response units from close-protection follower chains, aligns the Box2D body with the visible aim center and adds a post-world-collision player-bullet path fallback. A crash-free live acceptance pass remains mandatory. Thermal cameras, operators and power relationships remain incomplete. Automated results are not substitutes for real-game proof.
 
 ### Phase 0: Runtime probe
 
@@ -1167,3 +1167,9 @@ Aggressive behavior alternates between information search and pressure. With rec
 Flight must sample the native mission path grid across the drone footprint before applying movement. `OBSTRUCTED`, `DOOR`, `GARAGE_DOOR`, `CLIMBABLE` and `WINDOW` cells are aerial boundaries; `OBSTRUCTED_LOW` remains intentionally flyable. When a direct step is blocked, the drone tries deterministic alternate headings within the same per-frame speed budget and may never solve the obstacle by crossing its blocked cell.
 
 A drone that moves less than 0.05 world units for 0.55 seconds while active is considered tactically stalled. Tracking drones immediately change flank side and angle; searching drones advance their search phase and invalidate the current destination. This watchdog complements path-grid steering and must not create teleports, violate world bounds or bypass wing separation.
+
+### RC26 follower ownership and projectile counterplay
+
+Only close-protection actors may enter native follower states. Response units are autonomous security-director assets and may transition freely among patrol, search, alert and combat without ever remaining referenced as another actor's follower. This prevents native alert logic from invoking follower-only methods on combat/search states.
+
+Generic world objects use top-left `x/y`, while Box2D rectangles use a centered body position. Every drone fixture must therefore follow `getAimPos()` rather than raw carrier `x/y`. Native bullet raycasts remain authoritative. A secondary player-only segment test may run after native bullet/world processing to cover engines that omit late-created generic fixtures; it must consume only a path that intersects the visible drone, and a wall-hit bullet must already be inactive before this fallback executes.

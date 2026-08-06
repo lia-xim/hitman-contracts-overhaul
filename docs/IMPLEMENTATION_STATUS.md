@@ -1,6 +1,6 @@
 # Hitman Contracts Overhaul — Implementation Status
 
-**Current version:** `0.12.1-rc25`
+**Current version:** `0.12.2-rc26`
 **Status date:** 2026-08-06  
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md` remains the product and technical source of truth.
@@ -39,7 +39,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Contract variety | Partial | Data theft, accidents, special weapon conditions, rescue/extraction and other systemic contract types |
 | Localization/audio callouts | Partial | English runtime text exists; translated strings and an authored localized radio-callout pack remain |
 
-## RC22 roster / RC23–RC25 live corrections
+## RC22 roster / RC23–RC26 live corrections
 
 - Airframe footprint reduced to roughly 27 world pixels and the generated art rotated by -90 degrees to match the native sensor/flight heading.
 - Hover bob, offset shadow, four-frame rotor animation, rotor pulse rings, state-colored sensor pulse and a short pixel wake make flight readable without adding a detached HUD layer.
@@ -51,18 +51,19 @@ The Scout deliberately does not shoot. Six armed variants join escalated wings: 
 
 ## Immediate acceptance gate
 
-1. Completely restart the game and confirm `0.12.1-rc25` loads without traceback.
+1. Completely restart the game and confirm `0.12.2-rc26` loads without traceback.
 2. Observe multiple deployments and identify Scout, light and heavy silhouettes; heavy variants must be larger but remain actor-scaled.
 3. Stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
 5. Disrupt a drone: its body should flicker and it must stop acquiring/relaying until disruption ends.
-6. Shoot down a one-hit doctrine drone and a Commander armored drone: light, body and rotor audio must stop, while guards investigate the crash area.
+6. Shoot through the visible center of a moving light drone and then a heavy drone: the light model must fall on the first registered hit, while the heavy model must give ricochet feedback and fall after its configured armor is exhausted.
 7. Trigger an armed wing: verify a Pistol/SMG native projectile and a Laser that holds its aim line for 0.9/1.4 seconds before firing.
 8. Circle a tracking drone: the gimbal should follow first, then the body should yaw; the drone must hold a standoff slot instead of flying through or endlessly orbiting the player.
 9. Observe an aggressive wing for at least 20 seconds: no drone should remain unexpectedly still for more than roughly half a second, and blocked drones should choose a new heading.
 10. Draw a drone toward a building exterior: it should steer around walls, closed doors and windows instead of crossing the boundary; low outdoor cover may be overflown.
-11. Confirm normal weapon fire, vanilla objectives, mission completion, checkpoint reload and return to menu still work.
+11. Keep response units in combat/search long enough for follower instruction timers to advance; no `getWatchBack` traceback may occur.
+12. Confirm normal weapon fire, vanilla objectives, mission completion, checkpoint reload and return to menu still work.
 
 ## Release boundary
 
-HCO is still an active release candidate. The contract core and original native render path are functional. RC25 adds compact sprites, synchronized physical hit targets, active search/flank maneuvers, idle recovery and path-grid building avoidance, but those live counterplay and behavior changes still need the pass above. The larger missing specification items remain explicit.
+HCO is still an active release candidate. The contract core and original native render path are functional. RC26 corrects follower ownership and physical hit-center semantics while retaining RC25 movement/building work, but those live counterplay and stability changes still need the pass above. The larger missing specification items remain explicit.

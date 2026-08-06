@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.2-rc26 — 2026-08-06
+
+- Fixed the native `getWatchBack` crash after long missions: autonomous response units are no longer inserted into close-protection follower chains before being reassigned to search/combat states.
+- Corrected generic-object/Box2D coordinate semantics. The moving bullet fixture now follows the visible aim center instead of the airframe's top-left corner, which had placed the visible center on the fixture edge.
+- Added a player-projectile path fallback for runtime combinations that do not expose a late-created generic-object fixture to the native raycast. It runs only after native bullet/world processing, so solid geometry remains authoritative.
+- Added regression coverage proving response units remain autonomous, protected-target/bodyguard follower chains never retain them, the physical body follows the visible aim center and an actual one-frame player bullet path destroys a light drone.
+
 ## 0.12.1-rc25 — 2026-08-06
 
 - Added a native path-grid flight-footprint check so drones steer around walls, closed doors, windows and high obstructions while remaining able to cross low cover.

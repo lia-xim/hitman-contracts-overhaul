@@ -28,7 +28,12 @@ end
 local function syncPhysicalBody(drone)
 	local body = drone and drone.body
 	if not bodyIsUsable(body) then return false end
-	local ok = pcall(body.setPosition, body, drone.x or 0, drone.y or 0)
+	-- Generic objects store x/y at their top-left corner, while a Box2D
+	-- rectangle is centered on its body position. Keeping the body at x/y left
+	-- half of the visible sprite without a hit target and put the aim point on
+	-- the fixture edge. The fixture must follow the visible/aim center.
+	local offset = centerOffset(drone)
+	local ok = pcall(body.setPosition, body, (drone.x or 0) + offset, (drone.y or 0) + offset)
 	if ok and type(body.setAwake) == "function" then pcall(body.setAwake, body, true) end
 	return ok
 end
@@ -46,6 +51,54 @@ local function ensurePhysicalHitbox(drone, hitbox)
 		pcall(fixture.setFilterData, fixture, drone.P_CATEGORY, drone.P_MASK, drone.P_GROUP)
 	end
 	return syncPhysicalBody(drone)
+end
+
+local function segmentHitsCircle(x1, y1, x2, y2, cx, cy, radius)
+	local dx, dy = x2 - x1, y2 - y1
+	local lengthSquared = dx * dx + dy * dy
+	local t = 0
+	if lengthSquared > 0.0001 then
+		t = math.max(0, math.min(1, ((cx - x1) * dx + (cy - y1) * dy) / lengthSquared))
+	end
+	local hitX, hitY = x1 + dx * t, y1 + dy * t
+	local offX, offY = hitX - cx, hitY - cy
+	return offX * offX + offY * offY <= radius * radius, hitX, hitY
+end
+
+local function processPlayerBulletFallback(drone, dt)
+	-- The native fixture is authoritative. This narrow fallback covers runtime
+	-- builds/mod combinations that fail to expose a late-created generic-object
+	-- fixture to the bullet raycast. It uses the bullet's actual one-frame path,
+	-- after world collision processing, so walls still stop shots first.
+	local bullets = game and game.activeBullets
+	if type(bullets) ~= "table" then return false end
+	local centerX, centerY = drone:getAimPos()
+	local radius = math.max(drone.hitboxW or 0, drone.hitboxH or 0) * 0.55
+	if radius <= 0 then return false end
+
+	for index = #bullets, 1, -1 do
+		local bullet = bullets[index]
+		if bullet and not bullet.stored and not bullet._hcoDroneHit then
+			local firer = bullet.firer
+			if type(bullet.getFirer) == "function" then
+				local ok, value = pcall(bullet.getFirer, bullet)
+				if ok then firer = value end
+			end
+			if firer and (firer == game.playerActor or firer.PLAYER) and tonumber(bullet.x) and tonumber(bullet.y) then
+				local travelX, travelY = tonumber(bullet.travelX) or 0, tonumber(bullet.travelY) or 0
+				local startX, startY = bullet.x - travelX * dt, bullet.y - travelY * dt
+				local hit, hitX, hitY = segmentHitsCircle(startX, startY, bullet.x, bullet.y, centerX, centerY, radius)
+				if hit then
+					bullet._hcoDroneHit = true
+					drone:onHitBullet(bullet, {x = hitX, y = hitY, fraction = 1})
+					if type(bullet.makeInactive) == "function" then pcall(bullet.makeInactive, bullet) end
+					return true
+				end
+			end
+		end
+	end
+
+	return false
 end
 
 local function chooseDestination(self)
@@ -184,6 +237,8 @@ function drones.initialize()
 	function drone:update(dt)
 		if self.broken then return false end
 		self.hcoHitFlash = math.max(0, (self.hcoHitFlash or 0) - dt)
+		processPlayerBulletFallback(self, dt)
+		if self.broken then return false end
 		audio.updateRotor(self.hcoRotorSound, self)
 		self.hcoFrameTime = self.hcoFrameTime + dt
 		if self.hcoFrameTime >= 0.09 then self.hcoFrameTime = 0 self.hcoFrame = self.hcoFrame % 4 + 1 end
@@ -434,7 +489,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC25 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC26 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)
