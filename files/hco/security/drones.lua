@@ -183,7 +183,10 @@ function drones.initialize()
 			local detectTime = config.DRONE_DETECT_TIME * (self.hcoDetectScale or 1) * (aggressive and 1 or config.DRONE_PATROL_DETECT_MULTIPLIER)
 			self.hcoDetect = math.min(detectTime, self.hcoDetect + dt)
 			self.lightColorCurrent = self.lightColorInactive self:updateCastColor()
-			if self.hcoDetect >= detectTime then notifyConfirmedSighting(self, player) end
+			if self.hcoDetect >= detectTime and ((curTime or 0) - (self.hcoLastConfirmedAt or -100)) >= 0.75 then
+				self.hcoLastConfirmedAt = curTime or 0
+				notifyConfirmedSighting(self, player)
+			end
 		else
 			self.hcoDetect = math.max(0, self.hcoDetect - dt * 0.65)
 			self.lightColorCurrent = self.lightColor self:updateCastColor()
@@ -276,13 +279,36 @@ end
 function drones.drawAll()
 	renderPasses = renderPasses + 1
 	loadSprite()
-	if not sprite or not quads or not love or not love.graphics then return false end
+	if not love or not love.graphics then return false end
 	local live = {}
 	for _, drone in ipairs(activeDrones) do
 		if drone and not drone.broken and util.isValid(drone) then
 			table.insert(live, drone)
-			love.graphics.setColor(255, 255, 255, 255)
-			love.graphics.draw(sprite, quads[drone.hcoFrame or 1], drone.x + 13, drone.y + 13, drone.curViewAngRad or 0, 0.58, 0.58, 48, 48)
+			local x, y = drone.x + 13, drone.y + 13
+			local angle = drone.curViewAngRad or 0
+			if sprite and quads then
+				love.graphics.setColor(255, 255, 255, 255)
+				love.graphics.draw(sprite, quads[drone.hcoFrame or 1], x, y, angle, 0.68, 0.68, 48, 48)
+			end
+			-- High-contrast native-scale airframe overlay. Besides improving readability
+			-- against dark maps, this guarantees a visible drone if a GPU accepts the
+			-- sheet but fails to sample its late-loaded texture correctly.
+			love.graphics.push()
+			love.graphics.translate(x, y)
+			love.graphics.rotate(angle)
+			love.graphics.setLineWidth(3)
+			love.graphics.setColor(90, 225, 255, 235)
+			love.graphics.line(-18, -12, 18, 12)
+			love.graphics.line(-18, 12, 18, -12)
+			love.graphics.circle("fill", -18, -12, 5)
+			love.graphics.circle("fill", 18, 12, 5)
+			love.graphics.circle("fill", -18, 12, 5)
+			love.graphics.circle("fill", 18, -12, 5)
+			love.graphics.setColor(16, 28, 36, 255)
+			love.graphics.circle("fill", 0, 0, 9)
+			love.graphics.setColor(255, 105, 70, 255)
+			love.graphics.circle("fill", 7, 0, 3)
+			love.graphics.pop()
 		end
 	end
 	activeDrones = live
@@ -297,7 +323,7 @@ local function updateRenderDiagnostic(security, dt)
 	if diagnostic.remaining > 0 then return end
 	security.droneRenderDiagnostic = nil
 	local rendered = renderPasses > diagnostic.startPasses
-	feedback.show("HCO RC17 DRONE CHECK — renderer " .. (rendered and "ACTIVE" or "NOT CALLED") .. ", sprite " .. (sprite and "READY" or "MISSING") .. ", airframes " .. tostring(#activeDrones))
+	feedback.show("HCO RC18 DRONE CHECK — renderer " .. (rendered and "ACTIVE" or "NOT CALLED") .. ", sprite " .. (sprite and "READY" or "MISSING") .. ", airframes " .. tostring(#activeDrones))
 end
 
 function drones.request(context, count, reason, quiet)

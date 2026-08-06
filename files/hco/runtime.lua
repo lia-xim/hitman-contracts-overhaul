@@ -11,6 +11,7 @@ local disguise = require("hco/social/disguise")
 local targetController = require("hco/targets/controller")
 local stateModule = require("hco/state")
 local util = require("hco/util")
+local visuals = require("hco/visuals")
 
 local runtime = {}
 
@@ -100,6 +101,13 @@ function runtime.install(state)
 
 	function updateState:update(dt)
 		feedback.update(dt)
+		-- Some engine builds create priorityRenderer after local mods are loaded.
+		-- Retry the idempotent native-layer registration from the live update path.
+		state.droneRendererRetry = math.max(0, (state.droneRendererRetry or 0) - dt)
+		if state.droneRendererRetry <= 0 and (not state.hooks or not state.hooks.hcoDroneRenderLayer) then
+			pcall(visuals.initialize, state)
+			state.droneRendererRetry = 0.5
+		end
 		if not game.worldObject then
 			return
 		end

@@ -4,6 +4,22 @@ local util = require("hco/util")
 
 local visuals = {}
 local sheet, quads
+local droneRenderLayer = {
+	priority = 100000,
+	draw = function() drones.drawAll() end
+}
+
+local function installDroneRenderer(state)
+	state.hooks = state.hooks or {}
+	if not priorityRenderer or type(priorityRenderer.add) ~= "function" then return false end
+	if priorityRenderer.activeRenderMap and priorityRenderer.activeRenderMap[droneRenderLayer] then
+		state.hooks.hcoDroneRenderLayer = droneRenderLayer
+		return true
+	end
+	priorityRenderer:add(droneRenderLayer, droneRenderLayer.priority)
+	state.hooks.hcoDroneRenderLayer = droneRenderLayer
+	return true
+end
 
 local function loadSheet()
 	if sheet or not love or not love.graphics then return end
@@ -26,9 +42,13 @@ end
 
 function visuals.initialize(state)
 	state.hooks = state.hooks or {}
-	if state.hooks.hcoFactionPostDraw and state.hooks.hcoDronePriorityDraw then return true end
+	-- Drone rendering is independent from faction visuals. The old implementation
+	-- returned early when the goon class was not ready and silently skipped the
+	-- drone renderer for the entire session.
+	local droneRendererReady = installDroneRenderer(state)
+	if state.hooks.hcoFactionPostDraw and droneRendererReady then return true end
 	local goonClass = actor.getClassData and actor.getClassData("goon")
-	if not goonClass or type(goonClass.postDraw) ~= "function" then return false end
+	if not goonClass or type(goonClass.postDraw) ~= "function" then return droneRendererReady end
 	loadSheet()
 	if not state.hooks.hcoFactionPostDraw then
 		local original = goonClass.postDraw
@@ -47,20 +67,8 @@ function visuals.initialize(state)
 		end
 	end
 
-	-- main_renderer calls priorityRenderer:draw() as the final world-space pass,
-	-- after actors and before camera:unset(). Drawing here prevents later world
-	-- layers and lighting composition from covering the drone body.
-	if priorityRenderer and type(priorityRenderer.draw) == "function" and not state.hooks.hcoDronePriorityDraw then
-		local originalPriorityDraw = priorityRenderer.draw
-		state.hooks.hcoDronePriorityDraw = originalPriorityDraw
-		function priorityRenderer:draw(...)
-			originalPriorityDraw(self, ...)
-			drones.drawAll()
-		end
-	end
-
 	util.log(config, "native faction visuals ready")
-	return state.hooks.hcoDronePriorityDraw ~= nil
+	return droneRendererReady
 end
 
 return visuals

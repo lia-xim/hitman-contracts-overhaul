@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0-rc18 — 2026-08-06
+
+- Decoupled drone rendering from faction/NPC visual initialization so a temporarily unavailable goon class can no longer disable drone bodies for the whole session.
+- Added an idempotent live retry for engine builds that expose `priorityRenderer` only after local mods initialize.
+- Replaced the fragile wrapped draw function with a native `priorityRenderer` layer registered at the final world-space priority.
+- Added a high-contrast procedural quadrotor silhouette over the flight sprite, including a texture-independent fallback.
+- Reduced confirmed-contact acquisition to 0.25 seconds in aggressive mode and 0.35 seconds during patrol while retaining cone, range, and obstruction checks.
+- Rate-limited repeated confirmed-sighting dispatches while keeping response-team knowledge and combat orders current.
+
 ## 0.10.0-rc17 — 2026-08-06
 
 - Corrected RC16's install-layout diagnosis after decompiling `love.filesystem.loadMods()`: local mods explicitly load `<mod>/files/main.lua`.
