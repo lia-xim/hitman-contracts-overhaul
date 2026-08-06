@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0-rc17 — 2026-08-06
+
+- Corrected RC16's install-layout diagnosis after decompiling `love.filesystem.loadMods()`: local mods explicitly load `<mod>/files/main.lua`.
+- Restored the required nested `files/` archive layout and local installation.
+- Moved drone drawing to the final `priorityRenderer:draw()` world pass, immediately before the camera transform is removed.
+- Added a one-shot in-game diagnostic reporting renderer activity, sprite load state, and registered airframe count.
+- Accepted unobstructed raycasts that reach fraction `1`, matching native combat visibility handling.
+
 ## 0.10.0-rc16 — 2026-08-06
 
 - Fixed the release archive layout: `main.lua`, `hco/`, and `assets/` are now packaged at the mod root instead of below an ignored `files/` directory.

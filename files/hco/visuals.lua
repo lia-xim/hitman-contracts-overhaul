@@ -26,7 +26,7 @@ end
 
 function visuals.initialize(state)
 	state.hooks = state.hooks or {}
-	if state.hooks.hcoFactionPostDraw and state.hooks.hcoDroneWorldDrawActors then return true end
+	if state.hooks.hcoFactionPostDraw and state.hooks.hcoDronePriorityDraw then return true end
 	local goonClass = actor.getClassData and actor.getClassData("goon")
 	if not goonClass or type(goonClass.postDraw) ~= "function" then return false end
 	loadSheet()
@@ -47,20 +47,20 @@ function visuals.initialize(state)
 		end
 	end
 
-	-- The game's main renderer never calls world:postDraw(). It calls
-	-- world:drawActors() between camera:set() and camera:unset(), making this the
-	-- reliable world-space hook for runtime drone sprites.
-	if world and type(world.drawActors) == "function" and not state.hooks.hcoDroneWorldDrawActors then
-		local originalWorldDrawActors = world.drawActors
-		state.hooks.hcoDroneWorldDrawActors = originalWorldDrawActors
-		function world:drawActors(...)
-			originalWorldDrawActors(self, ...)
+	-- main_renderer calls priorityRenderer:draw() as the final world-space pass,
+	-- after actors and before camera:unset(). Drawing here prevents later world
+	-- layers and lighting composition from covering the drone body.
+	if priorityRenderer and type(priorityRenderer.draw) == "function" and not state.hooks.hcoDronePriorityDraw then
+		local originalPriorityDraw = priorityRenderer.draw
+		state.hooks.hcoDronePriorityDraw = originalPriorityDraw
+		function priorityRenderer:draw(...)
+			originalPriorityDraw(self, ...)
 			drones.drawAll()
 		end
 	end
 
 	util.log(config, "native faction visuals ready")
-	return state.hooks.hcoDroneWorldDrawActors ~= nil
+	return state.hooks.hcoDronePriorityDraw ~= nil
 end
 
 return visuals

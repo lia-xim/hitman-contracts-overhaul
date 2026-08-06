@@ -9,6 +9,7 @@ local registered = false
 local sprite, quads
 local droneClass
 local activeDrones = {}
+local renderPasses = 0
 
 local function loadSprite()
 	if sprite or not love or not love.graphics or type(love.graphics.newImage) ~= "function" then return end
@@ -74,7 +75,7 @@ local function canSeePlayer(self, player)
 	local fixture = hitData.fixture
 	if not fixture then return true end
 	local okFixture, playerFixture = util.call(player, "getFixture")
-	return okFixture and fixture == playerFixture
+	return hitData.fraction == 1 or okFixture and fixture == playerFixture
 end
 
 local function notifyConfirmedSighting(self, player)
@@ -273,6 +274,7 @@ local function spawn(context, index)
 end
 
 function drones.drawAll()
+	renderPasses = renderPasses + 1
 	loadSprite()
 	if not sprite or not quads or not love or not love.graphics then return false end
 	local live = {}
@@ -286,6 +288,16 @@ function drones.drawAll()
 	activeDrones = live
 	love.graphics.setColor(255, 255, 255, 255)
 	return #live > 0
+end
+
+local function updateRenderDiagnostic(security, dt)
+	local diagnostic = security and security.droneRenderDiagnostic
+	if not diagnostic then return end
+	diagnostic.remaining = diagnostic.remaining - dt
+	if diagnostic.remaining > 0 then return end
+	security.droneRenderDiagnostic = nil
+	local rendered = renderPasses > diagnostic.startPasses
+	feedback.show("HCO RC17 DRONE CHECK — renderer " .. (rendered and "ACTIVE" or "NOT CALLED") .. ", sprite " .. (sprite and "READY" or "MISSING") .. ", airframes " .. tostring(#activeDrones))
 end
 
 function drones.request(context, count, reason, quiet)
@@ -305,6 +317,7 @@ end
 function drones.update(context, dt)
 	local security = context.security
 	if not security then return end
+	updateRenderDiagnostic(security, dt)
 	security.droneCooldown = math.max(0, (security.droneCooldown or 0) - dt)
 	local wanted = security.droneDeploymentRequested or 0
 	if wanted <= 0 or security.droneCooldown > 0 then return end
@@ -320,6 +333,7 @@ function drones.update(context, dt)
 	security.droneCooldown = config.DRONE_REDEPLOY_COOLDOWN
 	security.droneRequestNoticeShown = false
 	if launched > 0 then
+		security.droneRenderDiagnostic = {remaining = 1.5, startPasses = renderPasses}
 		if sound and type(sound.play) == "function" then pcall(sound.play, sound, "radio_disrupt_end") end
 		if security.droneMode == "PATROL" or security.droneDeploymentQuiet then
 			feedback.show(string.upper((security.droneDoctrine and security.droneDoctrine.name) or "WATCH DRONE") .. " PATROL ACTIVE")

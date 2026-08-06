@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.10.0-rc16`
+**Current build:** `0.10.0-rc17`
 **Target game:** Intravenous 2 `1.4.12HF3`  
-**Status:** public release candidate; RC16 corrects the install archive layout so the tested code is loaded from the actual mod root. Drone rendering, geometric player detection, target evacuation, and split protection response require final in-game validation.
+**Status:** public release candidate; RC17 restores the engine-required local archive layout and adds an in-game drone render diagnostic. Drone rendering, geometric player detection, target evacuation, and split protection response require final in-game validation.
 
 ## Highlights
 
@@ -40,8 +40,8 @@ The companion Intravenous 2 Cheat Trainer recognizes HCO security. HCO targets a
 ## Installation
 
 1. Download the latest pre-release archive.
-2. Remove an older `Hitman-Contracts-Overhaul` directory to prevent stale duplicate files, then create `<Intravenous 2>/mods/Hitman-Contracts-Overhaul`.
-3. Extract the archive so the final path is `<Intravenous 2>/mods/Hitman-Contracts-Overhaul/main.lua` with `hco/` and `assets/` beside it. There must not be an extra `files/` directory.
+2. Remove an older `Hitman-Contracts-Overhaul` directory, then create `<Intravenous 2>/mods/Hitman-Contracts-Overhaul`.
+3. Extract the archive so the final path is `<Intravenous 2>/mods/Hitman-Contracts-Overhaul/files/main.lua`, with `files/hco/` and `files/assets/` beside it. Intravenous 2's local loader explicitly loads this nested `files/` directory.
 4. Restart the game completely and begin a compatible mission from its start.
 
 Do not enable both a local and Workshop copy at the same time.
