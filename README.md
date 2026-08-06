@@ -6,7 +6,7 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 
 **Current build:** `0.10.0-rc17`
 **Target game:** Intravenous 2 `1.4.12HF3`  
-**Status:** public release candidate; RC17 restores the engine-required local archive layout and adds an in-game drone render diagnostic. Drone rendering, geometric player detection, target evacuation, and split protection response require final in-game validation.
+**Status:** public release candidate; RC20 replaces the failed overlay experiment with a native world-entity, decor-quadtree, and engine-sprite-batch airframe path. Live drone rendering, geometric player detection, target evacuation, and split protection response still require final in-game validation.
 
 ## Highlights
 
@@ -20,7 +20,7 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - One to three archetype-scaled drones patrol around each protected target from contract start, then switch to a faster and more exact aggressive search after escalation.
 - Immediate protection mobilization and drone request on confirmed contact, guard damage, or protection casualties.
 - Three loud player shots within eight seconds trigger aggressive drone support independently of visual-contact hand-off; NPC fire and suppressed player fire do not.
-- Engine-owned security-camera carriers avoid fragile late class registration; the native camera body remains visible even if the custom drone sprite cannot load.
+- Engine-owned security-camera carriers provide physics, searchlights, obstruction, and bullet interaction. A registered `hco_drone_airframe` world entity supplies the visible body through the same quadtree and sprite-batch lifecycle used by normal world actors.
 - Confirmed contact sends the target and its five close guards toward safety while response units hunt the player instead of dragging the principal into combat.
 - Native contract-completion banner, audio feedback, campaign payout, and save/reload persistence.
 - Transactional activation, duplicate-copy protection, and isolated subsystem failure handling.

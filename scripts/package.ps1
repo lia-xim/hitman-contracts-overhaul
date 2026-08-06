@@ -12,7 +12,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [System.IO.Compression.ZipFile]::OpenRead($archive)
 try {
     $entries = @($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
-    foreach ($required in @('files/main.lua', 'files/hco/config.lua', 'files/assets/hco/drone-flight-sheet.png')) {
+    foreach ($required in @('files/main.lua', 'files/hco/config.lua', 'files/hco/security/drone_airframe.lua', 'files/assets/hco/drone-flight-sheet.png')) {
         if ($entries -notcontains $required) { throw "Package root entry missing: $required" }
     }
 }

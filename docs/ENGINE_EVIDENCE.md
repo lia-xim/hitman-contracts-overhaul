@@ -54,6 +54,19 @@ HCO stores only serializable primitives/tables under `__hco_contract_v2::<mapID>
 
 ## Goons, movement, knowledge, and protection
 
+### Native actor and airframe rendering path
+
+The RC20 airframe migration was based on a fresh decompilation of the complete rendering lifecycle, not on the prior overlay assumptions:
+
+- `game/world/world.lua`: `world:drawActors()` delegates to `decorQuadTreeVisHandler:draw()`.
+- `game/quadtree_visibility_handler.lua`: visible `QT_DRAWABLE` entities receive `enterVisibilityRange()` and `draw()`; leaving entities receive `leaveVisibilityRange()`.
+- `game/actors/goon.lua`: moving enemies reinsert themselves into both the actor and render quadtrees; `goon:draw()` updates the avatar at its current draw position.
+- `game/visual/avatar.lua`: entering visibility allocates native sprite-batch slots and `avatar:draw()` updates those slots immediately before priority rendering.
+- `engine/spritebatchcontroller.lua`: `newSpriteBatch`, `allocateSlot`, `increaseVisibility`, `updateSprite`, and `deallocateSlot` provide the complete native batch lifecycle.
+- `game/main_renderer.lua`: `world:drawActors()` runs while the world camera is active, immediately before `priorityRenderer:draw()`.
+
+HCO now registers `hco_drone_airframe` through `objects.registerNew`, inserts each instance into the world decor quadtree, and gives visible instances a slot in the dedicated `hco_drone_airframes` sprite batch. The security-camera object remains a sensor/physics carrier only. No global draw-function wrapper is used for drone bodies.
+
 Source: `game/actors/goon.lua`
 
 - `getRadio` 1636.

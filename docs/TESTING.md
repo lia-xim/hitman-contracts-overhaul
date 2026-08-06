@@ -4,6 +4,8 @@ Automated checks validate Lua syntax, bootstrap isolation, contract lifecycle, p
 
 These checks do not prove live AI behavior or rendering. A release candidate is promoted only after this in-game pass on Intravenous 2 1.4.12HF3:
 
+RC20 specifically reports `HCO RC20 NATIVE AIRFRAME`. The expected values are `quadtree ACTIVE`, `batch READY`, `sprite READY`, and at least one body. The four fields isolate world-entity visibility, native batch creation, asset loading, and spawn state respectively.
+
 1. Reach the main menu without an HCO traceback.
 2. Start a compatible mission from the beginning and confirm at least one native optional contract.
 3. Recover field intelligence and verify the moving target marker.

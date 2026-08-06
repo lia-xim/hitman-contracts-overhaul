@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0-rc20 — 2026-08-06
+
+- Replaced the external drone overlay with a registered native `hco_drone_airframe` world entity.
+- Airframes now enter the same decor-quadtree visibility lifecycle used by enemies and other drawable world entities.
+- Added a dedicated engine-managed sprite batch at depth 68; quadtree drawing updates its slots immediately before the native priority renderer runs.
+- Kept the security-camera carrier only for physics, searchlight, obstruction and bullet interaction, with the native airframe synchronized to it.
+- Added a texture-independent quadtree fallback and a diagnostic that separately reports quadtree draw activity, sprite-batch readiness, texture readiness and body count.
+
 ## 0.10.0-rc19 — 2026-08-06
 
 - Fixed the live map-transition failure where the engine rebuilt `priorityRenderer.renderOrder` but HCO retained a stale `activeRenderMap` registration.

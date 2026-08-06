@@ -1,34 +1,13 @@
 local config = require("hco/config")
 local audio = require("hco/audio")
 local feedback = require("hco/feedback")
+local airframes = require("hco/security/drone_airframe")
 local util = require("hco/util")
 
 local drones = {}
 local CLASS_ID = "hco_search_drone"
 local registered = false
-local sprite, quads
 local droneClass
-local activeDrones = {}
-local renderPasses = 0
-
-local function loadSprite()
-	if sprite or not love or not love.graphics or type(love.graphics.newImage) ~= "function" then return end
-	local candidates = {
-		"mods/Hitman-Contracts-Overhaul/files/assets/hco/drone-flight-sheet.png",
-		"mods/Hitman-Contracts-Overhaul/assets/hco/drone-flight-sheet.png",
-		"assets/hco/drone-flight-sheet.png"
-	}
-	for _, path in ipairs(candidates) do
-		local ok, image = pcall(love.graphics.newImage, path)
-		if ok and image then
-			sprite = image
-			image:setFilter("nearest", "nearest")
-			quads = {}
-			for frame = 0, 3 do quads[frame + 1] = love.graphics.newQuad(frame * 96, 0, 96, 96, 384, 96) end
-			return
-		end
-	end
-end
 
 local function chooseDestination(self)
 	local security = self.hcoContext and self.hcoContext.security
@@ -114,6 +93,7 @@ function drones.initialize()
 	if not objects or type(objects.create) ~= "function" or not objects.getClassData then return false end
 	local nativeCameraClass = objects.getClassData("security_camera")
 	if not nativeCameraClass then return false end
+	if not airframes.initialize() then return false end
 	local drone = {
 		class = CLASS_ID,
 		QUADLIST = {"Camera_1"},
@@ -134,7 +114,6 @@ function drones.initialize()
 		self.hcoFrameTime = 0
 		self.hcoFrame = 1
 		self.hcoSearchStep = 0
-		loadSprite()
 		self.hcoRotorSound = audio.startRotor(self)
 		if not self.hcoRotorSound and sound and type(sound.playWorld) == "function" then
 			local ok, container = pcall(sound.playWorld, sound, "light_malfunctioning", self, self.x, self.y, 0.24, 1.55)
@@ -153,8 +132,7 @@ function drones.initialize()
 	function drone:updateSprite() return end
 
 	function drone:postDraw()
-		-- Runtime camera carriers are absent from the finalized object sprite
-		-- batch, so visuals.draw invokes drones.drawAll from the world render pass.
+		-- The sensor carrier stays invisible; hco_drone_airframe owns rendering.
 	end
 
 	function drone:update(dt)
@@ -174,6 +152,7 @@ function drones.initialize()
 			self:setPos(self.x + dx / distance * step, self.y + dy / distance * step)
 			self:setLightAngle(math.deg(math.atan2(dy, dx)))
 		end
+		airframes.sync(self.hcoAirframe, self)
 
 		local player = game and game.playerActor
 		local visible = player and util.isAlive(player) and canSeePlayer(self, player) or false
@@ -199,6 +178,8 @@ function drones.initialize()
 		-- Native security cameras report to a booth. Runtime drones deliberately
 		-- have no booth, so calling the native breakCam would index nil.
 		if type(self.setBroken) == "function" then pcall(self.setBroken, self, true) else self.broken = true end
+		airframes.remove(self.hcoAirframe)
+		self.hcoAirframe = nil
 		if self.hcoRotorSound then
 			if type(self.hcoRotorSound.stop) == "function" then audio.stop(self.hcoRotorSound) elseif sound and sound.manager then pcall(sound.manager.stopSound, sound.manager, self.hcoRotorSound) end
 			self.hcoRotorSound = nil
@@ -212,6 +193,8 @@ function drones.initialize()
 	end
 
 	function drone:remove()
+		airframes.remove(self.hcoAirframe)
+		self.hcoAirframe = nil
 		if self.hcoRotorSound then
 			if type(self.hcoRotorSound.stop) == "function" then audio.stop(self.hcoRotorSound) elseif sound and sound.manager then pcall(sound.manager.stopSound, sound.manager, self.hcoRotorSound) end
 			self.hcoRotorSound = nil
@@ -222,7 +205,6 @@ function drones.initialize()
 	drone.baseClass = nativeCameraClass
 	droneClass = drone
 	registered = true
-	loadSprite()
 	return true
 end
 
@@ -251,7 +233,6 @@ local function spawn(context, index)
 		instance.hcoFrameTime = 0
 		instance.hcoFrame = 1
 		instance.hcoSearchStep = 0
-		loadSprite()
 		instance.hcoRotorSound = audio.startRotor(instance)
 		util.log(config, "native security-camera drone instance prepared")
 	end
@@ -271,49 +252,22 @@ local function spawn(context, index)
 		game.addDynamicObject(instance)
 	end)
 	if not placed then return nil, "placement-failed: " .. tostring(placeError) end
+	local shell, shellError = airframes.create(instance, instance.x + 13, instance.y + 13)
+	if not shell then
+		pcall(game.removeDynamicObject, instance)
+		pcall(instance.remove, instance)
+		return nil, shellError
+	end
+	instance.hcoAirframe = shell
+	airframes.sync(shell, instance)
 	instance._hcoDrone = true
-	table.insert(activeDrones, instance)
 	return instance
 end
 
 function drones.drawAll()
-	renderPasses = renderPasses + 1
-	loadSprite()
-	if not love or not love.graphics then return false end
-	local live = {}
-	for _, drone in ipairs(activeDrones) do
-		if drone and not drone.broken and util.isValid(drone) then
-			table.insert(live, drone)
-			local x, y = drone.x + 13, drone.y + 13
-			local angle = drone.curViewAngRad or 0
-			if sprite and quads then
-				love.graphics.setColor(255, 255, 255, 255)
-				love.graphics.draw(sprite, quads[drone.hcoFrame or 1], x, y, angle, 0.68, 0.68, 48, 48)
-			end
-			-- High-contrast native-scale airframe overlay. Besides improving readability
-			-- against dark maps, this guarantees a visible drone if a GPU accepts the
-			-- sheet but fails to sample its late-loaded texture correctly.
-			love.graphics.push()
-			love.graphics.translate(x, y)
-			love.graphics.rotate(angle)
-			love.graphics.setLineWidth(3)
-			love.graphics.setColor(90, 225, 255, 235)
-			love.graphics.line(-18, -12, 18, 12)
-			love.graphics.line(-18, 12, 18, -12)
-			love.graphics.circle("fill", -18, -12, 5)
-			love.graphics.circle("fill", 18, 12, 5)
-			love.graphics.circle("fill", -18, 12, 5)
-			love.graphics.circle("fill", 18, -12, 5)
-			love.graphics.setColor(16, 28, 36, 255)
-			love.graphics.circle("fill", 0, 0, 9)
-			love.graphics.setColor(255, 105, 70, 255)
-			love.graphics.circle("fill", 7, 0, 3)
-			love.graphics.pop()
-		end
-	end
-	activeDrones = live
-	love.graphics.setColor(255, 255, 255, 255)
-	return #live > 0
+	-- Compatibility shim for older HCO hooks. Native airframes are now drawn by
+	-- world:drawActors() through the game's decor quadtree and sprite batches.
+	return airframes.diagnostics().airframes > 0
 end
 
 local function updateRenderDiagnostic(security, dt)
@@ -322,8 +276,9 @@ local function updateRenderDiagnostic(security, dt)
 	diagnostic.remaining = diagnostic.remaining - dt
 	if diagnostic.remaining > 0 then return end
 	security.droneRenderDiagnostic = nil
-	local rendered = renderPasses > diagnostic.startPasses
-	feedback.show("HCO RC19 DRONE CHECK — renderer " .. (rendered and "ACTIVE" or "NOT CALLED") .. ", sprite " .. (sprite and "READY" or "MISSING") .. ", airframes " .. tostring(#activeDrones))
+	local stats = airframes.diagnostics()
+	local rendered = stats.drawPasses > diagnostic.startPasses
+	feedback.show("HCO RC20 NATIVE AIRFRAME — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)
@@ -359,7 +314,7 @@ function drones.update(context, dt)
 	security.droneCooldown = config.DRONE_REDEPLOY_COOLDOWN
 	security.droneRequestNoticeShown = false
 	if launched > 0 then
-		security.droneRenderDiagnostic = {remaining = 1.5, startPasses = renderPasses}
+		security.droneRenderDiagnostic = {remaining = 1.5, startPasses = airframes.diagnostics().drawPasses}
 		if sound and type(sound.play) == "function" then pcall(sound.play, sound, "radio_disrupt_end") end
 		if security.droneMode == "PATROL" or security.droneDeploymentQuiet then
 			feedback.show(string.upper((security.droneDoctrine and security.droneDoctrine.name) or "WATCH DRONE") .. " PATROL ACTIVE")

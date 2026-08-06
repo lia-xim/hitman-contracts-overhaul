@@ -1,36 +1,8 @@
 local config = require("hco/config")
-local drones = require("hco/security/drones")
 local util = require("hco/util")
 
 local visuals = {}
 local sheet, quads
-local droneRenderLayer = {
-	priority = 100000,
-	draw = function() drones.drawAll() end
-}
-
-local function installDroneRenderer(state)
-	state.hooks = state.hooks or {}
-	if not priorityRenderer or type(priorityRenderer.add) ~= "function" then return false end
-	local registered = priorityRenderer.activeRenderMap and priorityRenderer.activeRenderMap[droneRenderLayer]
-	if registered and type(priorityRenderer.findObject) == "function" then
-		registered = priorityRenderer:findObject(droneRenderLayer) ~= nil
-	end
-	if registered then
-		state.hooks.hcoDroneRenderLayer = droneRenderLayer
-		return true
-	end
-	-- Map transitions rebuild renderOrder independently in the live game. Clear
-	-- a stale map entry or priorityRenderer:add() will return without reinserting.
-	if priorityRenderer.activeRenderMap then priorityRenderer.activeRenderMap[droneRenderLayer] = nil end
-	priorityRenderer:add(droneRenderLayer, droneRenderLayer.priority)
-	state.hooks.hcoDroneRenderLayer = droneRenderLayer
-	return true
-end
-
-function visuals.ensureDroneRenderer(state)
-	return installDroneRenderer(state)
-end
 
 local function loadSheet()
 	if sheet or not love or not love.graphics then return end
@@ -53,13 +25,9 @@ end
 
 function visuals.initialize(state)
 	state.hooks = state.hooks or {}
-	-- Drone rendering is independent from faction visuals. The old implementation
-	-- returned early when the goon class was not ready and silently skipped the
-	-- drone renderer for the entire session.
-	local droneRendererReady = installDroneRenderer(state)
-	if state.hooks.hcoFactionPostDraw and droneRendererReady then return true end
+	if state.hooks.hcoFactionPostDraw then return true end
 	local goonClass = actor.getClassData and actor.getClassData("goon")
-	if not goonClass or type(goonClass.postDraw) ~= "function" then return droneRendererReady end
+	if not goonClass or type(goonClass.postDraw) ~= "function" then return false end
 	loadSheet()
 	if not state.hooks.hcoFactionPostDraw then
 		local original = goonClass.postDraw
@@ -79,7 +47,7 @@ function visuals.initialize(state)
 	end
 
 	util.log(config, "native faction visuals ready")
-	return droneRendererReady
+	return true
 end
 
 return visuals
