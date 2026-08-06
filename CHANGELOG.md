@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.12.1-rc25 — 2026-08-06
+
+- Added a native path-grid flight-footprint check so drones steer around walls, closed doors, windows and high obstructions while remaining able to cross low cover.
+- Added deterministic alternate-heading recovery instead of letting a blocked drone stop or push through a building boundary.
+- Added a 0.55-second idle watchdog that invalidates stale destinations and advances the flank/search phase when a drone has stopped moving unexpectedly.
+- Increased tactical movement variety with stronger tracking sway, changing standoff range and continued deterministic search relocation.
+- Added regression coverage for active wall avoidance, blocked-tile containment and idle recovery without sacrificing the existing speed, world-edge and wing-separation limits.
+
+## 0.12.0-rc24 — 2026-08-06
+
+- Reduced all seven runtime airframes to 0.32/0.35/0.39 scout/light/heavy scale instead of the former 0.32–0.57 oversized family.
+- Fixed moving-drone counterplay: runtime cameras now rebuild an explicit bullet-hitable fixture, move that Box2D body with the visible airframe every frame and expose a centered aim position.
+- Added aggressive tactical contact: recent shared intelligence plus direct line of sight starts tracking immediately instead of waiting for a passing scan cone.
+- Added deterministic timed search rings around the last known position and periodic left/right flank relocations during sustained contact. Each drone receives distinct angles, radii and timing while retaining world-floor snapping and the RC23 speed caps.
+- Added regression proof for hitbox creation/body synchronization, centered aiming, ordinary bullet destruction, compact model scales, flank relocation and lost-contact exploration.
+
 ## 0.11.1-rc23 — 2026-08-06
 
 - Fixed the live `drawOutline` crash (`xOff` was nil) when the player aimed at a runtime drone. Aim highlighting now delegates to the real HCO airframe sprite instead of the invisible native camera carrier.

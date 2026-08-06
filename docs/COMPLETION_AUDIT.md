@@ -1,8 +1,8 @@
-# Completion Audit — 0.11.1-rc23
+# Completion Audit — 0.12.1-rc25
 
 **Audit date:** 2026-08-06  
 **Goal status:** active; the native drone-render breakthrough is proven, but the full specification and final live acceptance are not complete  
-**Authority inspected:** RC23 source, `SPECIFICATION.md`, current smoke harnesses, decompiled `1.4.12HF3` camera/projectile/damage/outline interfaces and user-supplied live screenshots/errors
+**Authority inspected:** RC25 source, `SPECIFICATION.md`, current smoke harnesses, decompiled `1.4.12HF3` camera/projectile/damage/outline/physics/path-grid interfaces and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -37,6 +37,6 @@ The core optional-contract product exists and works far enough to be played. HCO
 7. Live-test and tune the implemented Pistol/SMG/Laser attacks after native projectile and damage API verification. Every attack must remain telegraphed and counterable.
 8. Complete map profiles, localization, audio callouts and the full reload/compatibility matrix.
 
-## RC23 acceptance
+## RC25 acceptance
 
-RC23 is approved for local testing, not final Workshop release. The next live pass must first prove that aiming at a drone uses the HCO airframe outline without a traceback and that capped patrol/pursuit speeds feel fair. It must also prove all seven silhouettes, independent sensor/body rotation, stable standoff tracking, varied map-safe entry, line-of-sight cancellation, native bullets, charged lasers, adapted audio, EMP suppression, light/heavy destruction and crash-site response.
+RC25 is approved for local testing, not final Workshop release. The next live pass must first prove the smaller silhouettes, centered aiming, ordinary bullet destruction and continuous hitbox alignment while a drone moves. It must then validate timed search-ring exploration, periodic flank relocations, automatic recovery from unexpected stillness and steering around real mission walls, doors and windows. The remaining weapon/audio/EMP/counterplay behaviors must also run without a traceback.

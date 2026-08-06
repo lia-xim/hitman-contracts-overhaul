@@ -1,3 +1,4 @@
+local config = require("hco/config")
 local util = require("hco/util")
 
 local flight = {}
@@ -88,6 +89,12 @@ local function farEnough(x, y, anchorX, anchorY, minimum)
 	return dx * dx + dy * dy >= minimum * minimum
 end
 
+local function seededRange(context, index, salt, minimum, maximum)
+	local seed = context and context.contract and context.contract.seed or context and context.slot or 0
+	local hash = util.stableHash(tostring(seed) .. ":" .. tostring(index or 1) .. ":" .. tostring(salt))
+	return minimum + (hash % 10000) / 10000 * (maximum - minimum)
+end
+
 function flight.spawnPoint(context, index)
 	local anchorX, anchorY = util.getPos(context and context.target)
 	if not anchorX then return nil, nil end
@@ -118,6 +125,42 @@ function flight.beginTracking(drone, player)
 	drone.hcoTracking = 2.2
 end
 
+function flight.updateTactics(drone, player, aggressive, tacticalContact)
+	if not aggressive then
+		drone.hcoNextFlankAt, drone.hcoNextSearchAt = nil, nil
+		return nil
+	end
+	local now = curTime or 0
+	if tacticalContact and player and util.isAlive(player) then
+		drone.hcoNextSearchAt = nil
+		if not drone.hcoNextFlankAt then
+			drone.hcoNextFlankAt = now + seededRange(drone.hcoContext, drone.hcoIndex, "flank-delay", config.DRONE_FLANK_INTERVAL_MIN, config.DRONE_FLANK_INTERVAL_MAX)
+		elseif now >= drone.hcoNextFlankAt then
+			drone.hcoFlankStep = (drone.hcoFlankStep or 0) + 1
+			local salt = "flank:" .. tostring(drone.hcoFlankStep)
+			local arc = math.rad(seededRange(drone.hcoContext, drone.hcoIndex, salt, config.DRONE_FLANK_ARC_MIN, config.DRONE_FLANK_ARC_MAX))
+			local direction = util.stableHash(salt .. ":" .. tostring(drone.hcoIndex or 1)) % 2 == 0 and -1 or 1
+			drone.hcoTrackSlotAngle = normalize((drone.hcoTrackSlotAngle or 0) + arc * direction)
+			drone.hcoDestX, drone.hcoDestY = nil, nil
+			drone.hcoNextFlankAt = now + seededRange(drone.hcoContext, drone.hcoIndex, salt .. ":delay", config.DRONE_FLANK_INTERVAL_MIN, config.DRONE_FLANK_INTERVAL_MAX)
+			return "FLANK"
+		end
+		return "CONTACT"
+	end
+	drone.hcoNextFlankAt = nil
+	if (drone.hcoTracking or 0) <= 0 then
+		if not drone.hcoNextSearchAt then drone.hcoNextSearchAt = now end
+		if now >= drone.hcoNextSearchAt then
+			drone.hcoSearchPhase = (drone.hcoSearchPhase or 0) + 1
+			drone.hcoDestX, drone.hcoDestY = nil, nil
+			local salt = "search-delay:" .. tostring(drone.hcoSearchPhase)
+			drone.hcoNextSearchAt = now + seededRange(drone.hcoContext, drone.hcoIndex, salt, config.DRONE_SEARCH_RELOCATE_MIN, config.DRONE_SEARCH_RELOCATE_MAX)
+			return "SEARCH"
+		end
+	end
+	return nil
+end
+
 local function trackingDestination(drone, player)
 	local px, py = util.getPos(player)
 	if not px then return nil, nil end
@@ -125,8 +168,9 @@ local function trackingDestination(drone, player)
 	local baseAngle = drone.hcoTrackSlotAngle or deterministicAngle(drone.hcoContext, drone.hcoIndex or 1, "slot")
 	-- A very small breathing motion keeps formations alive without orbiting past
 	-- the player or dropping the sensor lock.
-	local sway = math.sin((curTime or 0) * 0.42 + (drone.hcoIndex or 1) * 1.7) * 0.12
-	local range = definition.preferredRange or 320
+	local phase = (drone.hcoIndex or 1) * 1.7
+	local sway = math.sin((curTime or 0) * 0.55 + phase) * 0.24
+	local range = (definition.preferredRange or 320) + math.sin((curTime or 0) * 0.7 + phase * 0.6) * 24
 	local desiredX, desiredY = px + math.cos(baseAngle + sway) * range, py + math.sin(baseAngle + sway) * range
 	desiredX, desiredY = separateFromWing(drone.hcoContext, desiredX, desiredY, drone.hcoIndex)
 	local playableX, playableY = flight.snapToPlayable(desiredX, desiredY, px, py)
@@ -145,10 +189,55 @@ local function trackingDestination(drone, player)
 	return (drone.x or 0) + offset, (drone.y or 0) + offset
 end
 
+local function blocksFlightAt(x, y, clearance)
+	local worldObject = game and game.worldObject
+	if not worldObject or type(worldObject.getFloorTileGrid) ~= "function" or type(worldObject.getPFGridValue) ~= "function" then return false end
+	local okGrid, grid = pcall(worldObject.getFloorTileGrid, worldObject)
+	if not okGrid or not grid or type(grid.worldToIndex) ~= "function" then return false end
+	if not world or not world.PATHFIND_TILE_STATE then return false end
+	local state = world.PATHFIND_TILE_STATE
+	local radius = clearance or 0
+	for _, sample in ipairs({{0,0},{radius,0},{-radius,0},{0,radius},{0,-radius}}) do
+		local okIndex, index = pcall(grid.worldToIndex, grid, x + sample[1], y + sample[2])
+		if not okIndex or index == nil then return true end
+		local okValue, value = pcall(worldObject.getPFGridValue, worldObject, index)
+		value = okValue and tonumber(value) or nil
+		if value == state.OBSTRUCTED or value == state.DOOR or value == state.GARAGE_DOOR or value == state.CLIMBABLE or value == state.WINDOW then return true end
+	end
+	return false
+end
+
+local function steerAroundBuilding(drone, centerX, centerY, intendedAngle, step)
+	local index = drone.hcoIndex or 1
+	local recovery = drone.hcoWallRecovery or 0
+	local preferLeft = util.stableHash(tostring(index) .. ":wall:" .. tostring(recovery)) % 2 == 0
+	local side = preferLeft and 1 or -1
+	for _, degrees in ipairs({48, -48, 82, -82, 118, -118, 160}) do
+		local angle = intendedAngle + math.rad(degrees * side)
+		local candidateX, candidateY = flight.clampToWorld(centerX + math.cos(angle) * step, centerY + math.sin(angle) * step)
+		if not blocksFlightAt(candidateX, candidateY, math.max(10, centerOffset(drone) * 0.8)) then
+			drone.hcoWallRecovery = recovery + 1
+			return candidateX, candidateY, angle, true
+		end
+	end
+	return centerX, centerY, intendedAngle, true
+end
+
 local function sectorDestination(drone, anchorX, anchorY)
 	local security = drone.hcoContext and drone.hcoContext.security
 	local points = security and security.sectorPoints or {}
 	drone.hcoSearchStep = (drone.hcoSearchStep or 0) + 1
+	if security and security.droneMode == "AGGRESSIVE" and security.lastKnown then
+		local phase = drone.hcoSearchPhase or drone.hcoSearchStep
+		local salt = "search-ring:" .. tostring(phase)
+		local angle = deterministicAngle(drone.hcoContext, (drone.hcoIndex or 1) + phase * 7, salt)
+		local radius = seededRange(drone.hcoContext, drone.hcoIndex, salt .. ":radius", config.DRONE_SEARCH_RING_MIN, config.DRONE_SEARCH_RING_MAX)
+		local ringX, ringY = flight.snapToPlayable(anchorX + math.cos(angle) * radius, anchorY + math.sin(angle) * radius, anchorX, anchorY)
+		if ringX then
+			local separatedX, separatedY = separateFromWing(drone.hcoContext, ringX, ringY, drone.hcoIndex)
+			return flight.snapToPlayable(separatedX, separatedY, anchorX, anchorY)
+		end
+	end
 	if #points > 0 then
 		local stride = 1 + (util.stableHash(tostring(drone.hcoIndex or 1) .. ":stride") % math.max(1, #points - 1))
 		local point = points[((drone.hcoSearchStep * stride + (drone.hcoIndex or 1) * 3) - 2) % #points + 1]
@@ -178,7 +267,7 @@ function flight.move(drone, dt, speed)
 	local centerX, centerY = (drone.x or 0) + offset, (drone.y or 0) + offset
 	local dx, dy = (drone.hcoDestX or centerX) - centerX, (drone.hcoDestY or centerY) - centerY
 	local distance = math.sqrt(dx * dx + dy * dy)
-	local velocityAngle
+	local velocityAngle, movedDistance, avoidedBuilding
 	if distance > 1 then
 		local step = math.min(distance, speed * dt)
 		local nextX, nextY = flight.clampToWorld(centerX + dx / distance * step, centerY + dy / distance * step)
@@ -191,10 +280,17 @@ function flight.move(drone, dt, speed)
 		if finalDistance > step and finalDistance > 0 then
 			nextX, nextY = centerX + finalDX / finalDistance * step, centerY + finalDY / finalDistance * step
 		end
+		local intendedAngle = math.atan2(nextY - centerY, nextX - centerX)
+		if blocksFlightAt(nextX, nextY, math.max(10, offset * 0.8)) then
+			nextX, nextY, intendedAngle, avoidedBuilding = steerAroundBuilding(drone, centerX, centerY, intendedAngle, step)
+		else
+			drone.hcoWallRecovery = 0
+		end
 		drone:setPos(nextX - offset, nextY - offset)
-		velocityAngle = math.atan2(dy, dx)
+		movedDistance = math.sqrt((nextX - centerX)^2 + (nextY - centerY)^2)
+		velocityAngle = movedDistance > 0.01 and intendedAngle or math.atan2(dy, dx)
 	end
-	return distance, velocityAngle
+	return distance, velocityAngle, movedDistance or 0, avoidedBuilding == true
 end
 
 function flight.updateAim(drone, dt, player, hasVisual, velocityAngle)

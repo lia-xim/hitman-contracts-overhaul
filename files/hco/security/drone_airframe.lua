@@ -114,7 +114,7 @@ function airframes.initialize()
 		self.hcoBodyAngle = 0
 		self.hcoSensorAngle = 0
 		self.hcoTypeIndex = 1
-		self.hcoRenderScale = 0.55
+		self.hcoRenderScale = 0.34
 		self.hcoSlot = nil
 		self.hcoMoveX, self.hcoMoveY = 0, 0
 		self.hcoPhase = 0
@@ -278,7 +278,7 @@ function airframes.create(owner, x, y)
 	shell.hcoOwner = owner
 	shell.hcoPhase = ((owner and owner.hcoIndex) or 1) * 1.61803398875
 	local definition = owner and owner.hcoType or {}
-	shell:setPose(x, y, owner and owner.hcoBodyAngle or owner and owner.curViewAngRad or 0, owner and owner.hcoSensorAngle or owner and owner.curViewAngRad or 0, 1, definition.index or 1, definition.renderScale or 0.55)
+	shell:setPose(x, y, owner and owner.hcoBodyAngle or owner and owner.curViewAngRad or 0, owner and owner.hcoSensorAngle or owner and owner.curViewAngRad or 0, 1, definition.index or 1, definition.renderScale or 0.34)
 	local placed, placeError = pcall(shell.onPlacedIntoMap, shell)
 	if not placed then return nil, "airframe-placement-failed: " .. tostring(placeError) end
 	table.insert(live, shell)
@@ -297,7 +297,7 @@ function airframes.sync(shell, owner)
 		shell.hcoHitFlash = owner.hcoHitFlash
 		local definition = owner.hcoType or {}
 		local offset = owner.hcoCenterOffset or 13
-		shell:setPose((owner.x or 0) + offset, (owner.y or 0) + offset, owner.hcoBodyAngle or owner.curViewAngRad or 0, owner.hcoSensorAngle or owner.curViewAngRad or 0, owner.hcoFrame or 1, definition.index or 1, definition.renderScale or 0.55)
+		shell:setPose((owner.x or 0) + offset, (owner.y or 0) + offset, owner.hcoBodyAngle or owner.curViewAngRad or 0, owner.hcoSensorAngle or owner.curViewAngRad or 0, owner.hcoFrame or 1, definition.index or 1, definition.renderScale or 0.34)
 	end
 end
 

@@ -93,6 +93,12 @@ RC22 ballistic drones use instantiated `p320`/`mp5` native bullets with a living
 
 `genericObject:drawOutline()` unpacks five values from `getDrawPosition()` and performs arithmetic on the returned `xOff`/`yOff`. A runtime-created camera has no map-finalized sprite `quadStruct`, while HCO intentionally renders its body through a separate decor airframe. The RC22 carrier returned only `x,y`, producing the live `xOff=nil` traceback when the player aimed at it. RC23 overrides `drawOutline` and `rawDraw` on each carrier and draws the airframe's current atlas frame directly in the native outline pass.
 
+### Moving camera physics contract
+
+`entity:setPos()` reinserts aimable objects into the aim quadtree, but `security_camera:setPos()` does not move its Box2D body; fixed map cameras never need that behavior. `entity:setSize()` also changes only logical width/height, not `hitboxW`/`hitboxH`. That explains the RC23 live symptom where the outline could follow a drone but bullets could not hit it: the physical target was absent, native-sized or left at the runtime spawn point. RC24 explicitly rebuilds the inherited bullet-hitable fixture after placement, sets both hitbox dimensions, applies the native camera filter category, synchronizes `body:setPosition()` on every move and centers `getAimPos()` on the visible airframe.
+
+The world floor exposes the same path-grid state used by native navigation. RC25 samples that grid for the center and cardinal edges of the airframe before each movement step. High obstruction, door, garage-door, climbable and window states block flight; low obstruction remains flyable. This is stronger than a screen-rectangle clamp and prevents crossing known building boundaries, while real-map testing remains necessary because the engine does not expose a single universal semantic `inside building` flag to runtime mods.
+
 Source: `game/world/world.lua`
 
 - `world:getSize()` returns the real map width and height. RC22 clamps every aerial entry and destination to a 48-unit interior margin.

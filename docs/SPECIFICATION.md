@@ -834,7 +834,7 @@ Every event callback must validate:
 
 ## 20. Implementation phases
 
-**Implementation checkpoint (`0.11.1-rc23`, 2026-08-06):** Phases 0–5 and the seven-model physical-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. Live RC22 evidence proved aggressive acquisition and pursuit, then exposed the native aim-outline incompatibility and excessive pursuit/separation speed. RC23 replaces that outline path and caps the full movement result. A crash-free live acceptance pass remains mandatory. Thermal cameras, operators and power relationships remain incomplete. Automated results are not substitutes for real-game proof.
+**Implementation checkpoint (`0.12.1-rc25`, 2026-08-06):** Phases 0–5 and the seven-model physical-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. Live RC23 evidence accepted firing but rejected sprite size, physical counterplay and static-feeling aggression. RC24 responded with compact silhouettes, synchronized bullet fixtures, centered aiming, immediate coordinated reaction to shared line-of-sight intelligence, timed search rings and periodic flank relocations. RC25 adds native path-grid footprint checks, deterministic building-edge steering and a short idle-recovery watchdog. A crash-free live acceptance pass remains mandatory. Thermal cameras, operators and power relationships remain incomplete. Automated results are not substitutes for real-game proof.
 
 ### Phase 0: Runtime probe
 
@@ -1153,3 +1153,17 @@ The runtime atlas contains exactly seven rows in the roster order above and four
 The engine may call `drawOutline()` as soon as the player aims at an aimable drone. The invisible `security_camera` carrier must never fall through to `genericObject:drawOutline()`: runtime carriers do not own the map-finalized `quadStruct` expected by that method. Carrier `drawOutline` and `rawDraw` therefore delegate to the visible airframe, which draws its current atlas frame directly during the native outline pass.
 
 Drone speed is a physical fairness contract, not only a tuning multiplier. The complete displacement after steering and wing separation is limited to 64 world units per second during patrol and 108 during aggressive pursuit. Doctrine and model multipliers may select a lower speed but can never exceed these caps. Separation changes steering direction inside the same per-frame travel budget and cannot teleport a converging drone.
+
+### RC24 compact, shootable and tactical flight correction
+
+The visible roster uses compact top-down scale values of 0.32 for Scout, 0.35 for light armed models and 0.39 for heavy models. Weight remains readable through silhouette, armor and effects rather than near-vehicle-sized screen occupancy.
+
+Every carrier owns a real bullet-hitable Box2D fixture created after runtime placement. Its logical size, `hitboxW`/`hitboxH`, aim position, quadtree location, physical body and airframe center must remain synchronized for the entire flight. A moving drone that can shoot the player must always be targetable and destructible at its visible position.
+
+Aggressive behavior alternates between information search and pressure. With recent shared intelligence, direct line of sight immediately starts gimbal tracking and standoff movement even before the local scan cone is perfectly aligned; weapon fire still requires that drone's own confirmed sighting. After losing contact, each drone periodically samples a different playable search ring around the last known position. During sustained contact, it changes flank side and angle every 3.2–5.8 seconds instead of camping one static slot or continuously orbiting through the player. All destinations retain native floor snapping, wing separation and RC23 movement caps.
+
+### RC25 building boundary and idle recovery
+
+Flight must sample the native mission path grid across the drone footprint before applying movement. `OBSTRUCTED`, `DOOR`, `GARAGE_DOOR`, `CLIMBABLE` and `WINDOW` cells are aerial boundaries; `OBSTRUCTED_LOW` remains intentionally flyable. When a direct step is blocked, the drone tries deterministic alternate headings within the same per-frame speed budget and may never solve the obstacle by crossing its blocked cell.
+
+A drone that moves less than 0.05 world units for 0.55 seconds while active is considered tactically stalled. Tracking drones immediately change flank side and angle; searching drones advance their search phase and invalidate the current destination. This watchdog complements path-grid steering and must not create teleports, violate world bounds or bypass wing separation.

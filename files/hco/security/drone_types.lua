@@ -5,42 +5,42 @@ local droneTypes = {}
 local definitions = {
 	{
 		id = "scout", index = 1, label = "Scout", family = "scout", weight = {patrol=64, aggressive=20},
-		speed = 1.42, scanRadius = 1.18, detect = 0.78, armor = 1, renderScale = 0.55,
+		speed = 1.42, scanRadius = 1.18, detect = 0.78, armor = 1, renderScale = 0.32,
 		turnRate = 4.8, sensorTurnRate = 6.5, gimbal = 58, preferredRange = 250, fov = 64
 	},
 	{
 		id = "pistol_light", index = 2, label = "Light Pistol", family = "pistol", weight = {patrol=22, aggressive=18},
-		speed = 1.24, scanRadius = 1.02, detect = 0.9, armor = 1, renderScale = 0.55,
+		speed = 1.24, scanRadius = 1.02, detect = 0.9, armor = 1, renderScale = 0.35,
 		turnRate = 4.2, sensorTurnRate = 5.7, gimbal = 48, preferredRange = 300, fov = 52,
 		weapon = {kind="ballistic", weaponID="p320", damage=7, burst=1, shotInterval=0.1, cooldown=1.2, range=510, aimTolerance=8, spread=2.2}
 	},
 	{
 		id = "pistol_heavy", index = 3, label = "Heavy Pistol", family = "pistol", heavy = true, weight = {patrol=0, aggressive=11},
-		speed = 0.82, scanRadius = 1.05, detect = 0.82, armor = 3, renderScale = 0.57,
+		speed = 0.82, scanRadius = 1.05, detect = 0.82, armor = 3, renderScale = 0.39,
 		turnRate = 2.7, sensorTurnRate = 4.1, gimbal = 34, preferredRange = 340, fov = 48,
 		weapon = {kind="ballistic", weaponID="p320", damage=11, burst=2, shotInterval=0.18, cooldown=1.65, range=560, aimTolerance=6, spread=1.2}
 	},
 	{
 		id = "smg_light", index = 4, label = "Light SMG", family = "smg", weight = {patrol=10, aggressive=19},
-		speed = 1.18, scanRadius = 0.96, detect = 0.84, armor = 1, renderScale = 0.55,
+		speed = 1.18, scanRadius = 0.96, detect = 0.84, armor = 1, renderScale = 0.35,
 		turnRate = 4.0, sensorTurnRate = 5.4, gimbal = 44, preferredRange = 330, fov = 50,
 		weapon = {kind="ballistic", weaponID="mp5", damage=4, burst=3, shotInterval=0.1, cooldown=1.45, range=520, aimTolerance=10, spread=3.4}
 	},
 	{
 		id = "smg_heavy", index = 5, label = "Heavy SMG", family = "smg", heavy = true, weight = {patrol=0, aggressive=15},
-		speed = 0.76, scanRadius = 1.0, detect = 0.76, armor = 4, renderScale = 0.57,
+		speed = 0.76, scanRadius = 1.0, detect = 0.76, armor = 4, renderScale = 0.39,
 		turnRate = 2.5, sensorTurnRate = 3.8, gimbal = 30, preferredRange = 370, fov = 46,
 		weapon = {kind="ballistic", weaponID="mp5", damage=5, burst=6, shotInterval=0.085, cooldown=2.1, range=580, aimTolerance=8, spread=2.6}
 	},
 	{
 		id = "laser_light", index = 6, label = "Light Laser", family = "laser", weight = {patrol=4, aggressive=11},
-		speed = 1.12, scanRadius = 1.04, detect = 0.82, armor = 1, renderScale = 0.55,
+		speed = 1.12, scanRadius = 1.04, detect = 0.82, armor = 1, renderScale = 0.35,
 		turnRate = 3.8, sensorTurnRate = 5.2, gimbal = 46, preferredRange = 380, fov = 48,
 		weapon = {kind="laser", weaponID="disruptor", damage=18, charge=0.9, cooldown=2.8, range=610, aimTolerance=6}
 	},
 	{
 		id = "laser_heavy", index = 7, label = "Heavy Laser", family = "laser", heavy = true, weight = {patrol=0, aggressive=6},
-		speed = 0.7, scanRadius = 1.08, detect = 0.72, armor = 4, renderScale = 0.57,
+		speed = 0.7, scanRadius = 1.08, detect = 0.72, armor = 4, renderScale = 0.39,
 		turnRate = 2.25, sensorTurnRate = 3.5, gimbal = 28, preferredRange = 430, fov = 44,
 		weapon = {kind="laser", weaponID="disruptor", damage=38, charge=1.4, cooldown=4.2, range=680, aimTolerance=4.5}
 	}

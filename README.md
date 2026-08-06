@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.11.1-rc23`
+**Current build:** `0.12.1-rc25`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** public release candidate. RC23 keeps the seven-model RC22 roster, fixes the live aim-outline crash and applies bounded, slower patrol/pursuit movement. The complete armed-drone behavior still needs a crash-free live mission pass.
+**Status:** public release candidate. RC25 keeps the compact, synchronized and shootable seven-model roster moving, actively steers it around native wall/door/window boundaries and recovers stalled flight automatically. The complete armed-drone behavior still needs a crash-free live mission pass.
 
 ## Highlights
 

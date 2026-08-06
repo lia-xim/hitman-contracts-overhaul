@@ -1,4 +1,22 @@
-# Automated Test Report — 0.11.1-rc23
+# Automated Test Report — 0.12.1-rc25
+
+## RC25 idle-recovery and building-boundary correction
+
+- User live evidence after RC24 found that some drones could stop unexpectedly and that flight could enter building geometry.
+- Flight coverage now samples the native path-grid state across the airframe footprint, permits low-cover flyover and rejects walls, doors, windows, climbable/high-obstruction cells.
+- A blocked direct route proves that deterministic alternate-heading steering remains active without crossing the blocked cell.
+- A 0.55-second idle watchdog proves that tracking drones select a new flank and searching drones advance their relocation phase rather than remaining still.
+- Existing speed caps, playable-world clamping, wing separation, synchronized physical hitboxes and ordinary bullet destruction remain covered.
+- Live boundary: RC25 still requires real-map confirmation that every relevant building material reports a blocked native grid state and that the recovery motion feels natural under combat pressure.
+
+## RC24 compact counterplay and tactical-flight correction
+
+- Live RC23 evidence confirmed that armed drones can acquire and fire, but rejected their visual scale, inability to receive player bullet hits and static-feeling aggressive movement.
+- Engine inspection proved the shootability defect: camera `setPos()` updates aim quadtrees but not the physical body, and `setSize()` does not update `hitboxW`/`hitboxH`.
+- Drone orchestration now proves an explicit physical hitbox exists, its body coordinates follow every carrier move, the aim point stays centered and an ordinary bullet invokes destruction.
+- Roster coverage fixes compact 0.32/0.35/0.39 Scout/light/heavy scales.
+- Flight coverage proves sustained contact changes flank slots, lost contact advances exploration phases and aggressive search-ring destinations remain within playable bounds.
+- Live boundary: RC24 still requires real projectile-hit confirmation while drones move, visual scale approval and observation of multiple search/flank cycles under combat pressure.
 
 ## RC23 live outline-crash and speed correction
 
@@ -105,7 +123,7 @@ Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
 
 ## Final results
 
-- Lua syntax: **PASS** — all 31 Lua modules parse, including the RC23 outline and bounded-flight correction.
+- Lua syntax: **PASS** — all 31 Lua modules parse, including the RC25 building-boundary and idle-recovery correction.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
@@ -113,7 +131,7 @@ Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Post-test evidence collector: **PASS** — `HCO_EVIDENCE_COLLECTOR_PASS` with 0 hash mismatches.
 - Source/install relative-file parity: **PASS** — 40 payload files including 31 Lua modules and nine runtime media files.
-- Source/install SHA-256 parity: **PASS** — every installed RC23 payload file matches the repository source; zero extras.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.11.1-rc23.zip` contains the required nested `files/` root and has SHA-256 `A5AC090CD81B5E4CDA482672BA0063CEC46EA79E64ABB7B5196C388C2A1AD015`.
+- Source/install SHA-256 parity: **PASS** — every installed RC25 payload file matches the repository source; zero extras.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.12.1-rc25.zip` contains the required nested `files/` root and has SHA-256 `A29018D8728B89CD4B397B1A202C6AE24C49584533FDC3FF850EDBBF0E2AEFEB`.
 
 The report will be updated with the final markers and package hashes before handoff. Automated results prove internal behavior and failure handling only; they do not replace the final live-mission pass.
