@@ -65,7 +65,33 @@ The RC20 airframe migration was based on a fresh decompilation of the complete r
 - `engine/spritebatchcontroller.lua`: `newSpriteBatch`, `allocateSlot`, `increaseVisibility`, `updateSprite`, and `deallocateSlot` provide the complete native batch lifecycle.
 - `game/main_renderer.lua`: `world:drawActors()` runs while the world camera is active, immediately before `priorityRenderer:draw()`.
 
-HCO now registers `hco_drone_airframe` through `objects.registerNew`, inserts each instance into the world decor quadtree, and gives visible instances a slot in the dedicated `hco_drone_airframes` sprite batch. The security-camera object remains a sensor/physics carrier only. No global draw-function wrapper is used for drone bodies.
+HCO now registers `hco_drone_airframe` through `objects.registerNew`, inserts each instance into the world decor quadtree, and gives visible instances a slot in the dedicated `hco_drone_roster_airframes` sprite batch. The security-camera object remains a sensor/physics carrier only. No global draw-function wrapper is used for drone bodies.
+
+### Native drone sensing, projectiles and damage
+
+Source: `game/objects/security_camera.lua`
+
+- `setLightAngle` updates `curViewAngRad`, the physical object angle and shadow buffer.
+- `update` normally sweeps toward its own `targetAng`. RC22 therefore invokes native maintenance first and writes the HCO gimbal angle afterwards; reversing this order caused the live cone to sweep away from an acquired player.
+- `runGenericRaycast`, the player fixture and camera FOV/range are used as the firing authorization boundary. A wall or intervening fixture cancels tracking attacks.
+- `AIMABLE`, `DISRUPTABLE`, bullet/melee physics categories and the native light buffer remain on the engine-owned carrier.
+
+Source: `game/weapons/weapon.lua`
+
+- `weapons:instantiate(id)` initializes an isolated weapon and bullet buffer.
+- `weapon:createBullet(x, y, angle, height, verticalAngle, speed, shotDelta)` sets the weapon owner as firer, activates the projectile and adds it through `game.addBullet`.
+- `getBulletSpeed`, `getFireSound`, `getDamage` and `remove` provide projectile configuration, native audiovisual identity and cleanup.
+
+Source: `game/actor.lua`
+
+- `actor.DAMAGE_TYPE.BULLET` is `1`.
+- `takeDamage(damage, damageType, attacker, inflictor)` passes through normal health/state/death handling.
+
+RC22 ballistic drones use instantiated `p320`/`mp5` native bullets with a living response actor as attacker. Lasers use `takeDamage` only after their visible, uninterrupted charge and verified raycast. This preserves normal God Mode/damage hooks and avoids unattributed magical kills.
+
+Source: `game/world/world.lua`
+
+- `world:getSize()` returns the real map width and height. RC22 clamps every aerial entry and destination to a 48-unit interior margin.
 
 Source: `game/actors/goon.lua`
 

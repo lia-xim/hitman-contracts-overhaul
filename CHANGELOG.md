@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.11.0-rc22 — 2026-08-06
+
+- Replaced the single drone body with a seven-row runtime atlas: Scout plus light/heavy Pistol, SMG and Laser designs.
+- Separated body heading from sensor heading. The airframe follows its velocity while a constrained gimbal tracks the player and yaws the body only after reaching its mechanical limit.
+- Replaced player-centered orbiting with stable standoff formation slots, small breathing motion, last-known search sectors, varied deterministic entry points and hard world-bound clamping.
+- Snapped endpoints through the native pathfinding floor grid, added 84-unit wing separation during spawn and flight, and avoided duplicate models while unused roster rows remain. Drones may cross low obstacles but no longer choose unreachable void as a destination or stack inside one another.
+- Fixed the native security-camera update ordering that previously overwrote HCO's sensor angle every frame and made a locked cone sweep away from the player.
+- Added armed escalation wings. Pistols and SMGs use engine-created native bullets and sounds; light/heavy lasers require uninterrupted aim and line of sight through a visible 0.9/1.4-second charge before dealing damage.
+- Kept the Scout unarmed and every model destructible/disruptable. Light models take one hit; heavy models use reinforced doctrine-scaled armor.
+- Enlarged the physical aimable carrier to match each light/heavy silhouette and added ricochet audio plus visible hit sparks so reinforced armor hits are legible before destruction.
+- Added custom light/heavy rotor loops and laser fire assets adapted from creator-supplied source audio.
+- Added deterministic coverage for the seven-model roster, world bounds, stable tracking slots, independent gimbal movement, native bullet creation and delayed laser damage.
+
 ## 0.10.0-rc21 — 2026-08-06
 
 - Reduced the native drone airframe from the oversized first live pass to a roughly 27-pixel world footprint and rotated the source artwork by -90 degrees so its sensor nose follows the scanlight and flight heading.

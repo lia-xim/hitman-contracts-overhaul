@@ -1,4 +1,14 @@
-# Automated Test Report — 0.10.0-rc21
+# Automated Test Report — 0.11.0-rc22
+
+## RC22 seven-model wing delta
+
+- Lua syntax validation covers the new roster, flight, weapon, airframe and orchestration modules.
+- Roster harness proves exactly seven stable atlas rows: Scout plus light/heavy Pistol, SMG and Laser.
+- Flight harness proves world-bound spawn clamping, stable tracking slots and independent body/gimbal angles.
+- Weapon harness proves native bullet creation/sound for ballistic models and that laser damage occurs only after the full telegraph.
+- Airframe harness proves per-model scale, roster sprite-batch registration, body-heading render and independent sensor propagation.
+- Four creator-supplied audio adaptations pass PCM-WAV decode/duration checks: light/heavy rotor and light/heavy laser.
+- Live boundary: RC22 still requires a fresh-mission pass for model frequency, real projectile collision, laser damage/God Mode, LOS cancellation, EMP interruption, heavy armor, audio mix and map-edge behavior.
 
 ## RC21 flight and counterplay delta
 
@@ -86,12 +96,15 @@ Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
 
 ## Final results
 
-- Lua syntax: **PASS** — `HCO_LUA_SYNTAX_PASS` across 28 files.
+- Lua syntax: **PASS** — all 31 Lua modules parse, including the RC22 roster/flight/weapon slice.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
+- Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
+- Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
+- Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Post-test evidence collector: **PASS** — `HCO_EVIDENCE_COLLECTOR_PASS` with 0 hash mismatches.
-- Source/install relative-file parity: **PASS** — 32 payload files including 28 Lua modules.
-- Source/install SHA-256 parity: **PASS** — every installed RC21 payload file matches the repository source.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.10.0-rc21.zip` contains the required nested `files/` root and has SHA-256 `F5244E214F4E008E3C1D204BBE483E7DE60186C7592A7C08B909552452E78C18`.
+- Source/install relative-file parity: **PASS** — 40 payload files including 31 Lua modules and nine runtime media files.
+- Source/install SHA-256 parity: **PASS** — every installed RC22 payload file matches the repository source; zero extras.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.11.0-rc22.zip` contains the required nested `files/` root and has SHA-256 `DFC3345449496DF5263FC33F236DF438139939A545533DB037F5CE5C29B8896F`.
 
 The report will be updated with the final markers and package hashes before handoff. Automated results prove internal behavior and failure handling only; they do not replace the final live-mission pass.

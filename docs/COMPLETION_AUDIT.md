@@ -1,8 +1,8 @@
-# Completion Audit — 0.10.0-rc21
+# Completion Audit — 0.11.0-rc22
 
 **Audit date:** 2026-08-06  
 **Goal status:** active; the native drone-render breakthrough is proven, but the full specification and final live acceptance are not complete  
-**Authority inspected:** RC21 source, `SPECIFICATION.md`, current smoke harnesses, decompiled `1.4.12HF3` render interfaces and user-supplied live screenshots/errors
+**Authority inspected:** RC22 source, `SPECIFICATION.md`, current smoke harnesses, decompiled `1.4.12HF3` camera/projectile/damage interfaces and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -17,9 +17,11 @@
 | Disguise/social stealth | Pass | Not yet systematically tested | Live test required |
 | Save/reload semantics | Pass | Individual mission behavior observed, full matrix incomplete | Live test required |
 | Drone deployment/searchlight | Pass | Searchlight and movement observed | Live pass |
-| Native drone body | Pass | RC20 body visible in screenshot | Live pass for render path; RC21 scale/orientation/effects pending |
+| Native drone body | Seven-row atlas pass | Earlier native body visible in screenshot | RC22 row/scale/orientation pass pending |
 | Drone detection relay | Pass | Prior cone did not consistently prove contact | Live test required |
-| Drone EMP/destruction | RC21 pass in harness | Not yet observed after RC21 | Live test required |
+| Drone tracking/gimbal | RC22 pass in harness | Earlier cone swept away from player | Live fix confirmation required |
+| Armed drone attacks | Native bullet and charged-laser harness pass | Not yet observed | Live test required |
+| Drone EMP/destruction | RC22 pass in harness | Not yet observed after RC22 | Live test required |
 | Vanilla mission/coexistence | No mock can prove fully | Normal shooting issue was mission-script behavior, not HCO | Broader live pass required |
 
 ## Requirement verdict
@@ -32,9 +34,9 @@ The core optional-contract product exists and works far enough to be played. HCO
 4. Upgrade drone perception from geometric player detection to semantic detection of bodies, exposed weapons and unauthorized identities.
 5. Add validated aerial corridors/obstruction recovery, a meaningful operator/radio dependency and sabotage counterplay.
 6. Build thermal surveillance and the remaining systemic contract types.
-7. Prototype an armed Hunter/Interceptor only after the game's native projectile API is verified. Its attack must be telegraphed and counterable.
+7. Live-test and tune the implemented Pistol/SMG/Laser attacks after native projectile and damage API verification. Every attack must remain telegraphed and counterable.
 8. Complete map profiles, localization, audio callouts and the full reload/compatibility matrix.
 
-## RC21 acceptance
+## RC22 acceptance
 
-RC21 is approved for local testing, not final Workshop release. The next live pass must prove corrected drone size and heading, flight effects, line-of-sight acquisition, EMP suppression, bullet destruction, doctrine armor and crash-site response without a traceback. Only then can this drone slice move from partial to live-complete.
+RC22 is approved for local testing, not final Workshop release. The next live pass must prove all seven silhouettes, independent sensor/body rotation, stable standoff tracking, varied map-safe entry, line-of-sight cancellation, native bullets, charged lasers, adapted audio, EMP suppression, light/heavy destruction and crash-site response without a traceback.

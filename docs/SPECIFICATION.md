@@ -834,7 +834,7 @@ Every event callback must validate:
 
 ## 20. Implementation phases
 
-**Implementation checkpoint (`0.10.0-rc21`, 2026-08-06):** Phases 0–5 and the physical search-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. The native drone body has been observed in game; RC21's corrected scale/orientation, flight effects and destruction/disruption behavior still need live acceptance. Thermal cameras, operators, power relationships and armed-drone variants remain incomplete. Automated results are not substitutes for real-game proof.
+**Implementation checkpoint (`0.11.0-rc22`, 2026-08-06):** Phases 0–5 and the seven-model physical-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. The underlying native airframe has been observed in game; RC22's roster atlas, stable tracking/gimbal split, native ballistic attacks, charged lasers, adapted audio and light/heavy counterplay still need live acceptance. Thermal cameras, operators and power relationships remain incomplete. Automated results are not substitutes for real-game proof.
 
 ### Phase 0: Runtime probe
 
@@ -1130,3 +1130,20 @@ Do not claim RC6's new visual drone layer as in-game verified until this pass is
 - Baseline Watcher and Smuggler Eye drones are information weapons: their danger is detection, last-known-position relay and coordinated response. They do not deal unavoidable off-screen damage.
 - A future armed Hunter or Interceptor may attack only after confirmed tracking. Its attack must use an obvious red aim laser or charge cue, line of sight, a reaction window, a cooldown and ordinary destructibility/disruption. Prefer a shock dart or short suppressive burst over a continuous damage laser. The visible laser is a telegraph, never an instant magical damage ray.
 - Armed-drone damage is not considered implemented until the native projectile/damage API is inspected and both player counterplay and AI friendly-fire behavior pass a real mission test.
+
+### RC22 seven-model drone-wing decision
+
+RC22 supersedes the single-baseline/future-armed split with a deliberately small seven-model production roster:
+
+- one unarmed Scout;
+- light and heavy Pistol drones;
+- light and heavy SMG drones;
+- light and heavy Laser drones.
+
+There is no third medium weight class. Scout is common and information-first. Light armed models are fast, fragile and frequent; heavy models are larger, slower, more narrowly gimballed, reinforced and rarer. Executive wings bias toward lasers, Broker wings toward pistols/light SMGs, Commander wings toward heavy SMGs, and Fixer wings toward precision lasers. The first aggressive doctrine wave guarantees a readable signature model while later slots remain deterministically weighted.
+
+Flight is split into two rotations. The body follows velocity and yaws toward a tracked target only when necessary. The sensor/weapon gimbal follows the player inside a model-specific mechanical arc; reaching that limit causes the body to turn. Confirmed drones occupy stable standoff slots with only a small breathing motion, never a continuous orbit through the player. Lost targets are searched from safe native patrol-route sector points. Spawn/destination coordinates are varied deterministically, clamped to `world:getSize()` margins and snapped through `world:getBestPFPoint()`/the native floor grid. Airframes retain at least 84 units of wing separation and prefer unused roster rows before a duplicate. They may cross low map objects, but may not park in unreachable void or stack inside one another.
+
+Armed drones attack only in AGGRESSIVE mode after a confirmed HCO sighting. Pistol and SMG models instantiate the game's native weapon/projectile path, use a living response actor for attacker attribution, and require an unobstructed ray to the player. Laser models use direct actor damage only after a visible, uninterrupted 0.9-second light or 1.4-second heavy charge; LOS or gimbal loss cancels that charge. Every attack exposes an aim cue, range, cadence and cooldown. Every carrier remains natively aimable, bullet-breakable and disruptable; its physical hitbox scales with the light/heavy silhouette, partial armor hits emit ricochet audio and sparks, and EMP cancels detection and attack state.
+
+The runtime atlas contains exactly seven rows in the roster order above and four animation columns. Creator-supplied source audio is adapted into light/heavy rotor loops and light/heavy laser one-shots. Ballistic variants retain native Intravenous 2 weapon sounds. Automated API/harness proof is complete for the RC22 slice; real mission proof remains mandatory before the armed roster is called live-complete.

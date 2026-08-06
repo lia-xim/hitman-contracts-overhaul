@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.10.0-rc21`
+**Current build:** `0.11.0-rc22`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** public release candidate; the native drone body is now visible in game. RC21 corrects its first-pass size/orientation and adds flight effects, EMP suppression, bullet destruction and crash-site response. Those changes still need the next live mission pass.
+**Status:** public release candidate. RC22 expands the proven native airframe into a seven-model scout/weapon roster with stable tracking, independent sensor gimbals, varied safe-map deployment, native bullets, telegraphed lasers, model-specific audio and ordinary EMP/bullet counterplay. The complete RC22 behavior still needs a live mission pass.
 
 ## Highlights
 
@@ -16,7 +16,11 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Mobile target phases, safe-area relocation, physical evacuation, and anti-stuck recovery without teleporting targets.
 - Field-intelligence dead drops that reveal exact moving target markers.
 - Body-search disguises, plausible weapons, restricted areas, credentials, colleague recognition, compromise, and interruptible radio checks.
-- Physical, actor-scaled, animated and destructible search drones with scan cones, rotor audio, search sectors and coordinated pressure responses.
+- Seven physical, actor-scaled drone models: one unarmed Scout plus light/heavy Pistol, SMG and Laser airframes.
+- Stable standoff pursuit replaces continuous player orbiting; bodies turn with flight while independent sensor gimbals retain the player inside their allowed arc.
+- Native floor-grid endpoint validation and wing separation keep drones out of unreachable void and prevent stacked airframes; unused roster models are preferred before duplicates.
+- Armed drones fire only after confirmed line-of-sight tracking. Pistol/SMG models create native game bullets; lasers expose an aim line and full charge window before damage.
+- Light/heavy rotor profiles and laser one-shots are adapted from creator-supplied audio, while ballistic drones retain native weapon sounds.
 - Native-airframe flight presentation with hover motion, rotor/sensor pulses, a short pixel wake, state colors and a readable sensor heading.
 - One to three archetype-scaled drones patrol around each protected target from contract start, then switch to a faster and more exact aggressive search after escalation.
 - Immediate protection mobilization and drone request on confirmed contact, guard damage, or protection casualties.
@@ -35,7 +39,7 @@ Approach a dead or unconscious guard and choose **Search body / take disguise**.
 
 If security confirms you, takes fire, or loses a protection member, the detail enters combat, shares the last known position, and requests its archetype's drone response.
 
-Baseline drones are information weapons rather than flying aimbots: they expose and relay your last known position. An armed Hunter/Interceptor variant is planned only with a visible aim cue, reaction window, cooldown, line of sight and ordinary destruction/disruption counterplay.
+The Scout remains an information weapon: it exposes and relays your last known position. Armed models join escalated wings according to archetype. They must maintain real line of sight and gimbal alignment, expose their aim, respect range/cooldowns, and remain shootable or disruptable throughout the attack.
 
 ## Cheat Trainer compatibility
 

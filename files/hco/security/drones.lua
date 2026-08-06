@@ -2,6 +2,9 @@ local config = require("hco/config")
 local audio = require("hco/audio")
 local feedback = require("hco/feedback")
 local airframes = require("hco/security/drone_airframe")
+local droneTypes = require("hco/security/drone_types")
+local flight = require("hco/security/drone_flight")
+local droneWeapons = require("hco/security/drone_weapons")
 local util = require("hco/util")
 
 local drones = {}
@@ -9,42 +12,28 @@ local CLASS_ID = "hco_search_drone"
 local registered = false
 local droneClass
 
+local function centerOffset(drone)
+	return drone and drone.hcoCenterOffset or 13
+end
+
 local function chooseDestination(self)
 	local security = self.hcoContext and self.hcoContext.security
-	local points = security and security.sectorPoints or {}
 	local aggressive = security and security.droneMode == "AGGRESSIVE"
-	if aggressive and security.lastKnown then
-		local angle = (self.hcoIndex * 2.399 + (curTime or 0) * 0.05)
-		return security.lastKnown.x + math.cos(angle) * 180, security.lastKnown.y + math.sin(angle) * 180
-	elseif aggressive and #points > 0 then
-		self.hcoSearchStep = (self.hcoSearchStep or 0) + 1
-		local point = points[(self.hcoSearchStep + self.hcoIndex - 2) % #points + 1]
-		return point.x, point.y
-	end
-	local targetX, targetY = util.getPos(self.hcoContext and self.hcoContext.target)
-	if targetX then
-		self.hcoSearchStep = (self.hcoSearchStep or 0) + 1
-		local angle = self.hcoIndex * 2.399 + self.hcoSearchStep * 0.9
-		local radius = 150 + (self.hcoIndex % 3) * 55
-		return targetX + math.cos(angle) * radius, targetY + math.sin(angle) * radius
-	end
-	return targetX, targetY
+	return flight.destination(self, game and game.playerActor, aggressive)
 end
 
-local function angleDifference(a, b)
-	local diff = (a - b + math.pi) % (math.pi * 2) - math.pi
-	return math.abs(diff)
-end
-
-local function canSeePlayer(self, player)
+local function hasPlayerLineOfSight(self, player, requireCone)
 	local px, py = util.getPos(player)
 	if not px then return false end
-	local sx, sy = (self.x or 0) + 13, (self.y or 0) + 13
+	local offset = centerOffset(self)
+	local sx, sy = (self.x or 0) + offset, (self.y or 0) + offset
 	local dx, dy = px - sx, py - sy
 	local distance = math.sqrt(dx * dx + dy * dy)
 	if distance > (self.radius or config.DRONE_SCAN_RADIUS) then return false end
-	local heading = self.curViewAngRad or 0
-	if angleDifference(math.atan2(dy, dx), heading) > math.rad((self.lightFOV or config.DRONE_FOV) * 0.5) then return false end
+	if requireCone then
+		local heading = self.hcoSensorAngle or self.curViewAngRad or 0
+		if flight.angleDifference(math.atan2(dy, dx), heading) > math.rad((self.lightFOV or config.DRONE_FOV) * 0.5) then return false end
+	end
 
 	-- Geometry is authoritative. A failed/unsupported raycast falls back to the
 	-- cone result; a real blocking fixture still prevents wall vision.
@@ -57,9 +46,14 @@ local function canSeePlayer(self, player)
 	return hitData.fraction == 1 or okFixture and fixture == playerFixture
 end
 
+local function canSeePlayer(self, player)
+	return hasPlayerLineOfSight(self, player, true)
+end
+
 local function notifyConfirmedSighting(self, player)
 	local context = self.hcoContext
 	if not context or not context.security then return end
+	context.security.knowledge = context.security.knowledge or {}
 	local x, y = util.getPos(player)
 	context.security.droneSighting = {x = x, y = y, time = curTime or 0, drone = self}
 	context.security.lastKnown = {x = x, y = y, confidence = 1, source = "search-drone", time = curTime or 0, actor = self}
@@ -80,7 +74,8 @@ local function notifyConfirmedSighting(self, player)
 			end
 		end
 	end
-	if context.target then context.security.knowledge[util.getID(context.target)] = {x=x,y=y,confidence=1,source="search-drone",time=curTime or 0,actor=context.target} end
+	local targetID = context.target and util.getID(context.target)
+	if targetID then context.security.knowledge[targetID] = {x=x,y=y,confidence=1,source="search-drone",time=curTime or 0,actor=context.target} end
 	if not context.security.droneRaidAnnounced then
 		context.security.droneRaidAnnounced = true
 		if sound and type(sound.play) == "function" then pcall(sound.play, sound, "nvg_on") end
@@ -114,6 +109,11 @@ function drones.initialize()
 		self.hcoFrameTime = 0
 		self.hcoFrame = 1
 		self.hcoSearchStep = 0
+		self.hcoBodyAngle = self.curViewAngRad or 0
+		self.hcoSensorAngle = self.curViewAngRad or 0
+		self.hcoTracking = 0
+		self.hcoWeaponCooldown = 0
+		self.hcoWeaponState = "IDLE"
 		self.hcoRotorSound = audio.startRotor(self)
 		if not self.hcoRotorSound and sound and type(sound.playWorld) == "function" then
 			local ok, container = pcall(sound.playWorld, sound, "light_malfunctioning", self, self.x, self.y, 0.24, 1.55)
@@ -137,34 +137,48 @@ function drones.initialize()
 
 	function drone:update(dt)
 		if self.broken then return false end
+		self.hcoHitFlash = math.max(0, (self.hcoHitFlash or 0) - dt)
 		audio.updateRotor(self.hcoRotorSound, self)
 		self.hcoFrameTime = self.hcoFrameTime + dt
 		if self.hcoFrameTime >= 0.09 then self.hcoFrameTime = 0 self.hcoFrame = self.hcoFrame % 4 + 1 end
 		if self.disrupted then
 			self.hcoDetect = 0
+			self.hcoTracking = 0
+			droneWeapons.update(self, game and game.playerActor, false, math.pi, dt, false)
 			local result = drone.baseClass.update(self, dt)
 			airframes.sync(self.hcoAirframe, self)
 			return result
 		end
+		-- Let the native camera maintain disruption/light-buffer state first.
+		-- It also runs its own fixed sweep, so HCO writes the authoritative gimbal
+		-- angle afterwards; otherwise the native update silently steals the cone
+		-- back every frame and appears to fly past a detected player.
+		local result = drone.baseClass.update(self, dt)
 
 		local security = self.hcoContext and self.hcoContext.security
 		local aggressive = security and security.droneMode == "AGGRESSIVE"
 		local modeSpeed = aggressive and config.DRONE_AGGRESSIVE_SPEED_MULTIPLIER or config.DRONE_PATROL_SPEED_MULTIPLIER
-		local dx, dy = (self.hcoDestX or self.x) - self.x, (self.hcoDestY or self.y) - self.y
-		local distance = math.sqrt(dx * dx + dy * dy)
-		if distance < 36 or not self.hcoDestX then self.hcoDestX, self.hcoDestY = chooseDestination(self) dx, dy = (self.hcoDestX or self.x) - self.x, (self.hcoDestY or self.y) - self.y distance = math.sqrt(dx * dx + dy * dy) end
-		if distance > 1 then
-			local step = math.min(distance, config.DRONE_SPEED * (self.hcoSpeed or 1) * modeSpeed * dt)
-			self:setPos(self.x + dx / distance * step, self.y + dy / distance * step)
-			self:setLightAngle(math.deg(math.atan2(dy, dx)))
-		end
-		airframes.sync(self.hcoAirframe, self)
-
 		local player = game and game.playerActor
+		self.hcoTracking = math.max(0, (self.hcoTracking or 0) - dt)
+		local visibleBeforeMove = player and util.isAlive(player) and canSeePlayer(self, player) or false
+		local recentLastKnown = security and security.lastKnown and ((curTime or 0) - (security.lastKnown.time or 0)) <= 8
+		local pursuitCue = aggressive and recentLastKnown and player and util.isAlive(player) and hasPlayerLineOfSight(self, player, false) or false
+		if visibleBeforeMove then
+			if self.hcoTracking <= 0 then flight.beginTracking(self, player) else self.hcoTracking = 2.2 end
+		end
+		local offset = centerOffset(self)
+		local centerX, centerY = (self.x or 0) + offset, (self.y or 0) + offset
+		local destDistance = math.sqrt(((self.hcoDestX or centerX) - centerX)^2 + ((self.hcoDestY or centerY) - centerY)^2)
+		if not self.hcoDestX or destDistance < 36 or self.hcoTracking > 0 then self.hcoDestX, self.hcoDestY = chooseDestination(self) end
+		local _, velocityAngle = flight.move(self, dt, config.DRONE_SPEED * (self.hcoSpeed or 1) * modeSpeed)
+		flight.updateAim(self, dt, player, visibleBeforeMove or pursuitCue, velocityAngle)
 		local visible = player and util.isAlive(player) and canSeePlayer(self, player) or false
-		if visible then self.hcoSightGrace = 0.4 else self.hcoSightGrace = math.max(0, (self.hcoSightGrace or 0) - dt) end
-		visible = visible or (self.hcoSightGrace or 0) > 0
 		if visible then
+			if self.hcoTracking <= 0 then flight.beginTracking(self, player) else self.hcoTracking = 2.2 end
+		end
+		if visible then self.hcoSightGrace = 0.4 else self.hcoSightGrace = math.max(0, (self.hcoSightGrace or 0) - dt) end
+		local detectionVisible = visible or (self.hcoSightGrace or 0) > 0
+		if detectionVisible then
 			local detectTime = config.DRONE_DETECT_TIME * (self.hcoDetectScale or 1) * (aggressive and 1 or config.DRONE_PATROL_DETECT_MULTIPLIER)
 			self.hcoDetect = math.min(detectTime, self.hcoDetect + dt)
 			self.lightColorCurrent = self.lightColorInactive self:updateCastColor()
@@ -176,12 +190,22 @@ function drones.initialize()
 			self.hcoDetect = math.max(0, self.hcoDetect - dt * 0.65)
 			self.lightColorCurrent = self.lightColor self:updateCastColor()
 		end
-		return drone.baseClass.update(self, dt)
+		local px, py = util.getPos(player)
+		local aimError = math.pi
+		if px then
+			local offset = centerOffset(self)
+			aimError = flight.angleDifference(math.atan2(py - ((self.y or 0) + offset), px - ((self.x or 0) + offset)), self.hcoSensorAngle or 0)
+		end
+		local confirmed = aggressive and self.hcoTracking > 0 and ((curTime or 0) - (self.hcoLastConfirmedAt or -100)) < 3
+		droneWeapons.update(self, player, visible, aimError, dt, confirmed)
+		airframes.sync(self.hcoAirframe, self)
+		return result
 	end
 
 	function drone:breakCam(breaker, quiet)
 		if self.broken then return end
-		local crashX, crashY = (self.x or 0) + 13, (self.y or 0) + 13
+		local offset = centerOffset(self)
+		local crashX, crashY = (self.x or 0) + offset, (self.y or 0) + offset
 		-- Mirror the native camera destruction lifecycle but omit only the booth
 		-- callback, because runtime drones deliberately have no camera booth.
 		if type(self.setBroken) == "function" then pcall(self.setBroken, self, true) else self.broken = true end
@@ -193,6 +217,7 @@ function drones.initialize()
 		if type(self.setDisruptTime) == "function" then pcall(self.setDisruptTime, self, nil) end
 		airframes.remove(self.hcoAirframe)
 		self.hcoAirframe = nil
+		droneWeapons.remove(self)
 		if self.hcoRotorSound then
 			if type(self.hcoRotorSound.stop) == "function" then audio.stop(self.hcoRotorSound) elseif sound and sound.manager then pcall(sound.manager.stopSound, sound.manager, self.hcoRotorSound) end
 			self.hcoRotorSound = nil
@@ -222,12 +247,18 @@ function drones.initialize()
 
 	function drone:onHitBullet(bullet, hitData)
 		self.hcoArmor = (self.hcoArmor or 1) - 1
-		if self.hcoArmor <= 0 then self:breakCam(bullet and bullet.getFirer and bullet:getFirer() or nil) end
+		self.hcoHitFlash = 0.16
+		local offset = centerOffset(self)
+		if sound and type(sound.playWorld) == "function" then pcall(sound.playWorld, sound, "impact_ricochet", self, (self.x or 0) + offset, (self.y or 0) + offset, 0.55, 1.15) end
+		local firer
+		if bullet and type(bullet.getFirer) == "function" then local ok, value = pcall(bullet.getFirer, bullet) if ok then firer = value end end
+		if self.hcoArmor <= 0 then self:breakCam(firer) end
 	end
 
 	function drone:remove()
 		airframes.remove(self.hcoAirframe)
 		self.hcoAirframe = nil
+		droneWeapons.remove(self)
 		if self.hcoRotorSound then
 			if type(self.hcoRotorSound.stop) == "function" then audio.stop(self.hcoRotorSound) elseif sound and sound.manager then pcall(sound.manager.stopSound, sound.manager, self.hcoRotorSound) end
 			self.hcoRotorSound = nil
@@ -266,26 +297,42 @@ local function spawn(context, index)
 		instance.hcoFrameTime = 0
 		instance.hcoFrame = 1
 		instance.hcoSearchStep = 0
-		instance.hcoRotorSound = audio.startRotor(instance)
+		instance.hcoTracking = 0
+		instance.hcoWeaponCooldown = 0
+		instance.hcoWeaponState = "IDLE"
+		instance.hcoRotorSound = nil
 		util.log(config, "native security-camera drone instance prepared")
 	end
-	local angle = index * math.pi * 2 / math.max(1, config.DRONE_DEPLOY_COUNT)
 	instance.hcoContext = context
 	instance.hcoIndex = index
+	local aggressive = context.security and context.security.droneMode == "AGGRESSIVE"
+	local definition = droneTypes.select(context, index, aggressive)
+	instance.hcoType = definition
+	local hitbox = definition.heavy and 38 or definition.id == "scout" and 30 or 34
+	instance.hcoCenterOffset = hitbox * 0.5
+	instance.hcoRotorSound = audio.startRotor(instance)
 	local doctrine = context.security and context.security.droneDoctrine or {}
-	instance.hcoSpeed = doctrine.speed or 1
-	instance.hcoDetectScale = doctrine.detect or 1
-	instance.hcoArmor = doctrine.armor or 1
+	instance.hcoSpeed = (definition.speed or 1) * (doctrine.speed or 1)
+	instance.hcoDetectScale = (definition.detect or 1) * (doctrine.detect or 1)
+	instance.hcoArmor = math.max(definition.armor or 1, math.floor((definition.armor or 1) * (doctrine.armor or 1) + 0.5))
 	instance.hcoFallback = usedFallback
-	instance.radius = config.DRONE_SCAN_RADIUS * (doctrine.radius or 1)
-	instance:setPos(x + math.cos(angle) * 180, y + math.sin(angle) * 180)
-	instance:setViewAngle(math.deg(angle))
+	instance.radius = config.DRONE_SCAN_RADIUS * (definition.scanRadius or 1) * (doctrine.radius or 1)
+	instance.lightFOV = definition.fov or config.DRONE_FOV
+	if type(instance.setSize) == "function" then pcall(instance.setSize, instance, hitbox, hitbox) end
+	local spawnX, spawnY = flight.spawnPoint(context, index)
+	if not spawnX then return nil, "safe-spawn-point-unavailable" end
+	local initialAngle = math.atan2(y - spawnY, x - spawnX)
+	instance.hcoBodyAngle, instance.hcoSensorAngle = initialAngle, initialAngle
+	instance:setPos(spawnX - instance.hcoCenterOffset, spawnY - instance.hcoCenterOffset)
+	instance:setViewAngle(math.deg(initialAngle))
+	instance:setLightAngle(math.deg(initialAngle))
 	local placed, placeError = pcall(function()
 		instance:onPlacedIntoMap()
+		if type(instance.makeAimable) == "function" then instance:makeAimable() end
 		game.addDynamicObject(instance)
 	end)
 	if not placed then return nil, "placement-failed: " .. tostring(placeError) end
-	local shell, shellError = airframes.create(instance, instance.x + 13, instance.y + 13)
+	local shell, shellError = airframes.create(instance, instance.x + instance.hcoCenterOffset, instance.y + instance.hcoCenterOffset)
 	if not shell then
 		pcall(game.removeDynamicObject, instance)
 		pcall(instance.remove, instance)
@@ -294,6 +341,7 @@ local function spawn(context, index)
 	instance.hcoAirframe = shell
 	airframes.sync(shell, instance)
 	instance._hcoDrone = true
+	util.log(config, "drone spawned slot=" .. tostring(context.slot or 1) .. " model=" .. definition.id .. " armor=" .. tostring(instance.hcoArmor))
 	return instance
 end
 
@@ -311,7 +359,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC21 FLIGHT MODEL — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC22 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)
@@ -342,6 +390,8 @@ function drones.update(context, dt)
 	local room = math.max(0, config.DRONE_MAX_COUNT - #live)
 	local launched = 0
 	local lastError
+	security.droneGeneration = (security.droneGeneration or 0) + 1
+	security.droneWaveFirstIndex = #live + 1
 	for index = 1, math.min(wanted, room) do local drone, spawnError = spawn(context, #live + index) if drone then table.insert(security.drones, drone) launched = launched + 1 else lastError = spawnError end end
 	security.droneDeploymentRequested = 0
 	security.droneCooldown = config.DRONE_REDEPLOY_COOLDOWN

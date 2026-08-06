@@ -1,52 +1,51 @@
 [h1]HITMAN CONTRACTS OVERHAUL[/h1]
-[b]Intravenous 2 meets Hitman: optional HVT contracts, mobile targets, protection details, disguises, credentials, and social stealth — built into the game's native systems.[/b]
+[b]Intravenous 2 meets Hitman: optional HVT contracts, mobile targets, heavy protection details, disguises, social stealth and physical security-drone wings — integrated into the native game.[/b]
 
-[h2]NEW IN RC7[/h2]
+[h2]NEW IN RC22 — SEVEN-MODEL DRONE WINGS[/h2]
 [list]
-[*]Distinct Executive, Commander, Broker and Fixer factions with native animated outfits and original HCO insignia artwork
-[*]Archetype-specific drone doctrines: Watchers, Smuggler Eyes, armored Hunter Swarms and fast Interceptors
-[*]One to three isolated contracts on sufficiently populated maps
-[*]Field-intelligence dead drops that reveal moving target markers
+[*]One unarmed Scout plus light/heavy Pistol, SMG and Laser drone designs
+[*]Distinct native-scale pixel silhouettes, hover/rotor animation, movement wakes and independent sensor gimbals
+[*]Stable standoff tracking instead of blindly orbiting or flying through the player
+[*]Varied map-safe deployment, native floor-grid endpoint validation and wing separation
+[*]Pistol/SMG drones fire native projectiles; Laser drones expose a cancellable 0.9/1.4-second charge
+[*]Light/heavy rotor profiles, separate laser sounds, hit sparks, reinforced armor, EMP disruption and bullet destruction
 [/list]
 
-[h2]RC8 LIVE FIXES[/h2]
+[h2]CONTRACT SYSTEM[/h2]
 [list]
-[*]Confirmed guard contact now deploys drones even without a body discovery
-[*]Audible deployment, positional rotor presence and contact-lock cues
-[*]Compact animated contract-complete banner with payout, bonus result and completion stinger
+[*]One to three deterministic optional contracts on sufficiently populated maps
+[*]Executive, Broker, Commander and Fixer targets with distinct native appearance and security doctrine
+[*]Moving targets, safer fallback positions, physical evacuation and anti-stuck recovery — no teleporting bosses
+[*]Five close bodyguards remain with the principal while separate response units search and attack
+[*]Field-intelligence dead drops reveal exact moving target markers
+[*]Compact completion banner, campaign-money payout, audio feedback and reload persistence
 [/list]
 
-[h2]WHAT IT CHANGES[/h2]
+[h2]DISGUISE & SOCIAL STEALTH[/h2]
 [list]
-[*]Optional high-value-target contracts in compatible campaign and standalone missions
-[*]Native objectives, target tracking, campaign-money rewards, and save/reload persistence
-[*]Four target archetypes with mobile routines, safer fallback positions, and physical escape
-[*]Elite protection details, radio operators, and evidence-driven searches based on last-known information
-[*]Staff, regular-security, and elite-security disguises taken from unconscious or dead guards
-[*]Visible disguise appearance, plausible-weapon rules, suspicious behavior, colleague recognition, and identity checks
-[*]Stolen keycards and access through the game's existing credential system
-[*]Local body evidence and audible radio reports that can be interrupted before a disguise is compromised globally
-[*]Existing security-camera integration; disrupted or destroyed cameras become evidence
-[*]Optional silent, social-entry, and protection-detail reward conditions
-[*]Physical target movement only — no teleportation and no bullet-sponge bosses
+[*]Search unconscious or dead guards and take Staff, Security or Elite disguises
+[*]Normal walking and plausible equipment reduce suspicion
+[*]Running, aiming, firing, lockpicking, carrying bodies and restricted access expose you
+[*]Close colleagues identify false uniforms faster
+[*]Stolen keycards use the game's real credential system
+[*]Body evidence begins locally; interrupt the real radio report before compromise spreads globally
 [/list]
 
 [h2]NATIVE-FIRST DESIGN[/h2]
-There is no cheat menu, F-key overlay, separate currency, or external progression screen. A compatible mission creates one optional contract automatically. Unknown or unsafe missions are skipped instead of risking story actors or vanilla objectives.
+There is no cheat menu, F-key overlay, separate currency or external progression screen. HCO uses native objectives, moving markers, actors, patrol routes, radios, credentials, projectiles, damage, security-camera carriers, world quadtrees and campaign saves.
 
-The target and security team do not receive live omniscient player coordinates. Knowledge comes from direct sightings, nearby warnings, radios, bodies, and sensors, then decays into distributed search sectors.
+Unsafe missions and story-critical actors are skipped instead of being forced into a contract. Drone attacks require confirmed tracking, line of sight, range, gimbal alignment, a visible cue and a cooldown. Every model remains shootable or electronically disruptable.
 
-[h2]HOW DISGUISES WORK[/h2]
-Use the normal body interaction selector and choose [b]Search body / take disguise[/b]. Walking normally with suitable equipment is convincing. Running, aiming, lockpicking, carrying bodies, firing, or showing the wrong weapon raises suspicion. Close colleagues and elite guards inspect you more quickly.
-
-When the matching body is discovered, knowledge starts locally. A real NPC radio must finish its report before the uniform becomes globally compromised — jam the radio or stop the carrier to contain the information.
+[h2]HOW TO START[/h2]
+Start a compatible mission from the beginning. No hotkey is required. Follow the optional intelligence objective, recover the marked dead drop and infiltrate or fight through the target's protection.
 
 [h2]COMPATIBILITY[/h2]
-Built for Intravenous 2 [b]1.4.12HF3[/b]. Hideout, tutorial, prologue, intro, outro, transition, and unsafe story situations are deliberately skipped. Generic maps need enough safe patrolling goons to qualify.
+Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a local and Workshop copy are enabled, the first-loaded version wins.
 
-Install only one HCO copy. If a local and Workshop copy are both active, the first-loaded version wins. HCO is separate from the Intravenous 2 Cheat Trainer and does not modify its files.
+The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.9.0-rc5[/b] — live-tested release candidate. Fixes campaign reward crashes, uses safe campaign payouts, and expands protection details up to 15 elite guards when maps support them. Diagnostic [b][HCO][/b] logs remain enabled in this RC.
+[b]0.11.0-rc22[/b] — active release candidate. The contract core and native drone render path have been observed in game. The seven-model roster, attacks, tracking, adapted audio and map-edge behavior are being finalized through live mission testing. Diagnostic [b][HCO][/b] logs remain enabled.
 
-Current boundaries: the RC uses an exact native moving marker as a testable first-release simplification. Physical thermal-camera variants and drone actors are planned for a later advanced-security phase and are not advertised as present here.
+[h2]OPEN SOURCE[/h2]
+Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.
