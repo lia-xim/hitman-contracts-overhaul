@@ -170,6 +170,8 @@ Source: `game/objects/security_camera.lua`
 
 HCO scales existing camera detection for valid disguises and records camera disruption/destruction as security evidence. It does not claim to add physical thermal-camera or drone entities in `0.9.0-rc2`.
 
+RC31 mirrors `security_camera:breakCam()` but strengthens it for runtime drone carriers: `broken` is set before callbacks, queued HCO weapon/detection state is cancelled, the carrier is explicitly removed from the dynamic list, and the owned light buffer is made non-casting/non-renderable, removed, stopped and destroyed before its reference is cleared. The independent native-world airframe then owns only the generated damage/wreck animation.
+
 ## Known real-engine validation boundary
 
 The interfaces above are source-verified and exercised by mocks with their important return semantics. Only the final in-game pass can prove cross-system timing, map-specific path quality, rendered objective behavior, and AI-state interactions in a live mission.

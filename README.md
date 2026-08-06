@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.13.1-rc30`
+**Current build:** `0.13.2-rc31`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate release. RC30 closes the indoor/unreachable-drone fairness blocker by using the game's native roof map and requiring a visible, hittable, outdoor airframe plus strict geometry before any attack. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate release. RC31 gives every drone family an unmistakable generated damage/wreck atlas and makes destruction terminal: queued fire, detection, rotor audio and the native searchlight buffer are removed before the crash begins. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 
@@ -24,6 +24,7 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Armed drones fire only after a completed native line-of-sight trace and while their centered bullet target is valid. Pistol/SMG models create native game bullets; lasers expose an aim line and full charge window before damage.
 - Light/heavy rotor profiles and laser one-shots are adapted from creator-supplied audio, while ballistic drones retain native weapon sounds.
 - Native-airframe flight presentation with hover motion, rotor/sensor pulses, a short pixel wake, family-colored effects, real laser-charge progress, damage smoke and a readable sensor heading.
+- Four-stage damaged sprites for all seven airframes replace the intact body during the tumble and end in a persistent asymmetric wreck; destroyed drones have no cone, aim cue, weapon state or rotor loop.
 - One to three archetype-scaled drones patrol around each protected target from contract start, then switch to a faster and more exact aggressive search after escalation.
 - Immediate protection mobilization and drone request on confirmed contact, guard damage, or protection casualties.
 - Three loud player shots within eight seconds trigger aggressive drone support independently of visual-contact hand-off; NPC fire and suppressed player fire do not.

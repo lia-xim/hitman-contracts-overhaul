@@ -20,3 +20,28 @@ Background: perfectly flat solid #ff00ff chroma-key background, one uniform colo
 The original attached reference was the pre-roster HCO drone sprite. The source
 sheet is retained as `drone-roster-concept-magenta.png`; the keyed transparent
 version is `drone-roster-concept-alpha.png`.
+
+## Destroyed-drone artwork
+
+RC31 adds `files/assets/hco/drone-wreck-atlas.png`. Its retained ImageGen source
+is `drone-wreck-concept-magenta.png`; the runtime conversion splits the 4×7
+concept grid, removes the chroma key, normalizes each family to the matching
+live-airframe footprint and packs exact 96×96 cells into a 384×672 atlas.
+
+### Exact ImageGen prompt
+
+```text
+Edit the supplied Intravenous 2 top-down pixel-art drone atlas into a dedicated DESTROYED DRONE / WRECK atlas.
+
+Preserve the exact atlas topology: 4 columns by 7 rows, one centered 96x96-style cell per sprite, same seven drone families and their silhouettes as the reference, same top-down viewpoint, same compact scale and crisp native pixel-art language.
+
+Each row must show the same drone family in four clearly destroyed variants / sequential wreck frames:
+1. violent impact with one broken rotor and a few orange sparks,
+2. tumbling severely damaged airframe with bent arms and exposed red wiring,
+3. hard-ground crash with detached parts and tiny smoke pixels,
+4. final inert wreck: asymmetric broken chassis, missing rotor or weapon, scorched metal, no active cyan sensor light and absolutely no intact searchlight.
+
+Make the final wrecks unmistakably dead even at small in-game scale. Keep debris inside each cell. No text, no UI, no floor texture, no cast shadows, no searchlight beams, no muzzle flashes. Crisp hard pixel edges, limited Intravenous 2-style palette: charcoal gunmetal, cool gray, rust, ember orange, small dark red details.
+
+Use a perfectly flat, uniform chroma-key background color #FF00FF across the entire image and nowhere on the sprites. Maintain generous empty space and never let sprites cross cell boundaries.
+```

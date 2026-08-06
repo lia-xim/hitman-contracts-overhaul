@@ -14,9 +14,14 @@ function _S(v) return v end
 function color(r, g, b, a) return setmetatable({r, g, b, a, unpack=function(self) return self[1],self[2],self[3],self[4] end}, {__mul=function(self) return self end}) end
 
 local rotorStarts,droneDraws,outlineDraws=0,0,0
+local removedLightBuffers,stoppedLightBuffers,destroyedLightBuffers=0,0,0
 love = {graphics = {},audio={}}
 love.errorhandler = function(message) io.stderr:write("HCO_DRONE_SMOKE_ERROR: " .. tostring(message) .. "\n" .. debug.traceback() .. "\n") os.exit(1) end
 sound = {playWorld=function() end,play=function() end}
+shadowMapping={}
+function shadowMapping:removeBuffer() removedLightBuffers=removedLightBuffers+1 end
+function shadowMapping:stopRenderingBuffer() stoppedLightBuffers=stoppedLightBuffers+1 end
+function shadowMapping:destroyAtlasBuffer() destroyedLightBuffers=destroyedLightBuffers+1 end
 function love.graphics.newImage() return {setFilter=function() end} end
 function love.graphics.newQuad() return {} end
 function love.graphics.setColor() end
@@ -219,10 +224,22 @@ local fallbackBullet={x=bulletCenterX+12,y=bulletCenterY,travelX=120,travelY=0,f
 function fallbackBullet:getFirer() return self.firer end
 function fallbackBullet:makeInactive() self.inactive=true self.stored=true end
 game.activeBullets={fallbackBullet}
+local destroyedCone={casting=true,canRender=true,renderForward=true,effects=true}
+function destroyedCone:setCasting(value) self.casting=value end
+function destroyedCone:setCanRender(value) self.canRender=value end
+function destroyedCone:setRenderForward(value) self.renderForward=value end
+function destroyedCone:clearEffects() self.effects=false end
+detector.lightBuffer=destroyedCone
+detector.hcoBurstLeft,detector.hcoLaserCharge=3,0.5
+detector.hcoAimTargetX,detector.hcoAimTargetY=999,999
 local destroyedBefore=context.security.dronesDestroyed or 0
 detector:update(1)
 assertTrue(fallbackBullet.inactive,"one-frame player-bullet fallback consumes the projectile after a visible-path hit")
 assertTrue(context.security.drones[1].broken,"drone remains bullet-breakable")
+assertTrue(detector.hcoWeaponDisabled and detector.hcoWeaponState=="DESTROYED" and detector.hcoBurstLeft==0 and detector.hcoLaserCharge==0,"destruction hard-disables every weapon path and cancels queued fire")
+assertTrue(detector.hcoAimTargetX==nil and detector.hcoAimTargetY==nil and detector.hcoDetect==0 and detector.hcoTracking==0,"destroyed carrier drops aim and detection state immediately")
+assertTrue(detector.lightBuffer==nil and not destroyedCone.casting and not destroyedCone.canRender and not destroyedCone.renderForward and not destroyedCone.effects,"destroyed drone cannot retain a visible searchlight cone")
+assertTrue(removedLightBuffers>=1 and stoppedLightBuffers>=1 and destroyedLightBuffers==1,"destroyed native light buffer leaves every render registry and is released")
 assertTrue(context.security.droneCrashEvidence~=nil and context.security.dronesDestroyed==destroyedBefore+1,"destruction records localized crash evidence")
 assertTrue(crashGuard.sightX~=nil,"an available response guard is sent to investigate the crash")
 failCustomCreate=true
@@ -252,7 +269,7 @@ heavy.fixture.destroyed=true
 heavy.initHitbox=function() error("simulated persistent fixture failure") end
 heavy.hcoDetect,heavy.hcoTracking,heavy.hcoWeaponState=0.4,2,"AIMING"
 heavy:update(0.8)
-assertTrue(heavy.broken and heavy.hcoSafetyRetired and heavy.hcoDetect==0 and heavy.hcoWeaponState=="IDLE","persistently unhittable drone is inert and safely retired before it can attack")
+assertTrue(heavy.broken and heavy.hcoSafetyRetired and heavy.hcoDetect==0 and heavy.hcoWeaponState=="DESTROYED","persistently unhittable drone is terminally inert and safely retired before it can attack")
 
 envController={getRoofReady=function() return false end}
 local pendingContext={slot=4,target=actorObject(160,160),security={sectorPoints={{x=600,y=600}},guards={},drones={},droneCooldown=0}}

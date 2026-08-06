@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.2-rc31 — 2026-08-06
+
+- Added an original generated 4×7 wreck atlas: every Scout, light and heavy family now has impact, damaged tumble, hard-crash and final inert-wreck frames instead of reusing a darkened intact sprite.
+- Removed the intact airframe from its shared sprite-batch slot at destruction and switched the native world-quadtree shell to the dedicated wreck texture. Landed drones remain visibly asymmetric, broken and sensor-dark.
+- Made destruction terminal before any native callback runs. Detection, tracking, aim targets, queued ballistic bursts, Laser charge/pulse, cooldown and native weapon ownership are cancelled atomically.
+- Fully retired the native searchlight buffer by disabling casting/rendering, clearing effects, removing it from render registries and destroying its atlas allocation. A destroyed drone can no longer keep a cone or reacquire the player.
+- Added regression coverage for both atlases, intact-slot release, progressive wreck frames, final-wreck persistence, missing wreck outlines, weapon cancellation and complete light-buffer teardown.
+
 ## 0.13.1-rc30 — 2026-08-06
 
 - Replaced pathability-only drone placement with Intravenous 2's finalized native roof-obstruction map. Armed drones now deploy, patrol and recover only on fully clear outdoor footprints; roofed patrol-route points and locked interiors are rejected.

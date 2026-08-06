@@ -10,11 +10,11 @@ end
 local function assertTrue(value, message) if not value then error(message) end end
 
 local imageDraws, batchUpdates, treeInserts = 0, 0, 0
-local lastSpriteUpdate, lastBatchColor, flightEffectRectangles = nil, nil, 0
+local lastSpriteUpdate, lastDirectDraw, flightEffectRectangles = nil, nil, 0
 love = {graphics={}}
 love.errorhandler = function(message) io.stderr:write("HCO_AIRFRAME_SMOKE_ERROR: " .. tostring(message) .. "\n" .. debug.traceback() .. "\n") os.exit(1) end
-function love.graphics.newImage() return {setFilter=function() end} end
-function love.graphics.newQuad() return {} end
+function love.graphics.newImage(path) return {path=path,setFilter=function() end} end
+function love.graphics.newQuad(x,y,w,h) return {x=x,y=y,w=w,h=h} end
 function love.graphics.setColor() end
 function love.graphics.circle() end
 function love.graphics.line() end
@@ -24,7 +24,10 @@ function love.graphics.pop() end
 function love.graphics.translate() end
 function love.graphics.rotate() end
 function love.graphics.setLineWidth() end
-function love.graphics.draw() imageDraws=imageDraws+1 end
+function love.graphics.draw(image,quad,x,y,rotation,sx,sy,ox,oy)
+	imageDraws=imageDraws+1
+	lastDirectDraw={image=image and image.path,quad=quad,x=x,y=y,rotation=rotation,sx=sx,sy=sy,ox=ox,oy=oy}
+end
 
 priorityRenderer={activeRenderMap={},renderOrder={[0]=0}}
 function priorityRenderer:add(object, priority)
@@ -48,7 +51,7 @@ function spriteBatchController:getContainer(id) return self.containers[id] end
 function spriteBatchController:newSpriteBatch(id)
 	local container={id=id,slots={},nextSlot=0,visibility=0}
 	function container:setShouldSortSprites() end
-	function container:setColor(r,g,b,a) lastBatchColor={r,g,b,a} end
+	function container:setColor() end
 	function container:allocateSlot() self.nextSlot=self.nextSlot+1 self.slots[self.nextSlot]=true return self.nextSlot end
 	function container:getAllocatedSlot(slot) return self.slots[slot] end
 	function container:deallocateSlot(slot) self.slots[slot]=nil return true end
@@ -113,7 +116,7 @@ assertTrue(batchUpdates==1,"quadtree draw updates native sprite-batch slot")
 assertTrue(math.abs(lastSpriteUpdate.sx-0.57)<0.0001 and math.abs(lastSpriteUpdate.sy-0.57)<0.0001,"heavy airframe uses its roster scale")
 assertTrue(math.abs(lastSpriteUpdate.rotation-(0.25-math.pi*0.5))<0.0001,"airframe body follows the flight heading independently of the sensor")
 local stats=airframes.diagnostics()
-assertTrue(stats.drawPasses==1 and stats.batchReady and stats.spriteReady and stats.airframes==1,"native diagnostics report rendered airframe")
+assertTrue(stats.drawPasses==1 and stats.batchReady and stats.spriteReady and stats.wreckSpriteReady and stats.airframes==1,"native diagnostics report both live and wreck atlases ready")
 assertTrue(priorityRenderer.activeRenderMap[spriteBatchController.containers.hco_drone_roster_airframes]~=nil,"native roster sprite batch enters priority renderer")
 assertTrue(airframes.drawOutline(shell) and imageDraws==1,"aim outline draws the runtime atlas frame directly")
 owner.x,owner.y,owner.hcoFrame,owner.hcoBodyAngle,owner.hcoSensorAngle=150,250,3,0.4,0.8
@@ -142,11 +145,14 @@ local crashStats=airframes.diagnostics()
 assertTrue(crashStats.airframes==0 and crashStats.wrecks==1,"crashing shell leaves the active roster and enters wreck lifecycle")
 curTime=2.4
 shell:draw()
-assertTrue(lastSpriteUpdate.x~=crashStartX or lastSpriteUpdate.y~=crashStartY,"mid-crash sprite moves away from its flight position")
-assertTrue(math.abs(lastSpriteUpdate.rotation-(0.4-math.pi*0.5))>0.2,"mid-crash airframe visibly tumbles")
+assertTrue(lastDirectDraw.image and lastDirectDraw.image:find("drone%-wreck%-atlas"),"destroyed airframe switches to the dedicated wreck atlas")
+assertTrue(lastDirectDraw.x~=crashStartX or lastDirectDraw.y~=crashStartY,"mid-crash wreck sprite moves away from its flight position")
+assertTrue(math.abs(lastDirectDraw.rotation-(0.4-math.pi*0.5))>0.2,"mid-crash wreck visibly tumbles")
+assertTrue(shell.hcoSlot==nil,"destroyed airframe releases the cached intact sprite-batch slot")
 curTime=3.2
 shell:draw()
-assertTrue(lastBatchColor[1]==72 and lastBatchColor[2]==78 and lastBatchColor[3]==82,"landed drone becomes a dark persistent wreck")
+assertTrue(lastDirectDraw.quad.x==288,"landed drone persists as the unmistakable final wreck frame")
+assertTrue(not airframes.drawOutline(shell),"landed wreck never keeps an aim outline")
 airframes.clearContext(owner.hcoContext)
 assertTrue(not shell:isValid(),"context cleanup removes persistent crash wrecks")
 print("HCO_AIRFRAME_SMOKE_PASS")

@@ -12,11 +12,45 @@ local FRAME_COUNT = 4
 local TYPE_COUNT = 7
 local classData
 local sprite, quads, batch
+local wreckSprite, wreckQuads
 local live = {}
 local drawPasses = 0
 
+local function makeQuads()
+	local result = {}
+	for typeIndex = 1, TYPE_COUNT do
+		result[typeIndex] = {}
+		for frame = 0, FRAME_COUNT - 1 do
+			result[typeIndex][frame + 1] = love.graphics.newQuad(frame * CELL_SIZE, (typeIndex - 1) * CELL_SIZE, CELL_SIZE, CELL_SIZE, FRAME_COUNT * CELL_SIZE, TYPE_COUNT * CELL_SIZE)
+		end
+	end
+	return result
+end
+
+local function loadWreckSprite()
+	if wreckSprite or not love or not love.graphics then return wreckSprite ~= nil end
+	local candidates = {
+		"mods/Hitman-Contracts-Overhaul/files/assets/hco/drone-wreck-atlas.png",
+		"mods/Hitman-Contracts-Overhaul/assets/hco/drone-wreck-atlas.png",
+		"assets/hco/drone-wreck-atlas.png"
+	}
+	for _, path in ipairs(candidates) do
+		local ok, image = pcall(love.graphics.newImage, path)
+		if ok and image then
+			wreckSprite = image
+			image:setFilter("nearest", "nearest")
+			wreckQuads = makeQuads()
+			return true
+		end
+	end
+	return false
+end
+
 local function loadSprite()
-	if sprite or not love or not love.graphics then return sprite ~= nil end
+	if sprite or not love or not love.graphics then
+		if sprite then loadWreckSprite() end
+		return sprite ~= nil
+	end
 	local candidates = {
 		"mods/Hitman-Contracts-Overhaul/files/assets/hco/drone-roster-atlas.png",
 		"mods/Hitman-Contracts-Overhaul/assets/hco/drone-roster-atlas.png",
@@ -27,13 +61,8 @@ local function loadSprite()
 		if ok and image then
 			sprite = image
 			image:setFilter("nearest", "nearest")
-			quads = {}
-			for typeIndex = 1, TYPE_COUNT do
-				quads[typeIndex] = {}
-				for frame = 0, FRAME_COUNT - 1 do
-					quads[typeIndex][frame + 1] = love.graphics.newQuad(frame * CELL_SIZE, (typeIndex - 1) * CELL_SIZE, CELL_SIZE, CELL_SIZE, FRAME_COUNT * CELL_SIZE, TYPE_COUNT * CELL_SIZE)
-				end
-			end
+			quads = makeQuads()
+			loadWreckSprite()
 			return true
 		end
 	end
@@ -346,7 +375,7 @@ function airframes.initialize()
 
 	function visual:enterVisibilityRange()
 		self._visible = true
-		ensureSlot(self)
+		if not self.hcoCrashAt then ensureSlot(self) end
 	end
 
 	function visual:leaveVisibilityRange()
@@ -374,17 +403,28 @@ function airframes.initialize()
 		else
 			drawFlightEffects(self, drawX, drawY, renderAngle)
 		end
+		if self.hcoCrashAt then
+			-- A wreck must never leave the intact frame cached in the shared active
+			-- sprite batch. The dedicated damage atlas is drawn by the same native
+			-- world-quadtree object, but directly, so its texture can change per shell.
+			releaseSlot(self)
+			if loadWreckSprite() and wreckQuads then
+				local typeQuads = wreckQuads[self.hcoTypeIndex or 1] or wreckQuads[1]
+				local frame = crashProgress < 1 and math.min(FRAME_COUNT - 1, math.floor(crashProgress * (FRAME_COUNT - 1)) + 1) or FRAME_COUNT
+				love.graphics.setColor(255, 255, 255, 255)
+				love.graphics.draw(wreckSprite, typeQuads[frame], drawX, drawY, renderAngle, scale, scale, 48, 48)
+				return
+			end
+		end
 		if ensureSlot(self) and sprite and quads then
 			local alpha = self.hcoDisrupted and (110 + math.floor(math.abs(math.sin(time * 17)) * 100)) or 255
-			if self.hcoCrashAt then
-				if crashProgress < 1 then batch:setColor(255, 135, 70, 245) else batch:setColor(72, 78, 82, 190) end
-			elseif self.hcoHitFlash and self.hcoHitFlash > 0 then
+			if self.hcoHitFlash and self.hcoHitFlash > 0 then
 				batch:setColor(255, 185, 95, alpha)
 			else
 				batch:setColor(255, 255, 255, alpha)
 			end
 			local typeQuads = quads[self.hcoTypeIndex or 1] or quads[1]
-			local frame = self.hcoCrashAt and crashProgress < 1 and (math.floor(crashAge / 0.06) % FRAME_COUNT + 1) or self.hcoFrame or 1
+			local frame = self.hcoFrame or 1
 			batch:updateSprite(self.hcoSlot, typeQuads[frame], drawX, drawY, renderAngle, scale, scale, 48, 48)
 			return
 		end
@@ -497,7 +537,7 @@ function airframes.crash(shell, owner, fallbackX, fallbackY)
 end
 
 function airframes.drawOutline(shell)
-	if not shell or not shell.isValid or not shell:isValid() or not loadSprite() then return false end
+	if not shell or not shell.isValid or not shell:isValid() or shell.hcoCrashAt or not loadSprite() then return false end
 	local typeQuads = quads and (quads[shell.hcoTypeIndex or 1] or quads[1])
 	local quad = typeQuads and typeQuads[shell.hcoFrame or 1]
 	if not quad then return false end
@@ -532,7 +572,7 @@ function airframes.diagnostics()
 			if shell.hcoCrashAt then wrecks = wrecks + 1 else count = count + 1 end
 		end
 	end
-	return {drawPasses = drawPasses, spriteReady = sprite ~= nil, batchReady = batch ~= nil, airframes = count, wrecks = wrecks}
+	return {drawPasses = drawPasses, spriteReady = sprite ~= nil, wreckSpriteReady = wreckSprite ~= nil, batchReady = batch ~= nil, airframes = count, wrecks = wrecks}
 end
 
 return airframes

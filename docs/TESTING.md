@@ -4,7 +4,7 @@ Automated checks validate Lua syntax, bootstrap isolation, contract lifecycle, p
 
 The seven portable harnesses are committed under `tests/` and run with `./scripts/test.ps1 -LovePath C:\path\to\lovec.exe` (LÖVE 11.5 recommended). A successful batch ends with `HCO_TEST_SUITE_PASS suites=7`.
 
-These checks do not prove live AI behavior or rendering. A release candidate is promoted only after this in-game pass on Intravenous 2 1.4.12HF3. RC30 intentionally disables the old RC render diagnostic in normal play; an internal `HCO RC.. DRONE ROSTER` HUD message is now a failure, not an expected result.
+These checks do not prove live AI behavior or rendering. A release candidate is promoted only after this in-game pass on Intravenous 2 1.4.12HF3. RC31 intentionally disables the old RC render diagnostic in normal play; an internal `HCO RC.. DRONE ROSTER` HUD message is now a failure, not an expected result.
 
 1. Reach the main menu without an HCO traceback.
 2. Start a compatible mission from the beginning and confirm at least one native optional contract.

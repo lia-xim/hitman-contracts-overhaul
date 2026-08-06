@@ -12,7 +12,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [System.IO.Compression.ZipFile]::OpenRead($archive)
 try {
     $entries = @($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
-    foreach ($required in @('files/main.lua', 'files/hco/config.lua', 'files/hco/security/drone_airframe.lua', 'files/hco/security/drone_types.lua', 'files/hco/security/drone_flight.lua', 'files/hco/security/drone_weapons.lua', 'files/assets/hco/drone-roster-atlas.png', 'files/assets/hco/drone-rotor-light-loop.wav', 'files/assets/hco/drone-rotor-heavy-loop.wav', 'files/assets/hco/drone-laser-light.wav', 'files/assets/hco/drone-laser-heavy.wav')) {
+    foreach ($required in @('files/main.lua', 'files/hco/config.lua', 'files/hco/security/drone_airframe.lua', 'files/hco/security/drone_types.lua', 'files/hco/security/drone_flight.lua', 'files/hco/security/drone_weapons.lua', 'files/assets/hco/drone-roster-atlas.png', 'files/assets/hco/drone-wreck-atlas.png', 'files/assets/hco/drone-rotor-light-loop.wav', 'files/assets/hco/drone-rotor-heavy-loop.wav', 'files/assets/hco/drone-laser-light.wav', 'files/assets/hco/drone-laser-heavy.wav')) {
         if ($entries -notcontains $required) { throw "Package root entry missing: $required" }
     }
 }

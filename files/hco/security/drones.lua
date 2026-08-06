@@ -486,22 +486,43 @@ function drones.initialize()
 	end
 
 	function drone:breakCam(breaker, quiet)
-		if self.broken then return end
+		if self.broken or self.hcoDestroying then return end
+		self.hcoDestroying = true
 		local offset = centerOffset(self)
 		local crashX, crashY = (self.x or 0) + offset, (self.y or 0) + offset
+		-- Set the terminal state before calling any native callback. A failed or
+		-- partially overridden setBroken implementation must never leave a carrier
+		-- able to finish a burst, detect the player or re-render its cone.
+		self.broken = true
+		self.hcoDetect, self.hcoTracking, self.hcoSightGrace = 0, 0, 0
+		self.hcoIdentityFactor = 1
+		droneWeapons.disable(self)
 		-- Mirror the native camera destruction lifecycle but omit only the booth
 		-- callback, because runtime drones deliberately have no camera booth.
-		if type(self.setBroken) == "function" then pcall(self.setBroken, self, true) else self.broken = true end
+		if type(self.setBroken) == "function" then pcall(self.setBroken, self, true) end
+		self.broken = true
+		if game and type(game.removeDynamicObject) == "function" then pcall(game.removeDynamicObject, self) end
+		if type(self.disableAllInteraction) == "function" then pcall(self.disableAllInteraction, self) end
 		if self.lightBuffer then
+			local deadBuffer = self.lightBuffer
+			if type(deadBuffer.setCasting) == "function" then pcall(deadBuffer.setCasting, deadBuffer, false) end
+			if type(deadBuffer.setCanRender) == "function" then pcall(deadBuffer.setCanRender, deadBuffer, false) end
+			if type(deadBuffer.setRenderForward) == "function" then pcall(deadBuffer.setRenderForward, deadBuffer, false) end
 			if type(self.disableLight) == "function" then pcall(self.disableLight, self) end
-			if type(self.lightBuffer.clearEffects) == "function" then pcall(self.lightBuffer.clearEffects, self.lightBuffer) end
+			if type(deadBuffer.clearEffects) == "function" then pcall(deadBuffer.clearEffects, deadBuffer) end
+			if shadowMapping then
+				if type(shadowMapping.removeBuffer) == "function" then pcall(shadowMapping.removeBuffer, shadowMapping, deadBuffer) end
+				if type(shadowMapping.stopRenderingBuffer) == "function" then pcall(shadowMapping.stopRenderingBuffer, shadowMapping, deadBuffer) end
+				if type(shadowMapping.destroyAtlasBuffer) == "function" then pcall(shadowMapping.destroyAtlasBuffer, shadowMapping, deadBuffer) end
+			end
+			self.lightBuffer = nil
 		end
 		if type(self.setDisrupted) == "function" then pcall(self.setDisrupted, self, false) end
+		self.disrupted = false
 		if type(self.setDisruptTime) == "function" then pcall(self.setDisruptTime, self, nil) end
 		local landingX, landingY = airframes.crash(self.hcoAirframe, self, crashX, crashY)
 		if tonumber(landingX) and tonumber(landingY) then crashX, crashY = landingX, landingY end
 		self.hcoAirframe = nil
-		droneWeapons.remove(self)
 		if self.hcoRotorSound then
 			if type(self.hcoRotorSound.stop) == "function" then audio.stop(self.hcoRotorSound) elseif sound and sound.manager then pcall(sound.manager.stopSound, sound.manager, self.hcoRotorSound) end
 			self.hcoRotorSound = nil
@@ -694,7 +715,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC30 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC31 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", live/wreck sprites " .. (stats.spriteReady and stats.wreckSpriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)

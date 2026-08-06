@@ -25,6 +25,7 @@ local function distanceToPlayer(drone, player)
 end
 
 local function ensureNativeWeapon(drone, weaponConfig)
+	if drone.broken or drone.hcoWeaponDisabled then return nil end
 	if drone.hcoNativeWeapon then return drone.hcoNativeWeapon end
 	if not weapons or type(weapons.instantiate) ~= "function" then return nil end
 	local source = sourceActor(drone)
@@ -44,6 +45,7 @@ local function playWorldSound(soundID, parent, x, y, volume, pitch)
 end
 
 local function fireBallistic(drone, player, weaponConfig)
+	if drone.broken or drone.hcoWeaponDisabled then return false end
 	local weapon = ensureNativeWeapon(drone, weaponConfig)
 	if not weapon or type(weapon.createBullet) ~= "function" then return false end
 	local source = sourceActor(drone)
@@ -73,6 +75,7 @@ local function fireBallistic(drone, player, weaponConfig)
 end
 
 local function fireLaser(drone, player, weaponConfig)
+	if drone.broken or drone.hcoWeaponDisabled then return false end
 	local source = sourceActor(drone)
 	if not source then return false end
 	local inflictor = ensureNativeWeapon(drone, weaponConfig)
@@ -93,6 +96,13 @@ local function fireLaser(drone, player, weaponConfig)
 end
 
 function droneWeapons.update(drone, player, visible, aimError, dt, canAttack)
+	if drone.broken or drone.hcoWeaponDisabled then
+		drone.hcoBurstLeft, drone.hcoBurstWait = 0, 0
+		drone.hcoLaserCharge, drone.hcoMuzzleFlash, drone.hcoLaserPulse = 0, 0, 0
+		drone.hcoAimTargetX, drone.hcoAimTargetY = nil, nil
+		drone.hcoWeaponState = "DESTROYED"
+		return false
+	end
 	local weaponConfig = drone.hcoType and drone.hcoType.weapon
 	drone.hcoWeaponChargeMax = weaponConfig and weaponConfig.kind == "laser" and weaponConfig.charge or nil
 	drone.hcoWeaponCooldown = math.max(0, (drone.hcoWeaponCooldown or 0) - dt)
@@ -147,11 +157,22 @@ function droneWeapons.update(drone, player, visible, aimError, dt, canAttack)
 	return false
 end
 
-function droneWeapons.remove(drone)
+function droneWeapons.disable(drone)
+	if not drone then return end
+	drone.hcoWeaponDisabled = true
+	drone.hcoBurstLeft, drone.hcoBurstWait = 0, 0
+	drone.hcoLaserCharge, drone.hcoMuzzleFlash, drone.hcoLaserPulse = 0, 0, 0
+	drone.hcoAimTargetX, drone.hcoAimTargetY = nil, nil
+	drone.hcoWeaponCooldown = math.huge
+	drone.hcoWeaponState = "DESTROYED"
 	if drone and drone.hcoNativeWeapon and type(drone.hcoNativeWeapon.remove) == "function" then
 		pcall(drone.hcoNativeWeapon.remove, drone.hcoNativeWeapon)
 	end
 	if drone then drone.hcoNativeWeapon = nil end
+end
+
+function droneWeapons.remove(drone)
+	droneWeapons.disable(drone)
 end
 
 return droneWeapons

@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.13.1-rc30`
+**Candidate:** `0.13.2-rc31`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 
@@ -27,6 +27,7 @@ Drones are pressure tools, not bullet sponges. Scout and Light airframes die in 
 - Every attack requires a completed native geometry trace, an outdoor roof-map footprint, a valid visible airframe, a centered physical bullet target, range, gimbal alignment, a readable aim/charge cue and cooldown readiness.
 - Release diagnostics are off by default. Player-facing notices are rate-limited and use the native feedback layer.
 - Moving fixtures self-repair, follow the visible aim center and retain a post-world-collision projectile fallback for runtime combinations that omit late fixtures. A persistently unhittable carrier is inert and automatically retired.
+- Destruction is a hard terminal boundary: every queued weapon state, detection accumulator, aim cue, rotor loop and native light-buffer allocation is cancelled before the family-specific wreck sequence begins.
 
 ## Automated release gate
 
