@@ -183,6 +183,14 @@ function flight.move(drone, dt, speed)
 		local step = math.min(distance, speed * dt)
 		local nextX, nextY = flight.clampToWorld(centerX + dx / distance * step, centerY + dy / distance * step)
 		nextX, nextY = separateFromWing(drone.hcoContext, nextX, nextY, drone.hcoIndex)
+		-- Separation is a steering influence, never a teleport. Earlier versions
+		-- applied the full 84-unit correction after movement and could therefore
+		-- appear to accelerate violently when two drones converged.
+		local finalDX, finalDY = nextX - centerX, nextY - centerY
+		local finalDistance = math.sqrt(finalDX * finalDX + finalDY * finalDY)
+		if finalDistance > step and finalDistance > 0 then
+			nextX, nextY = centerX + finalDX / finalDistance * step, centerY + finalDY / finalDistance * step
+		end
 		drone:setPos(nextX - offset, nextY - offset)
 		velocityAngle = math.atan2(dy, dx)
 	end

@@ -1,8 +1,8 @@
-# Completion Audit — 0.11.0-rc22
+# Completion Audit — 0.11.1-rc23
 
 **Audit date:** 2026-08-06  
 **Goal status:** active; the native drone-render breakthrough is proven, but the full specification and final live acceptance are not complete  
-**Authority inspected:** RC22 source, `SPECIFICATION.md`, current smoke harnesses, decompiled `1.4.12HF3` camera/projectile/damage interfaces and user-supplied live screenshots/errors
+**Authority inspected:** RC23 source, `SPECIFICATION.md`, current smoke harnesses, decompiled `1.4.12HF3` camera/projectile/damage/outline interfaces and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -37,6 +37,6 @@ The core optional-contract product exists and works far enough to be played. HCO
 7. Live-test and tune the implemented Pistol/SMG/Laser attacks after native projectile and damage API verification. Every attack must remain telegraphed and counterable.
 8. Complete map profiles, localization, audio callouts and the full reload/compatibility matrix.
 
-## RC22 acceptance
+## RC23 acceptance
 
-RC22 is approved for local testing, not final Workshop release. The next live pass must prove all seven silhouettes, independent sensor/body rotation, stable standoff tracking, varied map-safe entry, line-of-sight cancellation, native bullets, charged lasers, adapted audio, EMP suppression, light/heavy destruction and crash-site response without a traceback.
+RC23 is approved for local testing, not final Workshop release. The next live pass must first prove that aiming at a drone uses the HCO airframe outline without a traceback and that capped patrol/pursuit speeds feel fair. It must also prove all seven silhouettes, independent sensor/body rotation, stable standoff tracking, varied map-safe entry, line-of-sight cancellation, native bullets, charged lasers, adapted audio, EMP suppression, light/heavy destruction and crash-site response.

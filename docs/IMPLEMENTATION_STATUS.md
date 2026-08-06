@@ -1,6 +1,6 @@
 # Hitman Contracts Overhaul — Implementation Status
 
-**Current version:** `0.11.0-rc22`
+**Current version:** `0.11.1-rc23`
 **Status date:** 2026-08-06  
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md` remains the product and technical source of truth.
@@ -39,7 +39,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Contract variety | Partial | Data theft, accidents, special weapon conditions, rescue/extraction and other systemic contract types |
 | Localization/audio callouts | Partial | English runtime text exists; translated strings and an authored localized radio-callout pack remain |
 
-## RC22 drone behavior
+## RC22 roster / RC23 live corrections
 
 - Airframe footprint reduced to roughly 27 world pixels and the generated art rotated by -90 degrees to match the native sensor/flight heading.
 - Hover bob, offset shadow, four-frame rotor animation, rotor pulse rings, state-colored sensor pulse and a short pixel wake make flight readable without adding a detached HUD layer.
@@ -51,7 +51,7 @@ The Scout deliberately does not shoot. Six armed variants join escalated wings: 
 
 ## Immediate acceptance gate
 
-1. Completely restart the game and confirm `0.11.0-rc22` loads without traceback.
+1. Completely restart the game and confirm `0.11.1-rc23` loads without traceback.
 2. Observe multiple deployments and identify Scout, light and heavy silhouettes; heavy variants must be larger but remain actor-scaled.
 3. Stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
@@ -63,4 +63,4 @@ The Scout deliberately does not shoot. Six armed variants join escalated wings: 
 
 ## Release boundary
 
-HCO is still an active release candidate. The contract core and original native render path are functional, but RC22's seven-model visuals, tracking, attacks and adapted sound set need the live pass above. The larger missing specification items remain explicit.
+HCO is still an active release candidate. The contract core and original native render path are functional. RC23 fixes the player-aim outline crash and bounds drone speed, but the seven-model visuals, tracking, attacks and adapted sound set still need the live pass above. The larger missing specification items remain explicit.

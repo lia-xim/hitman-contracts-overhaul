@@ -834,7 +834,7 @@ Every event callback must validate:
 
 ## 20. Implementation phases
 
-**Implementation checkpoint (`0.11.0-rc22`, 2026-08-06):** Phases 0–5 and the seven-model physical-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. The underlying native airframe has been observed in game; RC22's roster atlas, stable tracking/gimbal split, native ballistic attacks, charged lasers, adapted audio and light/heavy counterplay still need live acceptance. Thermal cameras, operators and power relationships remain incomplete. Automated results are not substitutes for real-game proof.
+**Implementation checkpoint (`0.11.1-rc23`, 2026-08-06):** Phases 0–5 and the seven-model physical-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. Live RC22 evidence proved aggressive acquisition and pursuit, then exposed the native aim-outline incompatibility and excessive pursuit/separation speed. RC23 replaces that outline path and caps the full movement result. A crash-free live acceptance pass remains mandatory. Thermal cameras, operators and power relationships remain incomplete. Automated results are not substitutes for real-game proof.
 
 ### Phase 0: Runtime probe
 
@@ -1147,3 +1147,9 @@ Flight is split into two rotations. The body follows velocity and yaws toward a 
 Armed drones attack only in AGGRESSIVE mode after a confirmed HCO sighting. Pistol and SMG models instantiate the game's native weapon/projectile path, use a living response actor for attacker attribution, and require an unobstructed ray to the player. Laser models use direct actor damage only after a visible, uninterrupted 0.9-second light or 1.4-second heavy charge; LOS or gimbal loss cancels that charge. Every attack exposes an aim cue, range, cadence and cooldown. Every carrier remains natively aimable, bullet-breakable and disruptable; its physical hitbox scales with the light/heavy silhouette, partial armor hits emit ricochet audio and sparks, and EMP cancels detection and attack state.
 
 The runtime atlas contains exactly seven rows in the roster order above and four animation columns. Creator-supplied source audio is adapted into light/heavy rotor loops and light/heavy laser one-shots. Ballistic variants retain native Intravenous 2 weapon sounds. Automated API/harness proof is complete for the RC22 slice; real mission proof remains mandatory before the armed roster is called live-complete.
+
+### RC23 aim-outline and bounded-flight correction
+
+The engine may call `drawOutline()` as soon as the player aims at an aimable drone. The invisible `security_camera` carrier must never fall through to `genericObject:drawOutline()`: runtime carriers do not own the map-finalized `quadStruct` expected by that method. Carrier `drawOutline` and `rawDraw` therefore delegate to the visible airframe, which draws its current atlas frame directly during the native outline pass.
+
+Drone speed is a physical fairness contract, not only a tuning multiplier. The complete displacement after steering and wing separation is limited to 64 world units per second during patrol and 108 during aggressive pursuit. Doctrine and model multipliers may select a lower speed but can never exceed these caps. Separation changes steering direction inside the same per-frame travel budget and cannot teleport a converging drone.

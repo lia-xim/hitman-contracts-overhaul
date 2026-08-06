@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.1-rc23 — 2026-08-06
+
+- Fixed the live `drawOutline` crash (`xOff` was nil) when the player aimed at a runtime drone. Aim highlighting now delegates to the real HCO airframe sprite instead of the invisible native camera carrier.
+- Reduced ordinary and aggressive flight speeds and added hard 64/108 world-unit-per-second patrol/aggressive caps so archetype doctrine can no longer create extreme pursuit bursts.
+
 ## 0.11.0-rc22 — 2026-08-06
 
 - Replaced the single drone body with a seven-row runtime atlas: Scout plus light/heavy Pistol, SMG and Laser designs.

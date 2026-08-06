@@ -1,4 +1,13 @@
-# Automated Test Report — 0.11.0-rc22
+# Automated Test Report — 0.11.1-rc23
+
+## RC23 live outline-crash and speed correction
+
+- Live RC22 evidence confirmed that an aggressive drone could acquire and reach the player after gunfire.
+- The same pass exposed a deterministic crash while the player aimed at that drone: native `genericObject:drawOutline()` received `xOff=nil` because the invisible runtime camera carrier intentionally has no native sprite `quadStruct`.
+- RC23 delegates `drawOutline`/`rawDraw` to the real HCO airframe atlas frame. The drone and airframe harnesses execute both sides of that delegation and pass.
+- Base speed drops from 130 to 95. Patrol/aggressive multipliers drop to 0.52/0.82 and hard caps limit actual movement to 64/108 world units per second.
+- The movement cap is applied after wing separation, preventing the former 84-unit avoidance correction from becoming a one-frame teleport.
+- Live boundary: RC23 still requires confirmation that aiming, shooting and sustained pursuit remain crash-free and that the new caps feel fair in a real mission.
 
 ## RC22 seven-model wing delta
 
@@ -96,7 +105,7 @@ Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
 
 ## Final results
 
-- Lua syntax: **PASS** — all 31 Lua modules parse, including the RC22 roster/flight/weapon slice.
+- Lua syntax: **PASS** — all 31 Lua modules parse, including the RC23 outline and bounded-flight correction.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
@@ -104,7 +113,7 @@ Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Post-test evidence collector: **PASS** — `HCO_EVIDENCE_COLLECTOR_PASS` with 0 hash mismatches.
 - Source/install relative-file parity: **PASS** — 40 payload files including 31 Lua modules and nine runtime media files.
-- Source/install SHA-256 parity: **PASS** — every installed RC22 payload file matches the repository source; zero extras.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.11.0-rc22.zip` contains the required nested `files/` root and has SHA-256 `DFC3345449496DF5263FC33F236DF438139939A545533DB037F5CE5C29B8896F`.
+- Source/install SHA-256 parity: **PASS** — every installed RC23 payload file matches the repository source; zero extras.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.11.1-rc23.zip` contains the required nested `files/` root and has SHA-256 `A5AC090CD81B5E4CDA482672BA0063CEC46EA79E64ABB7B5196C388C2A1AD015`.
 
 The report will be updated with the final markers and package hashes before handoff. Automated results prove internal behavior and failure handling only; they do not replace the final live-mission pass.

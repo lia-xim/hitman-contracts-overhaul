@@ -45,7 +45,7 @@ Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a l
 The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.11.0-rc22[/b] — active release candidate. The contract core and native drone render path have been observed in game. The seven-model roster, attacks, tracking, adapted audio and map-edge behavior are being finalized through live mission testing. Diagnostic [b][HCO][/b] logs remain enabled.
+[b]0.11.1-rc23[/b] — active release candidate. RC23 fixes the live aim-outline crash and bounds drone patrol/pursuit speed. The seven-model roster, attacks, tracking, adapted audio and map-edge behavior are being finalized through live mission testing. Diagnostic [b][HCO][/b] logs remain enabled.
 
 [h2]OPEN SOURCE[/h2]
 Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.

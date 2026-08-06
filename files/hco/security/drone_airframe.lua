@@ -301,6 +301,21 @@ function airframes.sync(shell, owner)
 	end
 end
 
+function airframes.drawOutline(shell)
+	if not shell or not shell.isValid or not shell:isValid() or not loadSprite() then return false end
+	local typeQuads = quads and (quads[shell.hcoTypeIndex or 1] or quads[1])
+	local quad = typeQuads and typeQuads[shell.hcoFrame or 1]
+	if not quad then return false end
+	local bob = math.sin((curTime or 0) * 6.5 + (shell.hcoPhase or 0)) * 1.1
+	local renderAngle = (shell.hcoBodyAngle or 0) + SPRITE_FORWARD_OFFSET
+	local scale = shell.hcoRenderScale or 0.55
+	-- Aim outlines are drawn by a separate native pass. Drawing the atlas frame
+	-- directly keeps that pass compatible without asking the invisible runtime
+	-- security-camera carrier for a quadStruct it deliberately does not own.
+	love.graphics.draw(sprite, quad, shell.x, shell.y + bob, renderAngle, scale, scale, 48, 48)
+	return true
+end
+
 function airframes.remove(shell)
 	if shell and shell.isValid and shell:isValid() then pcall(shell.remove, shell) end
 end

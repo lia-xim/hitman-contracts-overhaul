@@ -130,6 +130,12 @@ function drones.initialize()
 	-- the visuals, so the native sprite update must be bypassed entirely.
 	function drone:getDrawPosition() return self.x, self.y end
 	function drone:updateSprite() return end
+	function drone:drawOutline()
+		-- The native generic-object outline expects quadStruct dimensions. Runtime
+		-- camera carriers have none, so delegate the aim pass to the real airframe.
+		if self.hcoAirframe then pcall(airframes.drawOutline, self.hcoAirframe) end
+	end
+	function drone:rawDraw() return self:drawOutline() end
 
 	function drone:postDraw()
 		-- The sensor carrier stays invisible; hco_drone_airframe owns rendering.
@@ -170,7 +176,9 @@ function drones.initialize()
 		local centerX, centerY = (self.x or 0) + offset, (self.y or 0) + offset
 		local destDistance = math.sqrt(((self.hcoDestX or centerX) - centerX)^2 + ((self.hcoDestY or centerY) - centerY)^2)
 		if not self.hcoDestX or destDistance < 36 or self.hcoTracking > 0 then self.hcoDestX, self.hcoDestY = chooseDestination(self) end
-		local _, velocityAngle = flight.move(self, dt, config.DRONE_SPEED * (self.hcoSpeed or 1) * modeSpeed)
+		local requestedSpeed = config.DRONE_SPEED * (self.hcoSpeed or 1) * modeSpeed
+		local maximumSpeed = aggressive and config.DRONE_MAX_AGGRESSIVE_SPEED or config.DRONE_MAX_PATROL_SPEED
+		local _, velocityAngle = flight.move(self, dt, math.min(requestedSpeed, maximumSpeed))
 		flight.updateAim(self, dt, player, visibleBeforeMove or pursuitCue, velocityAngle)
 		local visible = player and util.isAlive(player) and canSeePlayer(self, player) or false
 		if visible then
@@ -288,6 +296,8 @@ local function spawn(context, index)
 		instance.getDrawColor = droneClass.getDrawColor
 		instance.getDrawPosition = droneClass.getDrawPosition
 		instance.updateSprite = droneClass.updateSprite
+		instance.drawOutline = droneClass.drawOutline
+		instance.rawDraw = droneClass.rawDraw
 		instance.postDraw = droneClass.postDraw
 		instance.update = droneClass.update
 		instance.breakCam = droneClass.breakCam
@@ -359,7 +369,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC22 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC23 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)

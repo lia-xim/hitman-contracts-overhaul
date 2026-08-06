@@ -89,6 +89,10 @@ Source: `game/actor.lua`
 
 RC22 ballistic drones use instantiated `p320`/`mp5` native bullets with a living response actor as attacker. Lasers use `takeDamage` only after their visible, uninterrupted charge and verified raycast. This preserves normal God Mode/damage hooks and avoids unattributed magical kills.
 
+### Runtime camera outline contract
+
+`genericObject:drawOutline()` unpacks five values from `getDrawPosition()` and performs arithmetic on the returned `xOff`/`yOff`. A runtime-created camera has no map-finalized sprite `quadStruct`, while HCO intentionally renders its body through a separate decor airframe. The RC22 carrier returned only `x,y`, producing the live `xOff=nil` traceback when the player aimed at it. RC23 overrides `drawOutline` and `rawDraw` on each carrier and draws the airframe's current atlas frame directly in the native outline pass.
+
 Source: `game/world/world.lua`
 
 - `world:getSize()` returns the real map width and height. RC22 clamps every aerial entry and destination to a 48-unit interior margin.

@@ -16,7 +16,7 @@ $requiredDroneFiles = @(
     'files\assets\hco\drone-laser-heavy.wav'
 )
 foreach ($relative in $requiredDroneFiles) {
-    if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relative))) { throw "Required RC22 drone payload missing: $relative" }
+    if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relative))) { throw "Required drone payload missing: $relative" }
 }
 $forbidden = $luaFiles | Select-String -Pattern 'C:\\Users\\|Documents\\Codex|AppData\\|steamapps\\common' -ErrorAction SilentlyContinue
 if ($forbidden) { throw 'Install payload contains a machine-local path.' }
