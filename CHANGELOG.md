@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.4-rc28 — 2026-08-06
+
+- Expanded Scout/light/heavy bullet targets to 44/48/54 world units so the physical target covers the complete rotated rotor silhouette instead of only its central body.
+- Derived the post-world projectile fallback radius from the actual 96-pixel atlas cell and model render scale, keeping native-fixture and fallback targeting consistent at visible corners.
+- Added a runtime fixture watchdog that rebuilds a missing or destroyed Box2D body/fixture and continuously resynchronizes it with the visible aim center.
+- Replaced instant airframe removal with a weight-sensitive crash lifecycle: last-vector travel, rotor-loss tumble, pixel smoke and sparks, an expanding impact ring, scattered debris and a persistent dark wreck.
+- Moved crash evidence and response investigation to the computed landing point and added deterministic regression coverage for rotor-edge hits, fixture recovery, crash motion, landing state and context cleanup.
+
 ## 0.12.3-rc27 — 2026-08-06
 
 - Rebalanced drones as fragile tactical threats: every Scout/light model is a strict one-hit target, Heavy Pistol has two armor points, and Heavy SMG/Laser have three. Doctrine scaling can never push a heavy model beyond three hits.

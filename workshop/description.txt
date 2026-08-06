@@ -1,7 +1,7 @@
 [h1]HITMAN CONTRACTS OVERHAUL[/h1]
 [b]Intravenous 2 meets Hitman: optional HVT contracts, mobile targets, heavy protection details, disguises, social stealth and physical security-drone wings — integrated into the native game.[/b]
 
-[h2]NEW IN RC27 — FRAGILE, READABLE DRONE COMBAT[/h2]
+[h2]NEW IN RC28 — COMPLETE HITS & PHYSICAL CRASHES[/h2]
 [list]
 [*]One unarmed Scout plus light/heavy Pistol, SMG and Laser drone designs
 [*]Distinct native-scale pixel silhouettes, hover/rotor animation, movement wakes and independent sensor gimbals
@@ -10,6 +10,8 @@
 [*]Pistol/SMG drones fire native projectiles; Laser drones expose a cancellable 0.9/1.4-second charge
 [*]Light drones die in one hit; heavy drones in two or three ordinary hits, with high-caliber weapons tearing through faster
 [*]Full-airframe impact tint, expanding spark ring, remaining-armor pips and louder spatial metal impacts
+[*]Model-sized self-repairing hitboxes cover the complete rotating airframe, including Heavy rotor edges
+[*]Destroyed drones tumble, trail pixel smoke and sparks, strike the ground and remain as dark wrecks
 [*]Light/heavy rotor profiles, separate laser sounds, EMP disruption and bullet destruction
 [/list]
 
@@ -47,7 +49,7 @@ Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a l
 The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.12.3-rc27[/b] — active release candidate. RC27 makes every light drone a one-hit target, caps heavy drones at two or three normal hits, lets native damage/penetration accelerate armor breaks and makes every surviving hit obvious. The seven-model roster, attacks, tracking, adapted audio and building-edge behavior are being finalized through live mission testing. Diagnostic [b][HCO][/b] logs remain enabled.
+[b]0.12.4-rc28[/b] — active release candidate. RC28 covers the complete rotated Scout/light/heavy silhouette, repairs invalid native fixtures during flight and replaces instant destruction with a weighted tumble, smoke/spark impact and persistent wreck. The seven-model roster, attacks, tracking, adapted audio and building-edge behavior are being finalized through live mission testing. Diagnostic [b][HCO][/b] logs remain enabled.
 
 [h2]OPEN SOURCE[/h2]
 Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.

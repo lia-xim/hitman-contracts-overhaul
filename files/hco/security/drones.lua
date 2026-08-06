@@ -25,6 +25,15 @@ local function bodyIsUsable(body)
 	return type(body.setPosition) == "function"
 end
 
+local function fixtureIsUsable(fixture)
+	if not fixture then return false end
+	if type(fixture.isDestroyed) == "function" then
+		local ok, destroyed = pcall(fixture.isDestroyed, fixture)
+		if not ok or destroyed then return false end
+	end
+	return type(fixture.setFilterData) == "function"
+end
+
 local function syncPhysicalBody(drone)
 	local body = drone and drone.body
 	if not bodyIsUsable(body) then return false end
@@ -43,14 +52,26 @@ local function ensurePhysicalHitbox(drone, hitbox)
 	-- Runtime cameras are created after the map's static obstacle setup. Rebuild
 	-- the fixture explicitly so the moving carrier always owns a bullet target of
 	-- the intended size instead of inheriting an absent/stale camera fixture.
-	if type(drone.initHitbox) == "function" and drone.physics then
-		pcall(drone.initHitbox, drone, drone.physics, hitbox, hitbox)
-	end
+	if type(drone.initHitbox) ~= "function" or not drone.physics then return false end
+	local initialized = pcall(drone.initHitbox, drone, drone.physics, hitbox, hitbox)
+	if not initialized or not bodyIsUsable(drone.body) or not fixtureIsUsable(drone.fixture) then return false end
 	local fixture = drone.fixture
-	if fixture and type(fixture.setFilterData) == "function" then
-		pcall(fixture.setFilterData, fixture, drone.P_CATEGORY, drone.P_MASK, drone.P_GROUP)
-	end
+	pcall(fixture.setFilterData, fixture, drone.P_CATEGORY, drone.P_MASK, drone.P_GROUP)
 	return syncPhysicalBody(drone)
+end
+
+local function maintainPhysicalHitbox(drone)
+	local hitbox = drone and drone.hcoHitboxSize or math.max(drone and drone.hitboxW or 0, drone and drone.hitboxH or 0)
+	if hitbox <= 0 then return false end
+	if not bodyIsUsable(drone.body) or not fixtureIsUsable(drone.fixture) then
+		drone.hcoHitboxRepairs = (drone.hcoHitboxRepairs or 0) + 1
+		local repaired = ensurePhysicalHitbox(drone, hitbox)
+		if repaired then util.log(config, "drone hitbox repaired model=" .. tostring(drone.hcoType and drone.hcoType.id) .. " count=" .. tostring(drone.hcoHitboxRepairs)) end
+		drone.hcoHitboxReady = repaired
+		return repaired
+	end
+	drone.hcoHitboxReady = syncPhysicalBody(drone)
+	return drone.hcoHitboxReady
 end
 
 local function segmentHitsCircle(x1, y1, x2, y2, cx, cy, radius)
@@ -95,7 +116,9 @@ local function processPlayerBulletFallback(drone, dt)
 	local bullets = game and game.activeBullets
 	if type(bullets) ~= "table" then return false end
 	local centerX, centerY = drone:getAimPos()
-	local radius = math.max(drone.hitboxW or 0, drone.hitboxH or 0) * 0.55
+	local definition = drone.hcoType or {}
+	local spriteRadius = 96 * (definition.renderScale or 0.34) * 0.72
+	local radius = math.max(math.max(drone.hitboxW or 0, drone.hitboxH or 0) * 0.5, spriteRadius)
 	if radius <= 0 then return false end
 
 	local consumed = false
@@ -260,6 +283,7 @@ function drones.initialize()
 
 	function drone:update(dt)
 		if self.broken then return false end
+		maintainPhysicalHitbox(self)
 		self.hcoHitFlash = math.max(0, (self.hcoHitFlash or 0) - dt)
 		self.hcoImpactPulse = math.max(0, (self.hcoImpactPulse or 0) - dt)
 		self.hcoArmorDisplay = math.max(0, (self.hcoArmorDisplay or 0) - dt)
@@ -364,7 +388,8 @@ function drones.initialize()
 		end
 		if type(self.setDisrupted) == "function" then pcall(self.setDisrupted, self, false) end
 		if type(self.setDisruptTime) == "function" then pcall(self.setDisruptTime, self, nil) end
-		airframes.remove(self.hcoAirframe)
+		local landingX, landingY = airframes.crash(self.hcoAirframe, self, crashX, crashY)
+		if tonumber(landingX) and tonumber(landingY) then crashX, crashY = landingX, landingY end
 		self.hcoAirframe = nil
 		droneWeapons.remove(self)
 		if self.hcoRotorSound then
@@ -478,7 +503,11 @@ local function spawn(context, index)
 	local aggressive = context.security and context.security.droneMode == "AGGRESSIVE"
 	local definition = droneTypes.select(context, index, aggressive)
 	instance.hcoType = definition
-	local hitbox = definition.heavy and 38 or definition.id == "scout" and 30 or 34
+	-- Atlas cells rotate independently from the axis-aligned carrier. These sizes
+	-- cover the visible diagonal (including rotors), not merely the unrotated
+	-- central fuselage. Drones are intentionally easy, fair targets.
+	local hitbox = definition.heavy and 54 or definition.id == "scout" and 44 or 48
+	instance.hcoHitboxSize = hitbox
 	instance.hcoCenterOffset = hitbox * 0.5
 	instance.hcoRotorSound = audio.startRotor(instance)
 	local doctrine = context.security and context.security.droneDoctrine or {}
@@ -535,7 +564,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC27 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC28 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)
@@ -595,6 +624,7 @@ function drones.detach(context)
 	for _, drone in ipairs(context.security and context.security.drones or {}) do
 		if drone then drone._hcoDrone = nil pcall(game.removeDynamicObject, drone) pcall(drone.remove, drone) end
 	end
+	airframes.clearContext(context)
 end
 
 return drones

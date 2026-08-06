@@ -1,4 +1,12 @@
-# Automated Test Report — 0.12.3-rc27
+# Automated Test Report — 0.12.4-rc28
+
+## RC28 complete-silhouette hits and crash presentation
+
+- The physical Scout/light/heavy target sizes are now asserted at 44/48/54 world units, matching the complete rotated silhouettes rather than the old Heavy hull-sized center.
+- A Heavy rotor-edge projectile path at 25.5 world units from center registers and removes armor through the post-world collision fallback.
+- The fixture watchdog test destroys a live carrier body, advances one update, and proves that a new centered body/fixture is created before combat continues.
+- Airframe coverage proves a destroyed drone travels and rotates during its light/heavy-specific tumble, leaves the active-airframe count, enters the wreck count, changes to a dark landed tint and is removed on context cleanup.
+- Lua syntax, runtime, boot isolation, drone orchestration, seven-model behavior, native airframe, faction visual and feedback suites all pass. Live approval remains required for hit feel, crash timing/scale and map-specific landing readability.
 
 ## RC27 fragile-drone balance and impact readability
 
@@ -140,7 +148,7 @@ Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
 
 ## Final results
 
-- Lua syntax: **PASS** — all 31 Lua modules parse, including the RC27 projectile-strength and impact corrections.
+- Lua syntax: **PASS** — all 31 Lua modules parse, including the RC28 fixture watchdog and crash lifecycle.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
@@ -148,7 +156,7 @@ Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Post-test evidence collector: **PASS** — `HCO_EVIDENCE_COLLECTOR_PASS` with 0 hash mismatches.
 - Source/install relative-file parity: **PASS** — 40 payload files including 31 Lua modules and nine runtime media files.
-- Source/install SHA-256 parity: **PASS** — every installed RC27 payload file matches the repository source; zero extras.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.12.3-rc27.zip` contains the required nested `files/` root and has SHA-256 `259DC23E84876139E5E5884A7B375618E2482D85C25322AFC6CF452ED3585881`.
+- Source/install SHA-256 parity: **PASS** — every installed RC28 payload file matches the repository source; zero extras.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.12.4-rc28.zip` contains all 40 payload files below the required nested `files/` root and has SHA-256 `8F3EC7A56A3BD186AE5088AA6B6400EBC76D839E3D5A443C93246D2EB72A3CB9`.
 
-The final markers, installed-file parity and package hash above were collected from RC27 before handoff. Automated results prove internal behavior and failure handling only; they do not replace the final live-mission pass.
+The final markers above were collected from RC28 before handoff. Automated results prove internal behavior and failure handling only; they do not replace the final live-mission pass.

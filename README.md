@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.12.3-rc27`
+**Current build:** `0.12.4-rc28`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** public release candidate. RC27 makes light drones strict one-hit targets, caps heavy drones at two to three ordinary hits, gives high-damage/high-penetration rifles meaningful armor damage and adds unmissable impact/armor feedback. The complete armed-drone behavior still needs a crash-free live mission pass.
+**Status:** public release candidate. RC28 closes rotated-silhouette gaps with model-sized, self-repairing hitboxes and replaces instant disappearance with a native-world tumble, smoke/spark impact and persistent wreck. The complete armed-drone behavior still needs a crash-free live mission pass.
 
 ## Highlights
 
@@ -26,7 +26,7 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Immediate protection mobilization and drone request on confirmed contact, guard damage, or protection casualties.
 - Three loud player shots within eight seconds trigger aggressive drone support independently of visual-contact hand-off; NPC fire and suppressed player fire do not.
 - Engine-owned security-camera carriers provide physics, searchlights, obstruction and bullet interaction. A registered `hco_drone_airframe` world entity supplies the visible body through the same quadtree and sprite-batch lifecycle used by normal world actors.
-- Drones can be electronically disrupted or shot down. Crashes create local evidence and pull available response guards toward the crash position.
+- Drones can be electronically disrupted or shot down. A destroyed airframe tumbles along its last movement vector, sheds sparks and smoke, hits the ground and remains as a dark wreck. The landing creates local evidence and pulls available response guards toward it.
 - Confirmed contact sends the target and its five close guards toward safety while response units hunt the player instead of dragging the principal into combat.
 - Native contract-completion banner, audio feedback, campaign payout, and save/reload persistence.
 - Transactional activation, duplicate-copy protection, and isolated subsystem failure handling.

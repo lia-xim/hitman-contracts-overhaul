@@ -236,6 +236,74 @@ function airframes.initialize()
 		graphics.setColor(255, 255, 255, 255)
 	end
 
+	local function crashPose(self, time)
+		local age = math.max(0, time - (self.hcoCrashAt or time))
+		local duration = self.hcoCrashDuration or 0.85
+		local progress = util.clamp(age / duration, 0, 1)
+		local eased = 1 - (1 - progress) * (1 - progress)
+		local sway = math.sin(progress * math.pi * 3 + self.hcoPhase) * (1 - progress) * 7
+		local drawX = (self.hcoCrashStartX or self.x) + ((self.hcoCrashEndX or self.x) - (self.hcoCrashStartX or self.x)) * eased + (self.hcoCrashSideX or 0) * sway
+		local drawY = (self.hcoCrashStartY or self.y) + ((self.hcoCrashEndY or self.y) - (self.hcoCrashStartY or self.y)) * eased + (self.hcoCrashSideY or 0) * sway
+		local renderAngle = (self.hcoCrashStartAngle or 0) + (self.hcoCrashSpin or math.pi * 2) * eased + math.sin(progress * math.pi * 7) * (1 - progress) * 0.16
+		local scale = (self.hcoRenderScale or 0.34) * (1 - eased * 0.12)
+		return drawX, drawY, renderAngle, scale, age, progress
+	end
+
+	local function drawCrashEffects(self, drawX, drawY, age, progress)
+		local graphics = love.graphics
+		local duration = self.hcoCrashDuration or 0.85
+		local endX, endY = self.hcoCrashEndX or drawX, self.hcoCrashEndY or drawY
+		graphics.setColor(0, 0, 0, 55 + math.floor(progress * 80))
+		graphics.circle("fill", endX + 2, endY + 3, 7 + progress * 5)
+
+		if progress < 1 then
+			-- A short segmented smoke ribbon and hot fragments communicate lost
+			-- lift and direction without introducing a detached particle engine.
+			for index = 1, 5 do
+				local lag = index * 0.11
+				local sample = util.clamp(progress - lag, 0, 1)
+				local px = (self.hcoCrashStartX or drawX) + (endX - (self.hcoCrashStartX or drawX)) * sample
+				local py = (self.hcoCrashStartY or drawY) + (endY - (self.hcoCrashStartY or drawY)) * sample
+				graphics.setColor(42, 48, 52, math.max(25, 150 - index * 21))
+				graphics.circle("fill", math.floor(px), math.floor(py), 2 + index * 0.55)
+			end
+			for index = 1, 8 do
+				local angle = self.hcoPhase + index * 2.17 + age * 8
+				local distance = 7 + index * 1.4 + progress * 8
+				graphics.setColor(255, index % 2 == 0 and 210 or 120, 45, 235 - index * 14)
+				graphics.rectangle("fill", math.floor(drawX + math.cos(angle) * distance), math.floor(drawY + math.sin(angle) * distance), index % 3 == 0 and 3 or 2, 2)
+			end
+			graphics.setColor(255, 235, 170, 190)
+			graphics.circle("fill", drawX, drawY, 3 + math.abs(math.sin(age * 22)) * 2)
+		end
+
+		local impactAge = age - duration * 0.72
+		if impactAge >= 0 and impactAge <= 0.72 then
+			local impactProgress = impactAge / 0.72
+			graphics.setLineWidth(3 - impactProgress * 2)
+			graphics.setColor(255, 145, 65, math.floor((1 - impactProgress) * 235))
+			graphics.circle("line", endX, endY, 6 + impactProgress * 31)
+		end
+
+		if progress >= 1 then
+			for index = 1, 6 do
+				local angle = self.hcoPhase + index * 1.41
+				local distance = 7 + index * 2.2
+				graphics.setColor(65, 70, 73, 210)
+				graphics.rectangle("fill", math.floor(endX + math.cos(angle) * distance), math.floor(endY + math.sin(angle) * distance), index % 2 == 0 and 4 or 3, 2)
+			end
+			local smokeAge = age - duration
+			if smokeAge < 4 then
+				for index = 1, 4 do
+					local drift = smokeAge + index * 0.18
+					graphics.setColor(35, 40, 43, math.max(0, 135 - math.floor(drift * 27)))
+					graphics.circle("fill", math.floor(endX + math.sin(self.hcoPhase + index) * (3 + drift * 2)), math.floor(endY - drift * (4 + index)), 3 + drift * 1.3)
+				end
+			end
+		end
+		graphics.setColor(255, 255, 255, 255)
+	end
+
 	function visual:enterVisibilityRange()
 		self._visible = true
 		ensureSlot(self)
@@ -248,24 +316,38 @@ function airframes.initialize()
 
 	function visual:draw()
 		drawPasses = drawPasses + 1
-		local bob = math.sin((curTime or 0) * 6.5 + self.hcoPhase) * 1.1
+		local time = curTime or 0
+		local bob = math.sin(time * 6.5 + self.hcoPhase) * 1.1
 		local drawX, drawY = self.x, self.y + bob
 		local renderAngle = (self.hcoBodyAngle or 0) + SPRITE_FORWARD_OFFSET
-		drawFlightEffects(self, drawX, drawY, renderAngle)
+		local scale = self.hcoRenderScale or 0.55
+		local crashAge, crashProgress
+		if self.hcoCrashAt then
+			drawX, drawY, renderAngle, scale, crashAge, crashProgress = crashPose(self, time)
+			drawCrashEffects(self, drawX, drawY, crashAge, crashProgress)
+		else
+			drawFlightEffects(self, drawX, drawY, renderAngle)
+		end
 		if ensureSlot(self) and sprite and quads then
-			local alpha = self.hcoDisrupted and (110 + math.floor(math.abs(math.sin((curTime or 0) * 17)) * 100)) or 255
-			if self.hcoHitFlash and self.hcoHitFlash > 0 then batch:setColor(255, 185, 95, alpha) else batch:setColor(255, 255, 255, alpha) end
+			local alpha = self.hcoDisrupted and (110 + math.floor(math.abs(math.sin(time * 17)) * 100)) or 255
+			if self.hcoCrashAt then
+				if crashProgress < 1 then batch:setColor(255, 135, 70, 245) else batch:setColor(72, 78, 82, 190) end
+			elseif self.hcoHitFlash and self.hcoHitFlash > 0 then
+				batch:setColor(255, 185, 95, alpha)
+			else
+				batch:setColor(255, 255, 255, alpha)
+			end
 			local typeQuads = quads[self.hcoTypeIndex or 1] or quads[1]
-			local scale = self.hcoRenderScale or 0.55
-			batch:updateSprite(self.hcoSlot, typeQuads[self.hcoFrame or 1], drawX, drawY, renderAngle, scale, scale, 48, 48)
+			local frame = self.hcoCrashAt and crashProgress < 1 and (math.floor(crashAge / 0.06) % FRAME_COUNT + 1) or self.hcoFrame or 1
+			batch:updateSprite(self.hcoSlot, typeQuads[frame], drawX, drawY, renderAngle, scale, scale, 48, 48)
 			return
 		end
 		-- Texture-independent last resort, still executed by the native world
 		-- quadtree rather than by an external overlay.
-		love.graphics.setColor(90, 225, 255, 255)
-		love.graphics.circle("fill", self.x, self.y, 12)
-		love.graphics.line(self.x - 22, self.y - 14, self.x + 22, self.y + 14)
-		love.graphics.line(self.x - 22, self.y + 14, self.x + 22, self.y - 14)
+		if self.hcoCrashAt then love.graphics.setColor(85, 70, 60, 230) else love.graphics.setColor(90, 225, 255, 255) end
+		love.graphics.circle("fill", drawX, drawY, 12)
+		love.graphics.line(drawX - 22, drawY - 14, drawX + 22, drawY + 14)
+		love.graphics.line(drawX - 22, drawY + 14, drawX + 22, drawY - 14)
 	end
 
 	function visual:remove()
@@ -290,6 +372,7 @@ function airframes.create(owner, x, y)
 	local ok, shell = pcall(objects.create, CLASS_ID)
 	if not ok or not shell then return nil, "airframe-create-failed: " .. tostring(shell) end
 	shell.hcoOwner = owner
+	shell.hcoContext = owner and owner.hcoContext
 	shell.hcoPhase = ((owner and owner.hcoIndex) or 1) * 1.61803398875
 	local definition = owner and owner.hcoType or {}
 	shell:setPose(x, y, owner and owner.hcoBodyAngle or owner and owner.curViewAngRad or 0, owner and owner.hcoSensorAngle or owner and owner.curViewAngRad or 0, 1, definition.index or 1, definition.renderScale or 0.34)
@@ -301,6 +384,7 @@ end
 
 function airframes.sync(shell, owner)
 	if shell and shell.isValid and shell:isValid() and owner then
+		if shell.hcoCrashAt then return end
 		shell.hcoDisrupted = owner.disrupted == true
 		shell.hcoAggressive = owner.hcoContext and owner.hcoContext.security and owner.hcoContext.security.droneMode == "AGGRESSIVE"
 		shell.hcoAcquiring = (owner.hcoDetect or 0) > 0
@@ -318,6 +402,46 @@ function airframes.sync(shell, owner)
 		local offset = owner.hcoCenterOffset or 13
 		shell:setPose((owner.x or 0) + offset, (owner.y or 0) + offset, owner.hcoBodyAngle or owner.curViewAngRad or 0, owner.hcoSensorAngle or owner.curViewAngRad or 0, owner.hcoFrame or 1, definition.index or 1, definition.renderScale or 0.34)
 	end
+end
+
+local function clampCrashPoint(x, y)
+	local worldObject = game and game.worldObject
+	if worldObject and type(worldObject.getSize) == "function" then
+		local ok, width, height = pcall(worldObject.getSize, worldObject)
+		if ok and tonumber(width) and tonumber(height) then return util.clamp(x, 24, width - 24), util.clamp(y, 24, height - 24) end
+	end
+	return x, y
+end
+
+function airframes.crash(shell, owner, fallbackX, fallbackY)
+	if not shell or not shell.isValid or not shell:isValid() then return fallbackX, fallbackY end
+	airframes.sync(shell, owner)
+	if shell.hcoCrashAt then return shell.hcoCrashEndX, shell.hcoCrashEndY end
+	local startX, startY = shell.x or fallbackX or 0, shell.y or fallbackY or 0
+	local moveX, moveY = shell.hcoMoveX or 0, shell.hcoMoveY or 0
+	local speed = math.sqrt(moveX * moveX + moveY * moveY)
+	if speed <= 0.05 then
+		local angle = shell.hcoBodyAngle or 0
+		moveX, moveY, speed = math.cos(angle), math.sin(angle), 1
+	end
+	local dirX, dirY = moveX / speed, moveY / speed
+	local sideX, sideY = -dirY, dirX
+	local direction = ((owner and owner.hcoIndex or 1) % 2 == 0) and -1 or 1
+	local distance = shell.hcoHeavy and 34 or 42
+	local endX = startX + dirX * distance + sideX * 10 * direction
+	local endY = startY + dirY * distance + sideY * 10 * direction
+	endX, endY = clampCrashPoint(endX, endY)
+	shell.hcoCrashAt = curTime or 0
+	shell.hcoCrashDuration = shell.hcoHeavy and 0.95 or 0.78
+	shell.hcoCrashStartX, shell.hcoCrashStartY = startX, startY
+	shell.hcoCrashEndX, shell.hcoCrashEndY = endX, endY
+	shell.hcoCrashSideX, shell.hcoCrashSideY = sideX, sideY
+	shell.hcoCrashStartAngle = (shell.hcoBodyAngle or 0) + SPRITE_FORWARD_OFFSET
+	shell.hcoCrashSpin = direction * math.pi * (shell.hcoHeavy and 2.35 or 3.1)
+	shell.hcoArmor, shell.hcoArmorDisplay = 0, 0
+	shell.hcoAimTargetX, shell.hcoAimTargetY = nil, nil
+	shell.hcoWeaponState = "DESTROYED"
+	return endX, endY
 end
 
 function airframes.drawOutline(shell)
@@ -339,10 +463,24 @@ function airframes.remove(shell)
 	if shell and shell.isValid and shell:isValid() then pcall(shell.remove, shell) end
 end
 
+function airframes.clearContext(context)
+	local remaining = {}
+	for _, shell in ipairs(live) do
+		if shell and shell.isValid and shell:isValid() then
+			if shell.hcoContext == context then pcall(shell.remove, shell) else table.insert(remaining, shell) end
+		end
+	end
+	live = remaining
+end
+
 function airframes.diagnostics()
-	local count = 0
-	for _, shell in ipairs(live) do if shell and shell.isValid and shell:isValid() then count = count + 1 end end
-	return {drawPasses = drawPasses, spriteReady = sprite ~= nil, batchReady = batch ~= nil, airframes = count}
+	local count, wrecks = 0, 0
+	for _, shell in ipairs(live) do
+		if shell and shell.isValid and shell:isValid() then
+			if shell.hcoCrashAt then wrecks = wrecks + 1 else count = count + 1 end
+		end
+	end
+	return {drawPasses = drawPasses, spriteReady = sprite ~= nil, batchReady = batch ~= nil, airframes = count, wrecks = wrecks}
 end
 
 return airframes
