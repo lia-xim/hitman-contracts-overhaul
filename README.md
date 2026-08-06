@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.10.0-rc13`
+**Current build:** `0.10.0-rc14`
 **Target game:** Intravenous 2 `1.4.12HF3`  
-**Status:** public release candidate; boot and automated subsystem checks pass, while RC13's custom-rendered drone carrier, target evacuation, and split protection response require final in-game validation.
+**Status:** public release candidate; boot and automated subsystem checks pass, while RC14's world-pass drone rendering, target evacuation, and split protection response require final in-game validation.
 
 ## Highlights
 

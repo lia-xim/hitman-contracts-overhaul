@@ -1,4 +1,5 @@
 local config = require("hco/config")
+local drones = require("hco/security/drones")
 local util = require("hco/util")
 
 local visuals = {}
@@ -25,27 +26,41 @@ end
 
 function visuals.initialize(state)
 	state.hooks = state.hooks or {}
-	if state.hooks.hcoFactionPostDraw then return true end
+	if state.hooks.hcoFactionPostDraw and state.hooks.hcoDroneWorldPostDraw then return true end
 	local goonClass = actor.getClassData and actor.getClassData("goon")
 	if not goonClass or type(goonClass.postDraw) ~= "function" then return false end
 	loadSheet()
-	local original = goonClass.postDraw
-	state.hooks.hcoFactionPostDraw = original
+	if not state.hooks.hcoFactionPostDraw then
+		local original = goonClass.postDraw
+		state.hooks.hcoFactionPostDraw = original
 
-	function goonClass:postDraw(...)
-		original(self, ...)
-		local index = self._hcoFactionVisual
-		if not index or not sheet or not quads or self._visible == false then return end
-		local x, y = self:getDrawPosition()
-		local size = self._hcoContractTarget and 17 or 12
-		local scale = size / 64
-		love.graphics.setColor(255, 255, 255, self._hcoContractTarget and 235 or 190)
-		love.graphics.draw(sheet, quads[index], x, y - (self._hcoContractTarget and 3 or 1), self:getAngle(), scale, scale, 32, 32)
-		love.graphics.setColor(255, 255, 255, 255)
+		function goonClass:postDraw(...)
+			original(self, ...)
+			local index = self._hcoFactionVisual
+			if not index or not sheet or not quads or self._visible == false then return end
+			local x, y = self:getDrawPosition()
+			local size = self._hcoContractTarget and 17 or 12
+			local scale = size / 64
+			love.graphics.setColor(255, 255, 255, self._hcoContractTarget and 235 or 190)
+			love.graphics.draw(sheet, quads[index], x, y - (self._hcoContractTarget and 3 or 1), self:getAngle(), scale, scale, 32, 32)
+			love.graphics.setColor(255, 255, 255, 255)
+		end
+	end
+
+	-- Object-grid postDraw skips runtime carriers without a native sprite slot.
+	-- Draw the bundled drone sheet once, after the normal world objects, while
+	-- the engine's world-space camera transform is still active.
+	if world and type(world.postDraw) == "function" and not state.hooks.hcoDroneWorldPostDraw then
+		local originalWorldPostDraw = world.postDraw
+		state.hooks.hcoDroneWorldPostDraw = originalWorldPostDraw
+		function world:postDraw(...)
+			originalWorldPostDraw(self, ...)
+			drones.drawAll()
+		end
 	end
 
 	util.log(config, "native faction visuals ready")
-	return true
+	return state.hooks.hcoDroneWorldPostDraw ~= nil
 end
 
 return visuals

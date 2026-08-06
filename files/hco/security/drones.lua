@@ -8,6 +8,7 @@ local CLASS_ID = "hco_search_drone"
 local registered = false
 local sprite, quads
 local droneClass
+local activeDrones = {}
 
 local function loadSprite()
 	if sprite or not love or not love.graphics or type(love.graphics.newImage) ~= "function" then return end
@@ -125,9 +126,8 @@ function drones.initialize()
 	function drone:updateSprite() return end
 
 	function drone:postDraw()
-		if self.broken or not sprite or not quads then return end
-		love.graphics.setColor(255, 255, 255, 255)
-		love.graphics.draw(sprite, quads[self.hcoFrame], self.x + 13, self.y + 13, self.curViewAngRad or 0, 0.5, 0.5, 48, 48)
+		-- Runtime camera carriers are absent from the finalized object sprite
+		-- batch, so visuals.draw invokes drones.drawAll from the world render pass.
 	end
 
 	function drone:update(dt)
@@ -243,7 +243,25 @@ local function spawn(context, index)
 		game.addDynamicObject(instance)
 	end)
 	if not placed then return nil, "placement-failed: " .. tostring(placeError) end
+	instance._hcoDrone = true
+	table.insert(activeDrones, instance)
 	return instance
+end
+
+function drones.drawAll()
+	loadSprite()
+	if not sprite or not quads or not love or not love.graphics then return false end
+	local live = {}
+	for _, drone in ipairs(activeDrones) do
+		if drone and not drone.broken and util.isValid(drone) then
+			table.insert(live, drone)
+			love.graphics.setColor(255, 255, 255, 255)
+			love.graphics.draw(sprite, quads[drone.hcoFrame or 1], drone.x + 13, drone.y + 13, drone.curViewAngRad or 0, 0.58, 0.58, 48, 48)
+		end
+	end
+	activeDrones = live
+	love.graphics.setColor(255, 255, 255, 255)
+	return #live > 0
 end
 
 function drones.request(context, count, reason, quiet)
@@ -297,7 +315,7 @@ end
 
 function drones.detach(context)
 	for _, drone in ipairs(context.security and context.security.drones or {}) do
-		if drone then pcall(game.removeDynamicObject, drone) pcall(drone.remove, drone) end
+		if drone then drone._hcoDrone = nil pcall(game.removeDynamicObject, drone) pcall(drone.remove, drone) end
 	end
 end
 

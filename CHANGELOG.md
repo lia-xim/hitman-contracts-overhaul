@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0-rc14 — 2026-08-06
+
+- Fixed invisible drone bodies while their searchlights remained active.
+- Moved animated drone drawing from the skipped runtime-camera `postDraw` path into a dedicated world render hook.
+- Added an active-drone render registry with automatic pruning of broken or removed drones.
+- Increased the bundled flight-sheet render scale slightly for clearer in-game readability.
+- Added fixture coverage proving every active drone is drawn once while the native world render pass is preserved.
+
 ## 0.10.0-rc13 — 2026-08-06
 
 - Fixed the live `quadStruct` crash caused by sending runtime-created camera carriers through finalized native sprite batches.
