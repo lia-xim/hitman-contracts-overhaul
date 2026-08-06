@@ -31,15 +31,23 @@ end
 local function chooseDestination(self)
 	local security = self.hcoContext and self.hcoContext.security
 	local points = security and security.sectorPoints or {}
-	if security and security.lastKnown then
+	local aggressive = security and security.droneMode == "AGGRESSIVE"
+	if aggressive and security.lastKnown then
 		local angle = (self.hcoIndex * 2.399 + (curTime or 0) * 0.05)
 		return security.lastKnown.x + math.cos(angle) * 180, security.lastKnown.y + math.sin(angle) * 180
-	elseif #points > 0 then
+	elseif aggressive and #points > 0 then
 		self.hcoSearchStep = (self.hcoSearchStep or 0) + 1
 		local point = points[(self.hcoSearchStep + self.hcoIndex - 2) % #points + 1]
 		return point.x, point.y
 	end
-	return util.getPos(self.hcoContext and self.hcoContext.target)
+	local targetX, targetY = util.getPos(self.hcoContext and self.hcoContext.target)
+	if targetX then
+		self.hcoSearchStep = (self.hcoSearchStep or 0) + 1
+		local angle = self.hcoIndex * 2.399 + self.hcoSearchStep * 0.9
+		local radius = 150 + (self.hcoIndex % 3) * 55
+		return targetX + math.cos(angle) * radius, targetY + math.sin(angle) * radius
+	end
+	return targetX, targetY
 end
 
 local function notifyConfirmedSighting(self, player)
@@ -50,6 +58,7 @@ local function notifyConfirmedSighting(self, player)
 	context.security.lastKnown = {x = x, y = y, confidence = 1, source = "search-drone", time = curTime or 0, actor = self}
 	context.security.targetThreatLevel = 1
 	context.security.huntPhase = "PRESSURE"
+	context.security.droneMode = "AGGRESSIVE"
 	for _, guard in ipairs(context.security.guards or {}) do
 		if util.isAlive(guard.actor) then
 			context.security.knowledge[util.getID(guard.actor)] = {x=x,y=y,confidence=1,source="search-drone",time=curTime or 0,actor=guard.actor}
@@ -116,11 +125,14 @@ function drones.initialize()
 		self.hcoFrameTime = self.hcoFrameTime + dt
 		if self.hcoFrameTime >= 0.09 then self.hcoFrameTime = 0 self.hcoFrame = self.hcoFrame % 4 + 1 end
 
+		local security = self.hcoContext and self.hcoContext.security
+		local aggressive = security and security.droneMode == "AGGRESSIVE"
+		local modeSpeed = aggressive and config.DRONE_AGGRESSIVE_SPEED_MULTIPLIER or config.DRONE_PATROL_SPEED_MULTIPLIER
 		local dx, dy = (self.hcoDestX or self.x) - self.x, (self.hcoDestY or self.y) - self.y
 		local distance = math.sqrt(dx * dx + dy * dy)
 		if distance < 36 or not self.hcoDestX then self.hcoDestX, self.hcoDestY = chooseDestination(self) dx, dy = (self.hcoDestX or self.x) - self.x, (self.hcoDestY or self.y) - self.y distance = math.sqrt(dx * dx + dy * dy) end
 		if distance > 1 then
-			local step = math.min(distance, config.DRONE_SPEED * (self.hcoSpeed or 1) * dt)
+			local step = math.min(distance, config.DRONE_SPEED * (self.hcoSpeed or 1) * modeSpeed * dt)
 			self:setPos(self.x + dx / distance * step, self.y + dy / distance * step)
 			self:setLightAngle(math.deg(math.atan2(dy, dx)))
 		end
@@ -132,7 +144,7 @@ function drones.initialize()
 			visible = ok and hit == true
 		end
 		if visible then
-			local detectTime = config.DRONE_DETECT_TIME * (self.hcoDetectScale or 1)
+			local detectTime = config.DRONE_DETECT_TIME * (self.hcoDetectScale or 1) * (aggressive and 1 or config.DRONE_PATROL_DETECT_MULTIPLIER)
 			self.hcoDetect = math.min(detectTime, self.hcoDetect + dt)
 			self.lightColorCurrent = self.lightColorInactive self:updateCastColor()
 			if self.hcoDetect >= detectTime then notifyConfirmedSighting(self, player) end
@@ -224,12 +236,14 @@ local function spawn(context, index)
 	return instance
 end
 
-function drones.request(context, count, reason)
+function drones.request(context, count, reason, quiet)
 	local security = context and context.security
 	if not security then return end
 	security.droneDeploymentRequested = math.max(security.droneDeploymentRequested or 0, count or (security.droneDoctrine and security.droneDoctrine.count) or config.DRONE_DEPLOY_COUNT)
 	security.droneDeploymentReason = reason
-	if not security.droneRequestNoticeShown then
+	security.droneDeploymentQuiet = quiet == true
+	if not quiet then security.droneCooldown = 0 end
+	if not quiet and not security.droneRequestNoticeShown then
 		security.droneRequestNoticeShown = true
 		feedback.show("DRONE SUPPORT INBOUND — " .. tostring(reason or "security escalation"))
 	end
@@ -255,12 +269,17 @@ function drones.update(context, dt)
 	security.droneRequestNoticeShown = false
 	if launched > 0 then
 		if sound and type(sound.play) == "function" then pcall(sound.play, sound, "radio_disrupt_end") end
-		feedback.show(string.upper((security.droneDoctrine and security.droneDoctrine.name) or "SECURITY DRONES") .. " DEPLOYED — Search pattern active")
+		if security.droneMode == "PATROL" or security.droneDeploymentQuiet then
+			feedback.show(string.upper((security.droneDoctrine and security.droneDoctrine.name) or "WATCH DRONE") .. " PATROL ACTIVE")
+		else
+			feedback.show(string.upper((security.droneDoctrine and security.droneDoctrine.name) or "SECURITY DRONES") .. " DEPLOYED — Aggressive search active")
+		end
 		util.log(config, "drone deployment launched slot=" .. tostring(context.slot or 1) .. " count=" .. tostring(launched))
 	elseif lastError then
 		util.log(config, "drone deployment failed slot=" .. tostring(context.slot or 1) .. " error=" .. tostring(lastError))
 		if not security.droneFailureShown then security.droneFailureShown = true feedback.show("HCO DRONE SUPPORT OFFLINE — check log") end
 	end
+	security.droneDeploymentQuiet = false
 end
 
 function drones.detach(context)

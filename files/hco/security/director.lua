@@ -45,6 +45,7 @@ local function mobilizeProtection(state, x, y, reason)
 	security.lastKnown = {x=x, y=y, confidence=1, source=reason, time=curTime or 0, actor=player}
 	security.targetThreatLevel = 1
 	security.huntPhase = "PRESSURE"
+	security.droneMode = "AGGRESSIVE"
 	forceCombatContact(state.target, player, x, y)
 
 	for _, guard in ipairs(security.guards or {}) do
@@ -235,7 +236,8 @@ function director.attach(state, report)
 		searchOrderTime = 0,
 		seenBodies = {},
 		drones = {},
-		droneCooldown = 0
+		droneCooldown = 0,
+		droneMode = "PATROL"
 	}
 	local profile = profiles.resolve(state.contract and state.contract.seed or 0, state.contract and state.contract.archetype)
 	security.droneDoctrine = profile.drone or {name="Search", count=config.DRONE_DEPLOY_COUNT, speed=1, radius=1, detect=1, armor=1}
@@ -254,6 +256,7 @@ function director.attach(state, report)
 
 	state.target._hcoSecurityRole = "protected_target"
 	state.security = security
+	drones.request(state, math.max(1, math.ceil((security.droneDoctrine.count or config.DRONE_DEPLOY_COUNT) * 0.5)), "routine-protection", true)
 
 	if state.contract and state.contract.metrics then
 		state.contract.metrics.initialEscortCount = math.max(state.contract.metrics.initialEscortCount or 0, #state.escorts)

@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.10.0-rc10`  
+**Current build:** `0.10.0-rc11`  
 **Target game:** Intravenous 2 `1.4.12HF3`  
-**Status:** public release candidate; boot and automated subsystem checks pass, while RC10 drone visibility and combat escalation still require final in-game validation.
+**Status:** public release candidate; boot and automated subsystem checks pass, while RC11 drone visibility and patrol-to-search escalation still require final in-game validation.
 
 ## Highlights
 
@@ -17,8 +17,9 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Field-intelligence dead drops that reveal exact moving target markers.
 - Body-search disguises, plausible weapons, restricted areas, credentials, colleague recognition, compromise, and interruptible radio checks.
 - Physical, animated, destructible search drones with scan cones, rotor audio, search sectors, and coordinated pressure responses.
+- One to three archetype-scaled drones patrol around each protected target from contract start, then switch to a faster and more exact aggressive search after escalation.
 - Immediate protection mobilization and drone request on confirmed contact, guard damage, or protection casualties.
-- Sustained player gunfire triggers drone support independently of visual-contact hand-off.
+- Three loud player shots within eight seconds trigger aggressive drone support independently of visual-contact hand-off; NPC fire and suppressed player fire do not.
 - Native security-camera fallback keeps drones available when a game build rejects the late custom object class.
 - Native contract-completion banner, audio feedback, campaign payout, and save/reload persistence.
 - Transactional activation, duplicate-copy protection, and isolated subsystem failure handling.

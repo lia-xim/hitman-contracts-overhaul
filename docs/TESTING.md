@@ -9,8 +9,9 @@ These checks do not prove live AI behavior or rendering. A release candidate is 
 3. Recover field intelligence and verify the moving target marker.
 4. Reset all Cheat Trainer settings, if installed.
 5. Let an HCO guard confirm the player and verify that the detail enters combat and fires.
-6. Fire at least three player shots within eight seconds or damage one guard without immediately killing the target; verify `DRONE SUPPORT INBOUND`, the doctrine deployment notice, visible moving drones, rotor audio, scan cones, and destructibility.
-7. Let a drone detect the player and verify coordinated pressure toward the last known position.
-8. Resolve the target and verify the compact completion banner, sound, payout, and persistence after reload.
+6. Verify that passive patrol drones are already moving around the protected target. Three suppressed player shots and NPC fire must not trigger aggressive mode.
+7. Fire at least three loud player shots within eight seconds or damage one guard without immediately killing the target; verify `DRONE SUPPORT INBOUND`, the aggressive-search notice, faster drones, rotor audio, scan cones, and destructibility.
+8. Let a drone detect the player and verify coordinated pressure toward the last known position.
+9. Resolve the target and verify the compact completion banner, sound, payout, and persistence after reload.
 
 Open issues must include the game version, map, active mods, whether the mission began fresh or from a save, exact reproduction steps, and any `[HCO]` log or traceback.

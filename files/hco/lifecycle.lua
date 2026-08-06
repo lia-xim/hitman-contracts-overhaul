@@ -95,7 +95,9 @@ local function dispatchEvent(state, event, ...)
 	elseif weapons and weapons.EVENTS and event == weapons.EVENTS.FIRED then
 		local weaponObject = ...
 		local owner = weaponObject and weaponObject.owner
-		if owner and owner.PLAYER then
+		local okSuppressed, suppressed = util.call(weaponObject, "getSuppressed")
+		if not okSuppressed then suppressed = weaponObject and weaponObject.suppressed == true end
+		if owner and owner.PLAYER and not suppressed then
 			for _, context in ipairs(stateModule.getContexts(state)) do
 				securityDirector.notifyPlayerGunfire(context, owner)
 			end

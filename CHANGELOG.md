@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0-rc11 — 2026-08-06
+
+- Added passive drone patrols from the beginning of every active contract.
+- Added explicit `PATROL` and `AGGRESSIVE` drone modes with different movement speed, detection time, and destination logic.
+- Existing patrol drones now accelerate and search last-known positions after escalation; additional doctrine drones may join them.
+- Restricted the gunfire escalation to player-owned, unsuppressed weapons. NPC shots and suppressed player shots are ignored.
+- Added automated coverage for passive startup, suppressor filtering, player-only firing, and aggressive transition.
+
 ## 0.10.0-rc10 — 2026-08-06
 
 - Added a deterministic drone escalation after three player shots within eight seconds during an active contract.
