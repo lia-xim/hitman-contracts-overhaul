@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0-rc16 — 2026-08-06
+
+- Fixed the release archive layout: `main.lua`, `hco/`, and `assets/` are now packaged at the mod root instead of below an ignored `files/` directory.
+- Corrected manual installation instructions and explicitly require removal of stale older mod directories.
+- Added package validation that fails unless root `main.lua`, `hco/config.lua`, and the drone flight sheet exist in the ZIP.
+- Identified and corrected a live local installation where RC8 at the real mod root shadowed RC12–RC15 files under a nested directory.
+
 ## 0.10.0-rc15 — 2026-08-06
 
 - Corrected the render hook after engine inspection proved that the main renderer never invokes `world:postDraw()`.
