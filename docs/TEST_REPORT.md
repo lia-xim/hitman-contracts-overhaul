@@ -1,4 +1,15 @@
-# Automated Test Report — 0.12.4-rc28
+# Automated Test Report — 0.13.0-rc29
+
+## RC29 production-candidate balance, perception and presentation
+
+- Lua syntax/payload verification passes for all 32 Lua modules and seven drone atlas rows plus four adapted audio profiles.
+- Runtime coverage proves Easy lowers threat/response/drone pressure and slows acquisition, True increases pressure/reward, and Custom derives bounded tuning from native vision/damage settings.
+- Five close bodyguards remain structural while only autonomous response demand scales with difficulty.
+- Roster coverage enforces a maximum of two Heavy and two Laser models per contract; orchestration enforces twelve active airframes globally across simultaneous contracts.
+- Drone coverage proves a calm valid disguise slows routine identity acquisition without preventing it, suspicious behavior restores full acquisition, and aggressive security retains a hard scrutiny floor.
+- A dead/unconscious NPC inside the real sensor cone and unobstructed raycast is reported once through shared evidence memory. Runtime coverage proves discovery of the stolen-uniform source globally compromises that identity.
+- Airframe coverage retains every RC28 hit/crash assertion while adding family accents, evidence pulse, true Laser charge progress and damage-state propagation.
+- Internal render diagnostics are disabled in the release configuration. Live approval remains required for map-specific balance, effect mix, body concealment and full multi-contract performance.
 
 ## RC28 complete-silhouette hits and crash presentation
 
@@ -93,7 +104,7 @@
 - Remaining proof boundary: rendering, scanlight, and physical interaction must now be visually confirmed inside Intravenous 2 `1.4.12HF3`.
 
 **Date:** 2026-08-06  
-**Source modules:** 28 Lua files  
+**Source modules:** 32 Lua files
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Real-game validation:** main-menu boot passed; mission validation in progress
 
@@ -116,6 +127,7 @@ The Fengari smoke harness exercises:
 - active reload with stable target and no duplicate objective;
 - visible disguise and native keycard restoration;
 - valid-disguise detection reduction and same-unit recognition;
+- published calm/risky semantic identity state and networked source-uniform compromise;
 - local body compromise, nearby knowledge, native radio opening/closing, completed global propagation, and disrupted-call cancellation;
 - explicit radio-operator assignment, low-confidence local reaction, direct-sighting pressure hunt, and distinct physical search sectors while close protection stays with the target;
 - threat relocation, physical shelter arrival, camera evidence, and breached-shelter reselection;
@@ -144,19 +156,21 @@ Expected marker: `HCO_BOOT_FAILURE_ISOLATION_PASS`
 
 The PowerShell collector is executed from a disposable copy against the real local installation. It verifies the installed version, confirms source/install Lua hashes, handles the game's debug log as either a file or directory, records process state, and copies the newest crash log without modifying saves or game files.
 
-Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
+Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 31 Lua modules parse, including the RC28 fixture watchdog and crash lifecycle.
+- Lua syntax: **PASS** — all 32 Lua modules parse, including the RC29 balance snapshot and RC28 fixture/crash lifecycle.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
-- Post-test evidence collector: **PASS** — `HCO_EVIDENCE_COLLECTOR_PASS` with 0 hash mismatches.
-- Source/install relative-file parity: **PASS** — 40 payload files including 31 Lua modules and nine runtime media files.
-- Source/install SHA-256 parity: **PASS** — every installed RC28 payload file matches the repository source; zero extras.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.12.4-rc28.zip` contains all 40 payload files below the required nested `files/` root and has SHA-256 `8F3EC7A56A3BD186AE5088AA6B6400EBC76D839E3D5A443C93246D2EB72A3CB9`.
+- Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
+- Post-test evidence collector: **PASS** — installed `0.13.0-rc29`, 32 source Lua files, 32 installed Lua files and 0 mismatches. The game was not running; the newest stored crash log predates this installation and the current debug log is empty.
+- Source/output/install relative-file parity: **PASS** — 41 payload files including 32 Lua modules and nine runtime media files.
+- Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.13.0-rc29.zip` contains all 41 payload files below the required nested `files/` root and has SHA-256 `D2CFDFFC65C06F0EA5B41E42A47B761F7E729B860BCC5814354BC4DAF6FF9BD3`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.13.0-rc29 payload=41`.
 
-The final markers above were collected from RC28 before handoff. Automated results prove internal behavior and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC29 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

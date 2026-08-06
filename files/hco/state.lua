@@ -49,6 +49,7 @@ function stateModule.acquire()
 			escorts = {},
 			targetAI = nil,
 			disguise = nil,
+			disguiseRisk = 1,
 			compromisedDisguises = {},
 			lastResetReason = "startup",
 			listenerInstalled = false,
@@ -136,6 +137,7 @@ function stateModule.resetRuntime(state, reason)
 	state.targetAI = nil
 	state.security = nil
 	state.disguise = nil
+	state.disguiseRisk = 1
 	state.compromisedDisguises = {}
 	state.localCompromisedDisguises = {}
 	state.pendingCompromises = {}

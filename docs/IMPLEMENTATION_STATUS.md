@@ -1,6 +1,6 @@
 # Hitman Contracts Overhaul — Implementation Status
 
-**Current version:** `0.12.4-rc28`
+**Current version:** `0.13.0-rc29`
 **Status date:** 2026-08-06  
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md` remains the product and technical source of truth.
@@ -12,7 +12,7 @@
 - Contract settlement no longer calls the hideout-only `studio` reward path; the completion banner and campaign payout have been observed in game.
 - Protection actors, target movement and drone searchlights have appeared in a real mission.
 - RC20 proved the custom drone body can render through a registered decor-quadtree entity and native sprite batch. The first visible pass was oversized and rotated incorrectly; RC21 contains the correction but is not yet live-approved.
-- RC26 live evidence confirms small drones can now be shot down through the synchronized/fallback projectile path. RC27 corrected heavy balance/readability. RC28 corrects intermittent Heavy rotor/corner misses and adds the requested visible crash/landing aftermath; live approval is pending.
+- RC26 live evidence confirms small drones can now be shot down through the synchronized/fallback projectile path. RC27 corrected heavy balance/readability, RC28 corrected Heavy silhouette hits and added the physical crash, and RC29 completes the automated balance/semantic/presentation hardening. The combined live approval matrix remains pending.
 
 Automated harnesses support these systems, but do not replace the remaining real-mission acceptance tests.
 
@@ -23,16 +23,16 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Optional contracts | Implemented and seen live | Broader per-map compatibility and full one-to-three-contract live matrix |
 | Native objective, clue and target marker | Implemented and seen live | Imperfect-information variants beyond the current dead-drop reveal |
 | Mobile target | Implemented | Prove routine, shelter, breached-cover reselection and physical escape across several maps |
-| Heavy protection detail | Implemented with 5/8/11/15 allocation | Guarantee mission-appropriate strong weapon upgrades and verify every response tier fights effectively |
+| Heavy protection detail | Five close guards plus difficulty-scaled 5/10/15/20 archetype response demand, bounded by safe actors | Guarantee mission-appropriate strong weapon upgrades and verify every response tier fights effectively |
 | Hunt and last-known-position search | Implemented | Tune pursuit pressure, containment and stand-down from real gameplay evidence |
 | Disguise and social stealth | Implemented in code | Full live pass for appearance, weapon plausibility, same-unit recognition, identity checks and compromised uniforms |
 | Credentials and radio propagation | Implemented in code | Full live pass for access, interruptible radio and checkpoint restoration |
 | Multi-contract persistence and payout | Implemented | Live active/terminal reload matrix and multi-target exactly-once payout |
 | Drone presence and patrol | Seven-model RC22 roster implemented; previous native body seen live | Live-approve every new atlas row, scale, heading, rotor profile and varied deployment |
 | Drone detection and response relay | Stable slot pursuit and independent gimbal implemented | Prove cone lock, LOS loss and response convergence without wall tracking |
-| Drone disruption and destruction | Implemented across all seven models; RC28 crash lifecycle and wreck | Live-test EMP lockout, complete-silhouette hits, light/heavy tumble, sound/light cleanup and crash-site response |
-| Drone perception semantics | Partial | Add exposed-weapon, body and unauthorized-disguise classification instead of player geometry alone |
-| Drone navigation | Partial | Replace straight derived-sector travel with validated aerial corridors and obstruction recovery |
+| Drone disruption and destruction | Implemented across all seven models; RC28 crash lifecycle and RC29 spatial polish | Live-test EMP lockout, complete-silhouette hits, light/heavy tumble, sound/light cleanup and crash-site response |
+| Drone perception semantics | Implemented for behavior risk, exposed weapon risk, compromised identity and body/source-uniform evidence | Live-test routine versus aggressive identity timing, body concealment and source-uniform compromise |
+| Drone navigation | Native floor-grid endpoints, footprint obstruction steering, search rings, flanks, separation and idle recovery implemented | Live-approve map-specific boundaries and long aggressive-search behavior |
 | Drone command infrastructure | Missing | Add meaningful drone operators, radio dependency and sabotage/power counterplay |
 | Thermal surveillance | Missing | Build readable thermal-camera subtype with LOS, disruption and power/operator counters |
 | Armed drone variants | RC22 implemented: Pistol/SMG native bullets and charged Laser | Live-test damage, friendly obstruction, telegraphs, cooldowns, God Mode compatibility and counterplay |
@@ -40,7 +40,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Contract variety | Partial | Data theft, accidents, special weapon conditions, rescue/extraction and other systemic contract types |
 | Localization/audio callouts | Partial | English runtime text exists; translated strings and an authored localized radio-callout pack remain |
 
-## RC22 roster / RC23–RC28 live corrections
+## RC22 roster / RC23–RC29 live corrections
 
 - Airframe footprint reduced to roughly 27 world pixels and the generated art rotated by -90 degrees to match the native sensor/flight heading.
 - Hover bob, offset shadow, four-frame rotor animation, rotor pulse rings, state-colored sensor pulse and a short pixel wake make flight readable without adding a detached HUD layer.
@@ -48,12 +48,14 @@ Automated harnesses support these systems, but do not replace the remaining real
 - Native electronic disruption now also suspends HCO acquisition and relay logic.
 - RC28 uses 44/48/54-unit self-repairing Scout/light/heavy fixtures plus an atlas-derived fallback radius, covering the complete rotated silhouette instead of only its hull.
 - Destruction stops the searchlight and loop sound, then tumbles the airframe along its last vector with smoke, sparks and debris into a persistent dark wreck. The landing records local evidence, escalates the hunt and dispatches up to three non-close-protection guards to investigate.
+- RC29 adds native-difficulty pressure/payout tuning, an all-contract twelve-airframe ceiling, Heavy/Laser composition caps, type-colored effects, true Laser charge progress, damaged-Heavy smoke/wobble and spatially weighted crash audio.
+- Routine drones now consume social-stealth risk instead of treating every player silhouette identically. Their real cone/raycast can detect each exposed body once and compromise the stolen identity when its source is found.
 
 The Scout deliberately does not shoot. Six armed variants join escalated wings: light/heavy Pistol, SMG and Laser. Ballistic models use native bullets; laser models display an uninterrupted charge cue. No model attacks without confirmed line of sight, range, gimbal alignment and cooldown readiness.
 
 ## Immediate acceptance gate
 
-1. Completely restart the game and confirm `0.12.4-rc28` loads without traceback.
+1. Completely restart the game and confirm `0.13.0-rc29` loads without traceback and without an internal RC render diagnostic on the HUD.
 2. Observe multiple deployments and identify Scout, light and heavy silhouettes; heavy variants must be larger but remain actor-scaled.
 3. Stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
@@ -66,7 +68,10 @@ The Scout deliberately does not shoot. Six armed variants join escalated wings: 
 11. Draw a drone toward a building exterior: it should steer around walls, closed doors and windows instead of crossing the boundary; low outdoor cover may be overflown.
 12. Keep response units in combat/search long enough for follower instruction timers to advance; no `getWatchBack` traceback may occur.
 13. Confirm normal weapon fire, vanilla objectives, mission completion, checkpoint reload and return to menu still work.
+14. Compare a calm valid disguise with aiming/sprinting/firing in a patrol cone; the former must buy time without granting invisibility and the latter must restore rapid scrutiny.
+15. Leave the stolen-uniform source body exposed to a patrol drone; the body must be reported once, show a compact evidence cue and compromise that identity. A disrupted drone must not scan it.
+16. On a multi-contract map, confirm no more than twelve active airframes globally and no contract fields more than two Heavy or two Laser models.
 
 ## Release boundary
 
-HCO is still an active release candidate. The contract core and native render path are functional. RC28 retains the movement, follower and fragile-balance corrections while covering the entire rotated drone silhouette and adding a readable native-world crash lifecycle. Those live counterplay and presentation changes still need the pass above. The larger missing specification items remain explicit.
+HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC29 closes the known automated balance, multi-contract fleet, semantic-perception and production-HUD gaps while retaining the RC23–RC28 crash, movement, follower, hitbox and destruction corrections. Promotion requires the full live pass above; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.

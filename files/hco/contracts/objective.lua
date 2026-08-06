@@ -195,7 +195,8 @@ function contractObjective.ensureConfig(mapID, slot)
 		local profile = profiles.resolve(record and record.seed or 0, record and record.archetype)
 		local conditionText = record and conditions.getDescription(record.condition) or nil
 
-		return english.contractStartText(profile.name, reward, conditionText)
+		local threat = record.threatRating and ({"I", "II", "III", "IV", "V"})[record.threatRating] or nil
+		return english.contractStartText(profile.name, reward, conditionText, threat)
 	end
 
 	function objectiveConfig:onFinish()

@@ -1,4 +1,5 @@
 local config = require("hco/config")
+local balance = require("hco/balance")
 local profiles = require("hco/contracts/profiles")
 local util = require("hco/util")
 
@@ -124,16 +125,19 @@ function escort.attach(state, report)
 	local elite = goonClass and goonClass.EXPERIENCE_LEVELS and goonClass.EXPERIENCE_LEVELS.ELITE
 	local leader = state.target
 	local profile = profiles.resolve(state.contract and state.contract.seed or 0, state.contract and state.contract.archetype)
-	local requestedProtection = (profile.bodyguards or 5) + (profile.responseUnits or 0)
+	local tuning = balance.snapshot(profile)
+	state.balance = tuning
+	local requestedResponse = balance.scaledCount(profile.responseUnits or 0, tuning.responseScale, 1)
+	local requestedProtection = (profile.bodyguards or 5) + requestedResponse
 	local escortCount = math.min(requestedProtection, state.escortLimit or math.huge)
-	local healthMultiplier = profile.healthMultiplier or config.ESCORT_HEALTH_MULTIPLIER
+	local healthMultiplier = (profile.healthMultiplier or config.ESCORT_HEALTH_MULTIPLIER) * tuning.guardHealthScale
 	local _, targetHealth = util.call(state.target, "getHealth")
 	local _, targetMaxHealth = util.call(state.target, "getMaxHealth")
 	state.originalTargetHealth = targetHealth
 	state.originalTargetMaxHealth = targetMaxHealth
 
 	if tonumber(targetMaxHealth) and targetMaxHealth > 0 then
-		local targetMultiplier = profile.targetHealthMultiplier or config.TARGET_HEALTH_MULTIPLIER
+		local targetMultiplier = (profile.targetHealthMultiplier or config.TARGET_HEALTH_MULTIPLIER) * tuning.targetHealthScale
 		util.call(state.target, "setMaxHealth", math.floor(targetMaxHealth * targetMultiplier))
 		util.call(state.target, "maxOutHealth")
 	end
@@ -203,8 +207,8 @@ function escort.attach(state, report)
 	for _, data in ipairs(state.escorts) do
 		if data.role == "close_protection" then closeCount = closeCount + 1 else responseCount = responseCount + 1 end
 	end
-	state.protectionStrength = {close = closeCount, response = responseCount, requestedResponse = profile.responseUnits or 0}
-	util.log(config, "elite protection assigned close=" .. tostring(closeCount) .. " response=" .. tostring(responseCount) .. " requestedResponse=" .. tostring(profile.responseUnits or 0))
+	state.protectionStrength = {close = closeCount, response = responseCount, requestedResponse = requestedResponse, threatRating = tuning.threatRating}
+	util.log(config, "elite protection assigned close=" .. tostring(closeCount) .. " response=" .. tostring(responseCount) .. " requestedResponse=" .. tostring(requestedResponse) .. " threat=" .. tostring(tuning.threatLabel) .. " difficulty=" .. tostring(tuning.difficultyID))
 end
 
 function escort.update(state)

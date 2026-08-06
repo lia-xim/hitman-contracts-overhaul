@@ -1,10 +1,13 @@
 [h1]HITMAN CONTRACTS OVERHAUL[/h1]
 [b]Intravenous 2 meets Hitman: optional HVT contracts, mobile targets, heavy protection details, disguises, social stealth and physical security-drone wings — integrated into the native game.[/b]
 
-[h2]NEW IN RC28 — COMPLETE HITS & PHYSICAL CRASHES[/h2]
+[h2]NEW IN RC29 — NATIVE BALANCE & SMARTER DRONES[/h2]
 [list]
+[*]Easy/Normal/Hard/True/Custom difficulty now changes guards, targets, response size, drone pressure, sensor strength, threat rating and payout together
+[*]Threat ratings I–V appear in the compact native contract announcement
+[*]Global twelve-drone fleet ceiling plus per-contract Heavy/Laser limits keep multi-contract missions readable
 [*]One unarmed Scout plus light/heavy Pistol, SMG and Laser drone designs
-[*]Distinct native-scale pixel silhouettes, hover/rotor animation, movement wakes and independent sensor gimbals
+[*]Distinct native-scale pixel silhouettes, family-colored effects, hover/rotor animation, movement wakes and independent sensor gimbals
 [*]Stable standoff tracking instead of blindly orbiting or flying through the player
 [*]Varied map-safe deployment, native floor-grid endpoint validation and wing separation
 [*]Pistol/SMG drones fire native projectiles; Laser drones expose a cancellable 0.9/1.4-second charge
@@ -12,6 +15,8 @@
 [*]Full-airframe impact tint, expanding spark ring, remaining-armor pips and louder spatial metal impacts
 [*]Model-sized self-repairing hitboxes cover the complete rotating airframe, including Heavy rotor edges
 [*]Destroyed drones tumble, trail pixel smoke and sparks, strike the ground and remain as dark wrecks
+[*]Real cone-and-raycast body scans; exposed bodies escalate security and can compromise a stolen uniform
+[*]Calm disguises delay routine drone identification while suspicious behavior restores full scrutiny
 [*]Light/heavy rotor profiles, separate laser sounds, EMP disruption and bullet destruction
 [/list]
 
@@ -49,7 +54,7 @@ Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a l
 The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.12.4-rc28[/b] — active release candidate. RC28 covers the complete rotated Scout/light/heavy silhouette, repairs invalid native fixtures during flight and replaces instant destruction with a weighted tumble, smoke/spark impact and persistent wreck. The seven-model roster, attacks, tracking, adapted audio and building-edge behavior are being finalized through live mission testing. Diagnostic [b][HCO][/b] logs remain enabled.
+[b]0.13.0-rc29[/b] — production-candidate release. RC29 adds native-difficulty balance, bounded multi-contract fleets, semantic body/disguise sensing and final family-specific presentation while retaining the complete-hitbox and physical-crash fixes. Internal render diagnostics are disabled in normal play. Promotion to 1.0 follows the published crash-free live mission matrix.
 
 [h2]OPEN SOURCE[/h2]
 Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.

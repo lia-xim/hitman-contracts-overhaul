@@ -8,8 +8,9 @@ function english.contractTrackText(profileName, phase)
 	return "Contract: eliminate " .. tostring(profileName)
 end
 
-function english.contractStartText(profileName, reward, conditionText)
-	local text = string.upper(tostring(profileName)) .. " CONTRACT — $" .. tostring(reward)
+function english.contractStartText(profileName, reward, conditionText, threatLabel)
+	local threat = threatLabel and " [" .. tostring(threatLabel) .. "]" or ""
+	local text = string.upper(tostring(profileName)) .. " CONTRACT" .. threat .. " — $" .. tostring(reward)
 
 	if conditionText then
 		text = text .. "\n" .. conditionText:gsub("^Optional:%s*", "Bonus: ")

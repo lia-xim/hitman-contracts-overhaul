@@ -302,6 +302,7 @@ function disguise.clear(state, restoreVisual)
 	end
 
 	state.disguise = nil
+	state.disguiseRisk = 1
 	state.compromisedDisguises = {}
 	state.localCompromisedDisguises = {}
 	state.pendingCompromises = {}
@@ -360,11 +361,33 @@ local function globallyCompromise(state, group, source)
 
 	if state.disguise and state.disguise.group == group then
 		state.disguise.compromised = true
+		state.disguiseRisk = 1
 		feedback.show(english.DISGUISE_COMPROMISED)
 	end
 
 	saveDisguise(state)
 	util.log(config, "disguise globally compromised group=" .. tostring(group) .. " source=" .. tostring(source))
+end
+
+function disguise.onSensorBodySeen(state, sensor, body)
+	if not state.disguise or not body then
+		return false
+	end
+
+	local _, group = util.call(body, "getAnimVariant")
+	local sourceMatch = util.getID(body) == state.disguise.sourceID
+	local groupMatch = group ~= nil and tostring(group) == state.disguise.group
+
+	if not sourceMatch and not groupMatch then
+		return false
+	end
+
+	-- Search drones are networked sensors. Once one has an unobstructed view of
+	-- the stolen uniform's source, the identity is compromised immediately; the
+	-- player can prevent this by hiding the body, disrupting or destroying the
+	-- drone before it completes the scan.
+	globallyCompromise(state, state.disguise.group, "drone-body-scan:" .. tostring(util.getID(sensor) or "sensor"))
+	return true
 end
 
 function disguise.onBodySeen(state, observer, body)
@@ -480,6 +503,7 @@ function disguise.update(state, dt)
 	local player = game and game.playerActor
 
 	processPendingCompromises(state, dt)
+	state.disguiseRisk = player and disguise.getBehaviorRisk(state, player) or 1
 
 	if not state.disguise or not player or isGloballyCompromised(state) then
 		return
@@ -487,7 +511,7 @@ function disguise.update(state, dt)
 
 	state.identityCheckTime = (state.identityCheckTime or 8) - dt
 
-	if state.identityCheckTime > 0 or disguise.getBehaviorRisk(state, player) >= 0.5 then
+	if state.identityCheckTime > 0 or state.disguiseRisk >= 0.5 then
 		return
 	end
 
@@ -642,6 +666,9 @@ function disguise.initialize(state)
 	installBodyInteraction(state, goonClass)
 	installHooks(state, goonClass)
 	installEventListener(state)
+	state.hcoDroneBodySeen = function(sensor, body)
+		return disguise.onSensorBodySeen(state, sensor, body)
+	end
 end
 
 return disguise

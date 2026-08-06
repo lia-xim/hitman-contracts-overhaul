@@ -1,4 +1,5 @@
 local conditions = require("hco/contracts/conditions")
+local balance = require("hco/balance")
 local intelligence = require("hco/contracts/intelligence")
 local config = require("hco/config")
 local disguise = require("hco/social/disguise")
@@ -20,8 +21,9 @@ local core = {}
 local function calculateReward(report, profile)
 	local base = config.BASE_REWARD + #report.eligible * config.REWARD_PER_ELIGIBLE_GUARD
 	local mapMultiplier = report.profile and report.profile.rewardMultiplier or 1
+	local tuning = balance.snapshot(profile)
 
-	return math.min(config.MAX_REWARD, math.floor(base * profile.rewardMultiplier * mapMultiplier))
+	return math.min(config.MAX_REWARD, math.floor(base * profile.rewardMultiplier * mapMultiplier * tuning.rewardScale))
 end
 
 local function findEntry(report, targetID)
@@ -131,12 +133,14 @@ function core.startMap(state, worldObject, reason)
 				local profile = profiles.resolve(seed, archetype)
 				local reward = calculateReward(report, profile)
 				record = persistence.create(report.mapID, selected.data.id, seed, reward, profile.id, report.profile.id, slot)
+				record.threatRating = balance.snapshot(profile).threatRating
 				record.condition = conditions.create(seed, reward)
 			end
 
 			record.slot = slot
 			local profile = profiles.resolve(record.seed, record.archetype)
 			record.archetype = profile.id
+			record.threatRating = record.threatRating or balance.snapshot(profile).threatRating
 			record.profileID = record.profileID or report.profile.id
 			record.metrics = record.metrics or {}
 			record.condition = record.condition or conditions.create(record.seed, record.baseReward or record.reward)

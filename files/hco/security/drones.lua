@@ -154,32 +154,94 @@ local function chooseDestination(self)
 	return flight.destination(self, game and game.playerActor, aggressive)
 end
 
-local function hasPlayerLineOfSight(self, player, requireCone)
-	local px, py = util.getPos(player)
+local function hasLineOfSight(self, target, requireCone, maximumRange, requireRaycast)
+	local px, py = util.getPos(target)
 	if not px then return false end
 	local offset = centerOffset(self)
 	local sx, sy = (self.x or 0) + offset, (self.y or 0) + offset
 	local dx, dy = px - sx, py - sy
 	local distance = math.sqrt(dx * dx + dy * dy)
-	if distance > (self.radius or config.DRONE_SCAN_RADIUS) then return false end
+	if distance > (maximumRange or self.radius or config.DRONE_SCAN_RADIUS) then return false end
 	if requireCone then
 		local heading = self.hcoSensorAngle or self.curViewAngRad or 0
 		if flight.angleDifference(math.atan2(dy, dx), heading) > math.rad((self.lightFOV or config.DRONE_FOV) * 0.5) then return false end
 	end
 
-	-- Geometry is authoritative. A failed/unsupported raycast falls back to the
-	-- cone result; a real blocking fixture still prevents wall vision.
-	if type(self.runGenericRaycast) ~= "function" then return true end
-	local ok, hitData = pcall(self.runGenericRaycast, self, sx, sy, px, py, player)
-	if not ok or not hitData then return true end
+	-- Geometry is authoritative. Player tracking may fall back to the cone when
+	-- a runtime omits the raycast API; body evidence deliberately requests the
+	-- strict path and is never accepted without a completed geometry query.
+	if type(self.runGenericRaycast) ~= "function" then return not requireRaycast end
+	local ok, hitData = pcall(self.runGenericRaycast, self, sx, sy, px, py, target)
+	if not ok or not hitData then return not requireRaycast end
 	local fixture = hitData.fixture
 	if not fixture then return true end
-	local okFixture, playerFixture = util.call(player, "getFixture")
-	return hitData.fraction == 1 or okFixture and fixture == playerFixture
+	local okFixture, targetFixture = util.call(target, "getFixture")
+	return hitData.fraction == 1 or okFixture and fixture == targetFixture
+end
+
+local function hasPlayerLineOfSight(self, player, requireCone)
+	return hasLineOfSight(self, player, requireCone)
 end
 
 local function canSeePlayer(self, player)
 	return hasPlayerLineOfSight(self, player, true)
+end
+
+local function semanticDetectionFactor(self, aggressive)
+	local root = self.hcoContext and (self.hcoContext.root or self.hcoContext)
+
+	if not root or not root.disguise then
+		return 1
+	end
+
+	local risk = util.clamp(tonumber(root.disguiseRisk) or 1, 0, 1)
+	local minimum = config.DRONE_DISGUISE_MIN_DETECTION_FACTOR
+	local factor = minimum + risk * (1 - minimum)
+
+	if aggressive then
+		factor = math.max(config.DRONE_AGGRESSIVE_MIN_DETECTION_FACTOR, factor)
+	end
+
+	return factor
+end
+
+local function scanBodyEvidence(self, dt)
+	local context = self.hcoContext
+	local security = context and context.security
+
+	if not security or not game or not game.worldObject then return false end
+	self.hcoEvidenceScanTime = (self.hcoEvidenceScanTime or ((self.hcoIndex or 1) * 0.09)) - dt
+	if self.hcoEvidenceScanTime > 0 then return false end
+	self.hcoEvidenceScanTime = config.DRONE_EVIDENCE_SCAN_INTERVAL
+	security.droneSeenBodies = security.droneSeenBodies or {}
+	security.seenBodies = security.seenBodies or {}
+
+	for _, body in ipairs(util.getNPCs(game.worldObject)) do
+		local bodyID = util.getID(body)
+		local _, dead = util.call(body, "isDead")
+		local _, unconscious = util.call(body, "isUnconscious")
+		if body ~= context.target and bodyID and not security.droneSeenBodies[bodyID] and (dead == true or unconscious == true)
+			and hasLineOfSight(self, body, true, math.min(self.radius or config.DRONE_SCAN_RADIUS, config.DRONE_EVIDENCE_SCAN_RANGE), true) then
+			security.droneSeenBodies[bodyID] = true
+			security.seenBodies[bodyID] = true
+			self.hcoEvidencePulse = 1.2
+			if type(security.reportDroneBodyEvidence) == "function" then
+				local ok, err = pcall(security.reportDroneBodyEvidence, self, body)
+				if not ok then util.log(config, "drone body-evidence report failed: " .. tostring(err)) end
+			else
+				local x, y = util.getPos(body)
+				security.bodyEvidence = x and {x=x, y=y, time=curTime or 0, observer=self} or security.bodyEvidence
+			end
+			local now = curTime or 0
+			if not security.lastDroneEvidenceNotice or now - security.lastDroneEvidenceNotice >= 5 then
+				security.lastDroneEvidenceNotice = now
+				feedback.show("DRONE EVIDENCE SCAN — BODY DETECTED")
+			end
+			return true
+		end
+	end
+
+	return false
 end
 
 local function notifyConfirmedSighting(self, player)
@@ -287,6 +349,7 @@ function drones.initialize()
 		self.hcoHitFlash = math.max(0, (self.hcoHitFlash or 0) - dt)
 		self.hcoImpactPulse = math.max(0, (self.hcoImpactPulse or 0) - dt)
 		self.hcoArmorDisplay = math.max(0, (self.hcoArmorDisplay or 0) - dt)
+		self.hcoEvidencePulse = math.max(0, (self.hcoEvidencePulse or 0) - dt)
 		processPlayerBulletFallback(self, dt)
 		if self.broken then return false end
 		audio.updateRotor(self.hcoRotorSound, self)
@@ -305,6 +368,7 @@ function drones.initialize()
 		-- angle afterwards; otherwise the native update silently steals the cone
 		-- back every frame and appears to fly past a detected player.
 		local result = drone.baseClass.update(self, dt)
+		scanBodyEvidence(self, dt)
 
 		local security = self.hcoContext and self.hcoContext.security
 		local aggressive = security and security.droneMode == "AGGRESSIVE"
@@ -353,7 +417,9 @@ function drones.initialize()
 		local detectionVisible = visible or (self.hcoSightGrace or 0) > 0
 		if detectionVisible then
 			local detectTime = config.DRONE_DETECT_TIME * (self.hcoDetectScale or 1) * (aggressive and 1 or config.DRONE_PATROL_DETECT_MULTIPLIER)
-			self.hcoDetect = math.min(detectTime, self.hcoDetect + dt)
+			local semanticFactor = semanticDetectionFactor(self, aggressive)
+			self.hcoIdentityFactor = semanticFactor
+			self.hcoDetect = math.min(detectTime, self.hcoDetect + dt * semanticFactor)
 			self.lightColorCurrent = self.lightColorInactive self:updateCastColor()
 			if self.hcoDetect >= detectTime and ((curTime or 0) - (self.hcoLastConfirmedAt or -100)) >= 0.75 then
 				self.hcoLastConfirmedAt = curTime or 0
@@ -361,6 +427,7 @@ function drones.initialize()
 			end
 		else
 			self.hcoDetect = math.max(0, self.hcoDetect - dt * 0.65)
+			self.hcoIdentityFactor = 1
 			self.lightColorCurrent = self.lightColor self:updateCastColor()
 		end
 		local px, py = util.getPos(player)
@@ -411,11 +478,19 @@ function drones.initialize()
 					dispatched = dispatched + 1
 				end
 			end
-			feedback.show("DRONE DOWN — RESPONSE TEAM INVESTIGATING CRASH SITE")
+			local now = curTime or 0
+			if not security.lastDroneDownNotice or now - security.lastDroneDownNotice >= 4 then
+				security.lastDroneDownNotice = now
+				feedback.show("DRONE DOWN — RESPONSE TEAM INVESTIGATING CRASH SITE")
+			end
 		end
 		if not quiet then
 			if noise and type(noise.emit) == "function" then pcall(noise.emit, noise, crashX, crashY, self.breakNoise or 700, self, noise.SOUND_TYPES and noise.SOUND_TYPES.OBJECTS) end
-			if sound and type(sound.play) == "function" then pcall(sound.play, sound, "camera_break", self) end
+			if sound and type(sound.playWorld) == "function" then
+				pcall(sound.playWorld, sound, "camera_break", self, crashX, crashY, self.hcoType and self.hcoType.heavy and 0.95 or 0.72, self.hcoType and self.hcoType.heavy and 0.82 or 1.08)
+			elseif sound and type(sound.play) == "function" then
+				pcall(sound.play, sound, "camera_break", self)
+			end
 		end
 	end
 
@@ -503,6 +578,11 @@ local function spawn(context, index)
 	local aggressive = context.security and context.security.droneMode == "AGGRESSIVE"
 	local definition = droneTypes.select(context, index, aggressive)
 	instance.hcoType = definition
+	local accent = definition.accent or {70, 190, 255}
+	if type(color) == "function" then
+		instance.lightColor = color(accent[1], accent[2], accent[3], 255) * 2
+		instance.lightColorInactive = color(255, 70, 50, 255) * 2
+	end
 	-- Atlas cells rotate independently from the axis-aligned carrier. These sizes
 	-- cover the visible diagonal (including rotors), not merely the unrotated
 	-- central fuselage. Drones are intentionally easy, fair targets.
@@ -512,13 +592,14 @@ local function spawn(context, index)
 	instance.hcoRotorSound = audio.startRotor(instance)
 	local doctrine = context.security and context.security.droneDoctrine or {}
 	instance.hcoSpeed = (definition.speed or 1) * (doctrine.speed or 1)
-	instance.hcoDetectScale = (definition.detect or 1) * (doctrine.detect or 1)
+	local tuning = context.security and context.security.balance or context.balance or {}
+	instance.hcoDetectScale = (definition.detect or 1) * (doctrine.detect or 1) * (tuning.detectionTimeScale or 1)
 	local baseArmor = definition.armor or 1
 	local armorCap = definition.heavy and 3 or 1
 	instance.hcoArmor = math.min(armorCap, math.max(baseArmor, math.floor(baseArmor * (doctrine.armor or 1) + 0.5)))
 	instance.hcoArmorMax = instance.hcoArmor
 	instance.hcoFallback = usedFallback
-	instance.radius = config.DRONE_SCAN_RADIUS * (definition.scanRadius or 1) * (doctrine.radius or 1)
+	instance.radius = config.DRONE_SCAN_RADIUS * (definition.scanRadius or 1) * (doctrine.radius or 1) * (tuning.sensorRangeScale or 1)
 	instance.lightFOV = definition.fov or config.DRONE_FOV
 	instance.hitboxW, instance.hitboxH = hitbox, hitbox
 	if type(instance.setSize) == "function" then pcall(instance.setSize, instance, hitbox, hitbox) end
@@ -557,6 +638,7 @@ function drones.drawAll()
 end
 
 local function updateRenderDiagnostic(security, dt)
+	if not config.DIAGNOSTICS_ENABLED then security.droneRenderDiagnostic = nil return end
 	local diagnostic = security and security.droneRenderDiagnostic
 	if not diagnostic then return end
 	diagnostic.remaining = diagnostic.remaining - dt
@@ -564,7 +646,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC28 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC29 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)
@@ -592,7 +674,8 @@ function drones.update(context, dt)
 	local live = {}
 	for _, drone in ipairs(security.drones) do if drone and not drone.broken then table.insert(live, drone) end end
 	security.drones = live
-	local room = math.max(0, config.DRONE_MAX_COUNT - #live)
+	local globalActive = airframes.diagnostics().airframes
+	local room = math.max(0, math.min(config.DRONE_MAX_COUNT - #live, config.DRONE_GLOBAL_MAX_COUNT - globalActive))
 	local launched = 0
 	local lastError
 	security.droneGeneration = (security.droneGeneration or 0) + 1

@@ -1,4 +1,5 @@
 local config = require("hco/config")
+local flight = require("hco/security/drone_flight")
 local util = require("hco/util")
 
 local airframes = {}
@@ -118,6 +119,7 @@ function airframes.initialize()
 		self.hcoSlot = nil
 		self.hcoMoveX, self.hcoMoveY = 0, 0
 		self.hcoPhase = 0
+		self.hcoAccent = {70, 225, 255}
 		self.renderTree = game.worldObject:getDecorQuadTree()
 	end
 
@@ -143,9 +145,15 @@ function airframes.initialize()
 		if self._placed and self.renderTree then self.renderTree:insert(self) end
 	end
 
+	local function accent(self)
+		local value = self.hcoAccent or {70, 225, 255}
+		return value[1] or 70, value[2] or 225, value[3] or 255
+	end
+
 	local function drawFlightEffects(self, drawX, drawY, renderAngle)
 		local graphics = love.graphics
 		local time = curTime or 0
+		local accentR, accentG, accentB = accent(self)
 		local speed = math.sqrt(self.hcoMoveX * self.hcoMoveX + self.hcoMoveY * self.hcoMoveY)
 		local moveX, moveY = 0, 0
 		if speed > 0.01 then moveX, moveY = self.hcoMoveX / speed, self.hcoMoveY / speed end
@@ -160,7 +168,7 @@ function airframes.initialize()
 				local spread = math.sin(time * 9 + self.hcoPhase + index * 1.7) * (1 + index * 0.6)
 				local px = drawX - moveX * (10 + index * 6) + sideX * spread
 				local py = drawY - moveY * (10 + index * 6) + sideY * spread
-				graphics.setColor(70, 195, 225, math.max(25, 125 - index * 24))
+				graphics.setColor(accentR, accentG, accentB, math.max(25, 125 - index * 24))
 				graphics.rectangle("fill", math.floor(px), math.floor(py), index == 1 and 3 or 2, 2)
 			end
 		end
@@ -172,7 +180,7 @@ function airframes.initialize()
 		graphics.setLineWidth(1)
 		local rotorPulse = 3.2 + math.abs(math.sin(time * 18 + self.hcoPhase)) * 1.4
 		local rotorAlpha = self.hcoDisrupted and 65 or 125
-		graphics.setColor(125, 225, 245, rotorAlpha)
+		graphics.setColor(accentR, accentG, accentB, rotorAlpha)
 		for _, rotor in ipairs({{-9,-7},{9,-7},{-9,7},{9,7}}) do graphics.circle("line", rotor[1] * effectScale, rotor[2] * effectScale, rotorPulse * effectScale) end
 		graphics.pop()
 
@@ -198,19 +206,49 @@ function airframes.initialize()
 			local charging = self.hcoWeaponState == "CHARGING"
 			local pulse = 0.45 + math.abs(math.sin(time * 15 + self.hcoPhase)) * 0.55
 			graphics.setLineWidth(self.hcoHeavy and 2 or 1)
-			if charging then graphics.setColor(255, 45, 35, 120 + math.floor(pulse * 100)) else graphics.setColor(255, 110, 50, 105) end
+			if charging then graphics.setColor(accentR, accentG, accentB, 120 + math.floor(pulse * 100)) else graphics.setColor(accentR, accentG, accentB, 105) end
 			graphics.line(drawX, drawY, self.hcoAimTargetX, self.hcoAimTargetY)
+			if charging then
+				local chargeMax = math.max(0.01, self.hcoWeaponChargeMax or 1)
+				local chargeProgress = util.clamp((self.hcoLaserCharge or 0) / chargeMax, 0, 1)
+				graphics.setLineWidth(self.hcoHeavy and 3 or 2)
+				graphics.setColor(accentR, accentG, accentB, 110 + math.floor(chargeProgress * 135))
+				graphics.circle("line", drawX, drawY, 7 + chargeProgress * (self.hcoHeavy and 17 or 12))
+				graphics.setColor(255, 240, 225, 90 + math.floor(chargeProgress * 165))
+				graphics.circle("fill", drawX, drawY, 2 + chargeProgress * 3)
+			end
 			if self.hcoLaserPulse and self.hcoLaserPulse > 0 then
 				graphics.setLineWidth(self.hcoHeavy and 5 or 3)
 				graphics.setColor(255, 235, 210, 235)
 				graphics.line(drawX, drawY, self.hcoAimTargetX, self.hcoAimTargetY)
 			end
 		end
+		if self.hcoEvidencePulse and self.hcoEvidencePulse > 0 then
+			local life = util.clamp(self.hcoEvidencePulse / 1.2, 0, 1)
+			graphics.setLineWidth(1 + life * 2)
+			graphics.setColor(accentR, accentG, accentB, math.floor(80 + life * 170))
+			graphics.circle("line", drawX, drawY, 10 + (1 - life) * 28)
+			graphics.setColor(255, 235, 170, math.floor(65 + life * 170))
+			for index = 1, 4 do
+				local angle = self.hcoPhase + index * math.pi * 0.5
+				graphics.rectangle("fill", math.floor(drawX + math.cos(angle) * 16), math.floor(drawY + math.sin(angle) * 16), 2, 2)
+			end
+		end
 		if self.hcoMuzzleFlash and self.hcoMuzzleFlash > 0 then
 			local muzzleX = drawX + math.cos(self.hcoSensorAngle or 0) * 14
 			local muzzleY = drawY + math.sin(self.hcoSensorAngle or 0) * 14
-			graphics.setColor(255, 210, 80, 235)
+			graphics.setColor(accentR, accentG, accentB, 235)
 			graphics.circle("fill", muzzleX, muzzleY, self.hcoHeavy and 4 or 3)
+		end
+		local armorMaximum = tonumber(self.hcoArmorMax) or 1
+		local armorCurrent = tonumber(self.hcoArmor) or armorMaximum
+		if armorMaximum > 1 and armorCurrent < armorMaximum then
+			local severity = util.clamp(1 - armorCurrent / armorMaximum, 0.2, 1)
+			for index = 1, 2 do
+				local drift = (time * (5 + index) + self.hcoPhase * index) % 9
+				graphics.setColor(35, 42, 46, math.floor(65 + severity * 90 - drift * 4))
+				graphics.circle("fill", math.floor(drawX + math.sin(time * 5 + index) * 3), math.floor(drawY - 8 - drift), 2 + severity * 1.8)
+			end
 		end
 		if self.hcoHitFlash and self.hcoHitFlash > 0 then
 			local pulseLife = math.min(1, self.hcoHitFlash / 0.42)
@@ -251,6 +289,7 @@ function airframes.initialize()
 
 	local function drawCrashEffects(self, drawX, drawY, age, progress)
 		local graphics = love.graphics
+		local accentR, accentG, accentB = accent(self)
 		local duration = self.hcoCrashDuration or 0.85
 		local endX, endY = self.hcoCrashEndX or drawX, self.hcoCrashEndY or drawY
 		graphics.setColor(0, 0, 0, 55 + math.floor(progress * 80))
@@ -270,7 +309,8 @@ function airframes.initialize()
 			for index = 1, 8 do
 				local angle = self.hcoPhase + index * 2.17 + age * 8
 				local distance = 7 + index * 1.4 + progress * 8
-				graphics.setColor(255, index % 2 == 0 and 210 or 120, 45, 235 - index * 14)
+				local blend = index % 2 == 0 and 0.35 or 0
+				graphics.setColor(math.floor(accentR + (255 - accentR) * blend), math.floor(accentG + (210 - accentG) * blend), math.floor(accentB + (45 - accentB) * blend), 235 - index * 14)
 				graphics.rectangle("fill", math.floor(drawX + math.cos(angle) * distance), math.floor(drawY + math.sin(angle) * distance), index % 3 == 0 and 3 or 2, 2)
 			end
 			graphics.setColor(255, 235, 170, 190)
@@ -321,6 +361,12 @@ function airframes.initialize()
 		local drawX, drawY = self.x, self.y + bob
 		local renderAngle = (self.hcoBodyAngle or 0) + SPRITE_FORWARD_OFFSET
 		local scale = self.hcoRenderScale or 0.55
+		local armorMaximum = tonumber(self.hcoArmorMax) or 1
+		local armorCurrent = tonumber(self.hcoArmor) or armorMaximum
+		if not self.hcoCrashAt and armorMaximum > 1 and armorCurrent < armorMaximum then
+			local severity = util.clamp(1 - armorCurrent / armorMaximum, 0, 1)
+			renderAngle = renderAngle + math.sin(time * 13 + self.hcoPhase) * severity * 0.055
+		end
 		local crashAge, crashProgress
 		if self.hcoCrashAt then
 			drawX, drawY, renderAngle, scale, crashAge, crashProgress = crashPose(self, time)
@@ -390,15 +436,19 @@ function airframes.sync(shell, owner)
 		shell.hcoAcquiring = (owner.hcoDetect or 0) > 0
 		shell.hcoHeavy = owner.hcoType and owner.hcoType.heavy == true
 		shell.hcoWeaponState = owner.hcoWeaponState
+		shell.hcoWeaponFamily = owner.hcoType and owner.hcoType.family
 		shell.hcoAimTargetX, shell.hcoAimTargetY = owner.hcoAimTargetX, owner.hcoAimTargetY
 		shell.hcoLaserPulse, shell.hcoMuzzleFlash = owner.hcoLaserPulse, owner.hcoMuzzleFlash
+		shell.hcoLaserCharge, shell.hcoWeaponChargeMax = owner.hcoLaserCharge, owner.hcoWeaponChargeMax
 		shell.hcoHitFlash = owner.hcoHitFlash
+		shell.hcoEvidencePulse = owner.hcoEvidencePulse
 		shell.hcoImpactPulse = owner.hcoImpactPulse
 		shell.hcoImpactX, shell.hcoImpactY = owner.hcoImpactX, owner.hcoImpactY
 		shell.hcoArmorDisplay = owner.hcoArmorDisplay
 		shell.hcoArmor, shell.hcoArmorMax = owner.hcoArmor, owner.hcoArmorMax
 		shell.hcoLastArmorDamage = owner.hcoLastArmorDamage
 		local definition = owner.hcoType or {}
+		shell.hcoAccent = definition.accent or shell.hcoAccent
 		local offset = owner.hcoCenterOffset or 13
 		shell:setPose((owner.x or 0) + offset, (owner.y or 0) + offset, owner.hcoBodyAngle or owner.curViewAngRad or 0, owner.hcoSensorAngle or owner.curViewAngRad or 0, owner.hcoFrame or 1, definition.index or 1, definition.renderScale or 0.34)
 	end
@@ -431,6 +481,8 @@ function airframes.crash(shell, owner, fallbackX, fallbackY)
 	local endX = startX + dirX * distance + sideX * 10 * direction
 	local endY = startY + dirY * distance + sideY * 10 * direction
 	endX, endY = clampCrashPoint(endX, endY)
+	local playableX, playableY = flight.snapToPlayable(endX, endY, startX, startY)
+	if tonumber(playableX) and tonumber(playableY) then endX, endY = playableX, playableY end
 	shell.hcoCrashAt = curTime or 0
 	shell.hcoCrashDuration = shell.hcoHeavy and 0.95 or 0.78
 	shell.hcoCrashStartX, shell.hcoCrashStartY = startX, startY

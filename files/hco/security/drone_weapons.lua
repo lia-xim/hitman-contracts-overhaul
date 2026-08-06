@@ -94,6 +94,7 @@ end
 
 function droneWeapons.update(drone, player, visible, aimError, dt, canAttack)
 	local weaponConfig = drone.hcoType and drone.hcoType.weapon
+	drone.hcoWeaponChargeMax = weaponConfig and weaponConfig.kind == "laser" and weaponConfig.charge or nil
 	drone.hcoWeaponCooldown = math.max(0, (drone.hcoWeaponCooldown or 0) - dt)
 	drone.hcoMuzzleFlash = math.max(0, (drone.hcoMuzzleFlash or 0) - dt)
 	drone.hcoLaserPulse = math.max(0, (drone.hcoLaserPulse or 0) - dt)

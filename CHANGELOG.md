@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.0-rc29 — 2026-08-06
+
+- Added native-difficulty balance snapshots. Easy/Normal/Hard/True and bounded Custom settings now scale response count, guard/target health, drone count, sensor range/acquisition, displayed threat and payout together.
+- Added archetype threat ratings I–V to the compact native contract announcement without increasing its two-line footprint.
+- Preserved five close bodyguards at every difficulty while scaling only autonomous response strength; target and guard durability now follow both archetype and difficulty.
+- Added a twelve-airframe global fleet ceiling and hard per-contract limits of two Heavy and two Laser models, preventing up to three simultaneous contracts from producing an unreadable 21-drone swarm.
+- Rebalanced baseline acquisition from 0.25 to 0.55 seconds before model, doctrine, mode and difficulty modifiers. Routine patrols are readable; confirmed aggressive pressure remains fast.
+- Integrated social stealth with drone identity sensing. Calm plausible disguises slow routine acquisition without granting immunity, while aiming, sprinting, firing, incompatible equipment or compromise restores full scrutiny.
+- Added real cone-and-raycast body evidence scans. Drones report each exposed dead/unconscious NPC once, escalate security, request support and compromise the stolen identity if its source uniform is discovered.
+- Added type-specific cyan/amber/red/violet flight effects, an expanding evidence-scan pulse, true Laser charge-progress rings, heavy-damage smoke/wobble and weight/pitch-aware spatial crash audio.
+- Kept release diagnostics disabled by default so internal RC airframe probes never leak into the normal mission HUD.
+- Expanded automated coverage for difficulty tuning, fleet composition limits, disguise-aware acquisition, drone body evidence, source-uniform compromise and the complete RC28 combat/crash regression set.
+- Published all seven LÖVE 11.5 smoke harnesses with a portable repository test runner so external maintainers can reproduce the automated RC gate without machine-local paths.
+
 ## 0.12.4-rc28 — 2026-08-06
 
 - Expanded Scout/light/heavy bullet targets to 44/48/54 world units so the physical target covers the complete rotated rotor silhouette instead of only its central body.

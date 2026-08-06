@@ -1,0 +1,864 @@
+local sourceRoot = os.getenv("HCO_SOURCE_ROOT")
+if not sourceRoot or sourceRoot == "" then error("HCO_SOURCE_ROOT is required") end
+package.path = sourceRoot .. "/?.lua;" .. sourceRoot .. "/?/init.lua;" .. package.path
+
+function love.errorhandler(message)
+	io.stderr:write("HCO_RUNTIME_SMOKE_ERROR: " .. tostring(message) .. "\n" .. debug.traceback() .. "\n")
+	os.exit(1)
+end
+
+local function assertEqual(actual, expected, label)
+	if actual ~= expected then
+		error((label or "assertion") .. ": expected " .. tostring(expected) .. ", got " .. tostring(actual))
+	end
+end
+
+local function assertTrue(value, label)
+	if not value then
+		error(label or "expected truthy value")
+	end
+end
+
+curTime = 0
+scrW, scrH = 1920, 1080
+function _S(value)
+	return value
+end
+
+gui = {}
+function gui.create()
+	local object = {w = 200}
+	local methods = {"setFont", "setText", "setTargetW", "setupVisual", "addDepth", "wrapText", "setPos"}
+
+	for _, method in ipairs(methods) do
+		object[method] = function()
+			return
+		end
+	end
+
+	return object
+end
+
+events = {
+	directReceivers = {}
+}
+
+function events:addDirectReceiver(object, eventList, handlerName)
+	handlerName = handlerName or "handleEvent"
+
+	for _, event in ipairs(eventList) do
+		self.directReceivers[event] = self.directReceivers[event] or {}
+		local duplicate = false
+
+		for _, entry in ipairs(self.directReceivers[event]) do
+			if entry.object == object and entry.handlerName == handlerName then
+				duplicate = true
+			end
+		end
+
+		if not duplicate then
+			table.insert(self.directReceivers[event], {object = object, handlerName = handlerName})
+		end
+	end
+end
+
+function events:removeDirectReceiver(object, eventList, handlerName)
+	handlerName = handlerName or "handleEvent"
+
+	for _, event in ipairs(eventList or {}) do
+		local list = self.directReceivers[event] or {}
+
+		for index = #list, 1, -1 do
+			if list[index].object == object and list[index].handlerName == handlerName then
+				table.remove(list, index)
+			end
+		end
+	end
+end
+
+function events:fire(event, ...)
+	local snapshot = {}
+
+	for index, entry in ipairs(self.directReceivers[event] or {}) do
+		snapshot[index] = entry
+	end
+
+	for _, entry in ipairs(snapshot) do
+		entry.object[entry.handlerName](entry.object, event, ...)
+	end
+end
+
+game = {
+	EVENTS = {
+		MAP_LOADED = 1,
+		RESET_FINISHED = 2,
+		GAME_UNLOADED = 3,
+		RETURNING_TO_MAIN_MENU = 4,
+		PRE_REMOVE_GAME = 5,
+		POST_MODS_LOADED = 8,
+		RESET_STARTED = 9,
+		LEVEL_FINISHED = 10
+	}
+}
+
+function game.addHUDElement()
+	return
+end
+
+actor = {
+	EVENTS = {
+		NEUTRALIZED = 6,
+		DIED = 7
+	}
+}
+
+weapons = {EVENTS = {FIRED = 11}}
+
+npcAlertnessStates = {
+	STATES = {
+		IDLE = 1,
+		SUSPICION = 2,
+		ALERT = 3,
+		COMBAT = 4
+	},
+	inCombat = false
+}
+
+function npcAlertnessStates:getCombat()
+	return self.inCombat
+end
+
+local goonClass = {
+	class = "goon",
+	IDLE_STATE = "goon_idle",
+	FEAR_STATE = "goon_fear",
+	EXPERIENCE_LEVELS = {
+		GREEN = 1,
+		EXPERIENCED = 2,
+		ELITE = 3
+	},
+	interactionList = {
+		{id = 1},
+		{id = 2}
+	}
+}
+
+function goonClass:increaseDetection(target, amount)
+	self.detection[target] = math.min(1, (self.detection[target] or 0) + amount)
+
+	return self.detection[target]
+end
+
+
+function goonClass:setSeenBody(body, seen)
+	self.seenBodies[body] = seen
+end
+
+
+function actor.getClassData(class)
+	return class == "goon" and goonClass or nil
+end
+
+local cameraClass = {}
+function cameraClass:calculateDetectionIncrease(object, dt)
+	return dt * 10
+end
+function cameraClass:disrupt()
+	self.disrupted = true
+end
+function cameraClass:breakCam()
+	self.destroyed = true
+end
+
+objects = {}
+function objects.getClassData(class)
+	return class == "security_camera" and cameraClass or nil
+end
+
+function objects.getClassID(class)
+	return class
+end
+
+playerActor = {}
+playerActor.EVENTS = {
+	FIRED_WEAPON = 11
+}
+
+function playerActor:getOfflimits()
+	return self.offlimits or npcAlertnessStates.STATES.IDLE
+end
+
+local player = {
+	id = "player",
+	PLAYER = true,
+	class = {PLAYER = true},
+	animVar = "sean",
+	offlimits = npcAlertnessStates.STATES.ALERT,
+	aiming = false,
+	sprinting = false,
+	weapon = nil,
+	weaponConcealed = true,
+	keys = {},
+	x = 0,
+	y = 0,
+	state = {id = "player_main"}
+}
+setmetatable(player, {__index = playerActor})
+
+function player:getID() return self.id end
+function player:getPos() return self.x, self.y end
+function player:getState() return self.state end
+function player:getAiming() return self.aiming end
+function player:getSprinting() return self.sprinting end
+function player:getWeapon() return self.weapon end
+function player:getWeaponConcealed() return self.weaponConcealed end
+function player:getAnimVariant() return self.animVar end
+function player:setAnimVariant(value) self.animVar = value end
+function player:hasKey(key)
+	for index, value in ipairs(self.keys) do
+		if value == key then return index end
+	end
+
+	return false
+end
+function player:addKey(key) table.insert(self.keys, key) end
+function player:getVisibility() return 1 end
+
+game.playerActor = player
+
+local function createRoute(id)
+	local route = {id = id, points = {}}
+
+	for index, x in ipairs({100, 500, 900}) do
+		local point = {id = id .. "-" .. index, x = x, y = index * 20}
+		function point:getID() return self.id end
+		function point:getPos() return self.x, self.y end
+		table.insert(route.points, point)
+	end
+
+	function route:getID() return self.id end
+	function route:getIndexes() return self.points end
+	return route
+end
+
+local function createNPC(data)
+	local npc = {
+		class = data.class or "goon",
+		id = data.id,
+		dead = data.dead or false,
+		unconscious = data.unconscious or false,
+		patrol = data.patrol and createRoute("patrol-" .. data.id) or nil,
+		patrolIndex = 1,
+		radio = data.radio and {open = false, disrupted = false} or nil,
+		experience = data.experience or 1,
+		mapNameKey = data.mapNameKey or "",
+		mapName = data.mapName or "",
+		weapon = data.weapon == false and nil or {id = "weapon-" .. data.id, weaponType = data.weaponType or 2},
+		keycard = data.keycard,
+		animVar = data.animVar or "bandit1",
+		detection = {},
+		seenBodies = {},
+		x = data.x or 100,
+		y = data.y or 0,
+		alertness = npcAlertnessStates.STATES.IDLE,
+		health = 75,
+		maxHealth = 75,
+		states = {},
+		grid = {}
+	}
+	setmetatable(npc, {__index = goonClass})
+
+	function npc.grid:worldToGrid(x, y) return x, y end
+	function npc:isValid() return true end
+	function npc:getClass() return self.class end
+	function npc:getID() return self.id end
+	function npc:getPos() return self.x, self.y end
+	function npc:isDead() return self.dead end
+	function npc:isUnconscious() return self.unconscious end
+	function npc:getActivePatrolRoute() return self.patrol end
+	function npc:setActivePatrolRoute(route, index) self.patrol, self.patrolIndex = route, index or 1 end
+	function npc:getPatrolRouteIndex() return self.patrolIndex end
+	function npc:setPatrolRouteIndex(index) self.patrolIndex = index end
+	function npc:hasRadio() return self.radio ~= nil end
+	function npc:getRadio() return self.radio end
+	if npc.radio then
+		function npc.radio:isOpen() return self.open end
+		function npc.radio:isDisrupted() return self.disrupted end
+		function npc.radio:open()
+			if not self.disrupted then self.open = true end
+		end
+		function npc.radio:close() self.open = false end
+	end
+	function npc:getExperienceLevel() return self.experience end
+	function npc:setExperienceLevel(value) self.experience = value end
+	function npc:maxOutHealth() self.maxHealth, self.health = 95, 95 end
+	function npc:getHealth() return self.health end
+	function npc:setHealth(value) self.health = value end
+	function npc:getMaxHealth() return self.maxHealth end
+	function npc:setMaxHealth(value) self.maxHealth = value end
+	function npc:getKeycard() return self.keycard end
+	function npc:getWeapon() return self.weapon end
+	if npc.weapon then
+		function npc.weapon:getID() return self.id end
+		function npc.weapon:getType() return self.weaponType end
+	end
+	function npc:dropWeapon() self.weapon = nil end
+	function npc:getMapNameData() return self.mapNameKey, self.mapName end
+	function npc:getAnimVariant() return self.animVar end
+	function npc:setAnimVariant(value) self.animVar = value end
+	function npc:getDetection(target) return self.detection[target] or 0 end
+	function npc:setDetection(target, value) self.detection[target] = value end
+	function npc:getAlertnessStateID() return self.alertness end
+	function npc:getEnemyInSight() return self.enemyInSight == true end
+	function npc:getSeenPlayer() return self.enemyInSight == true end
+	function npc:getBestHunchTime() return self.hunchTime or 999 end
+	function npc:getBestHunch() return self.hunchX or self.x, self.hunchY or self.y end
+	function npc:getSightPos() return self.hunchX or self.x, self.hunchY or self.y end
+	function npc:setSightPos(x, y) self.hunchX, self.hunchY, self.hunchTime = x, y, 0 end
+	function npc:setDestPos(x, y) self.destX, self.destY = x, y end
+	function npc:setTargetPos(x, y) self.targetX, self.targetY = x, y end
+	function npc:setPath(value) self.path = value end
+	function npc:getDestPosObj()
+		self.destObject = self.destObject or {owner = self, adjustResult = false}
+		function self.destObject:adjust() return self.adjustResult end
+		return self.destObject
+	end
+	function npc:getState()
+		return self.state or self:getStateObject("goon_idle")
+	end
+	function npc:getStateObject(id)
+		if not self.states[id] then
+			local stateObject = {id = id, owner = self}
+			function stateObject:goToFollow(leader)
+				self.owner.following = leader
+				self.owner.state = self
+				leader:setFollower(self.owner)
+			end
+			function stateObject:getWatchBack() return self.watchBack end
+			function stateObject:setWatchBack(value) self.watchBack = value end
+			function stateObject:getWatchDistance() return self.watchDistance end
+			function stateObject:setWatchDistance(value) self.watchDistance = value end
+			self.states[id] = stateObject
+		end
+		return self.states[id]
+	end
+	function npc:setState(value) self.state = value end
+	function npc:setFollower(value) self.follower = value end
+	function npc:getFollower() return self.follower end
+	function npc:receiveSightingData(source) self.receivedSightingFrom = source end
+
+	return npc
+end
+
+local namedStoryNPC = createNPC({id = "story-boss", patrol = true, experience = 3, mapName = "Story Boss", x = 200})
+local stationaryNPC = createNPC({id = "stationary", patrol = false, experience = 3, x = 250})
+local validA = createNPC({id = "guard-a", patrol = true, experience = 2, keycard = "security-A", animVar = "bandit2", x = 130})
+local validB = createNPC({id = "guard-b", patrol = true, experience = 3, radio = true, x = 150})
+local validC = createNPC({id = "guard-c", patrol = true, experience = 2, radio = true, x = 170})
+local validD = createNPC({id = "guard-d", patrol = true, experience = 2, x = 190})
+local objectiveCritical = createNPC({id = "objective-critical", patrol = true, experience = 3, x = 210})
+
+local world = {
+	mapID = "smoke-map",
+	npcs = {namedStoryNPC, stationaryNPC, validA, validB, validC, validD, objectiveCritical}
+}
+
+function world:getMapID() return self.mapID end
+function world:getNPCs() return self.npcs end
+function world:getObjectsByClass() return {} end
+function world:getActorTileOccupancy()
+	return {
+		adjustDestinationCoords = function(_, x, y) return x, y end
+	}
+end
+game.worldObject = world
+
+local mapData = {id = "smoke-map"}
+function mapData:getID() return self.id end
+maps = {registered = {mapData}}
+
+local persistentData = {}
+game.playthrough = {}
+game.playthrough.money = 0
+function game.playthrough:changeMoney(amount) self.money = self.money + amount end
+function game.playthrough:getMoney() return self.money end
+game.playthrough.finishedObjectives = {}
+function game.playthrough:setPersistentMapData(key, value) persistentData[key] = value end
+function game.playthrough:getPersistentMapData(key)
+	if not persistentData[key] then error("missing") end
+	return persistentData[key]
+end
+function game.playthrough:addFinishedObjective(id)
+	table.insert(self.finishedObjectives, id)
+end
+function game.playthrough:hasFinishedObjective(id)
+	for index, value in ipairs(self.finishedObjectives) do
+		if value == id then return index end
+	end
+
+	return false
+end
+
+studio = nil
+
+movePosIndicator = {
+	EVENTS = {NOTIFY_OBJECTIVE_ID_REMOVE = 30},
+	markers = {}
+}
+function movePosIndicator:addPosition(x, y, time, distance, class, unused, object, uid)
+	local marker = {object = object, uid = uid}
+	table.insert(self.markers, marker)
+	return marker
+end
+
+gameStateService = {states = {}}
+function gameStateService:addState(state) table.insert(self.states, state) end
+
+local baseTask = {id = "base_task"}
+function baseTask:init(objective)
+	self.objective = objective
+	self.baseTask = self
+end
+function baseTask:initConfig(config) self.config = config; self.uid = config.uid end
+function baseTask:setHasStarted(value) self.hasStartedTask = value end
+function baseTask:_onStart()
+	if self.CATCHABLE_EVENTS then
+		events:addDirectReceiver(self, self.CATCHABLE_EVENTS, "_handleEvent")
+	end
+end
+function baseTask:_handleEvent(event, ...)
+	self:handleEvent(event, ...)
+	self.objective:doFinishCheck()
+end
+function baseTask:_onFinish()
+	if self.CATCHABLE_EVENTS then
+		events:removeDirectReceiver(self, self.CATCHABLE_EVENTS, "_handleEvent")
+	end
+end
+function baseTask:isFinished() return self.completed end
+function baseTask:verifyFinish() return self.completed end
+
+objectiveHandler = {
+	registeredTasksByID = {base_task = baseTask},
+	registeredObjectivesByID = {},
+	objectives = {}
+}
+
+local vanillaObjective = {
+	id = "vanilla-story-objective",
+	config = {task = {id = "neutralize_enemy", npc = "objective-critical"}}
+}
+function vanillaObjective:getID() return self.id end
+function vanillaObjective:getTask() return {config = self.config.task} end
+table.insert(objectiveHandler.objectives, vanillaObjective)
+
+function objectiveHandler:registerNewTask(task, baseID)
+	local base = self.registeredTasksByID[baseID]
+	if base then setmetatable(task, {__index = base}); task.baseClass = base end
+	self.registeredTasksByID[task.id] = task
+end
+function objectiveHandler:registerNewObjective(config) self.registeredObjectivesByID[config.id] = config; return config end
+function objectiveHandler:getObjectiveData(id) return self.registeredObjectivesByID[id] end
+function objectiveHandler:getObjectives() return self.objectives end
+function objectiveHandler:createObjective(config)
+	local object = {config = config, id = config.id, claimed = false}
+	function object:getID() return self.id end
+	function object:getTask() return self.task end
+	function object:updateHUDElement() self.hudUpdates = (self.hudUpdates or 0) + 1 end
+	function object:start() self.task:setHasStarted(true); self.task:_onStart() end
+	function object:remove()
+		for index = #objectiveHandler.objectives, 1, -1 do
+			if objectiveHandler.objectives[index] == self then table.remove(objectiveHandler.objectives, index) end
+		end
+	end
+	function object:fail() self.failed = true; self:remove() end
+	function object:doFinishCheck()
+		if self.task:verifyFinish() and not self.claimed then
+			self.claimed = true
+			-- HCO objectives intentionally have no native reward: the vanilla
+			-- claimant depends on a hideout-only `studio` global.
+			game.playthrough:addFinishedObjective(self.id)
+			self.config:onFinish(self)
+			self.task:_onFinish()
+			self:remove()
+		end
+	end
+	local taskClass = objectiveHandler.registeredTasksByID[config.task.id]
+	local task = {}
+	setmetatable(task, {__index = taskClass})
+	task:init(object)
+	task:initConfig(config.task)
+	object.task = task
+	return object
+end
+
+require("hco/bootstrap").start()
+
+local state = playerActor._hitmanContractsOverhaulState
+assertTrue(state, "shared state was not created")
+assertEqual(state.targetID, "guard-b", "highest safe candidate selected")
+assertEqual(state.target._hcoContractTarget, true, "target marker installed")
+assertTrue(state.contract, "contract record created")
+local activeProfile = require("hco/contracts/profiles").resolve(state.contract.seed, state.contract.archetype)
+assertEqual(state.target.animVar, activeProfile.targetVariant, "target receives archetype-native visual variant")
+assertEqual(#objectiveHandler.objectives, 2, "native objective injected beside vanilla objective")
+assertTrue(state.targetMarker, "moving target marker attached")
+assertTrue(objectiveHandler.objectives[2].config.startString, "native objective start indicator remains enabled after registration")
+assertTrue(#state.escorts >= 2, "elite escort selected")
+assertEqual(state.escorts[1].actor._hcoFactionVisual, activeProfile.visualIndex, "protection detail receives faction identity")
+assertEqual(state.security.droneDoctrine.name, activeProfile.drone.name, "contract receives archetype-specific drone doctrine")
+assertEqual(state.security.droneMode, "PATROL", "contract starts with passive drone patrol")
+assertEqual(#events.directReceivers[actor.EVENTS.DIED], 2, "lifecycle and objective death listeners")
+local objectiveCriticalEntry
+for _, entry in ipairs(state.lastSelectionReport.entries) do
+	if entry.data.id == "objective-critical" then objectiveCriticalEntry = entry end
+end
+assertTrue(objectiveCriticalEntry and not objectiveCriticalEntry.eligible, "vanilla objective actor rejected")
+
+local securityDirector = require("hco/security/director")
+assertEqual(#state.security.guards, #state.escorts, "security roster remains contract-exclusive")
+
+validA.hunchTime = 15
+validA.hunchX, validA.hunchY = 340, 140
+securityDirector.update(state, 1)
+assertEqual(state.security.huntPhase, "LOCAL_REACTION", "weak fresh evidence starts local reaction")
+validA.hunchTime = 999
+validA.hunchX, validA.hunchY = nil, nil
+state.security.knowledge = {}
+state.security.lastKnown = nil
+state.security.targetThreatLevel = 0
+state.security.huntPhase = "STAND_DOWN"
+state.security.searchOrderTime = 0
+
+for _, guard in ipairs(state.security.guards) do
+	if guard.actor == validA then
+		guard.role = "close_protection"
+	elseif guard.actor == validC then
+		guard.role = "outer_security"
+	elseif guard.actor == validD then
+		guard.role = "response_unit"
+	end
+end
+validA.enemyInSight = true
+validA.hunchX, validA.hunchY = 360, 160
+securityDirector.update(state, 1)
+assertEqual(state.security.huntPhase, "PRESSURE", "direct sighting starts pressure hunt")
+assertTrue(state.security.dronesTriggeredByContact, "confirmed hostile contact triggers drone doctrine")
+assertTrue((state.security.droneDeploymentRequested or 0) > 0, "contact queues physical drone deployment")
+assertTrue(validC.destX ~= nil and validD.destX ~= nil, "search guards receive physical sector orders")
+assertTrue(validC.destX ~= validD.destX or validC.destY ~= validD.destY, "search guards fan out into distinct sectors")
+assertTrue(validA.destX == nil, "close protection remains with target during search")
+validA.enemyInSight = false
+for _, npc in ipairs(world.npcs) do
+	npc.hunchTime = 999
+	npc.hunchX, npc.hunchY = nil, nil
+	npc.destX, npc.destY = nil, nil
+end
+state.security.knowledge = {}
+state.security.lastKnown = nil
+state.security.targetThreatLevel = 0
+state.security.huntPhase = "STAND_DOWN"
+state.security.searchOrderTime = 0
+
+local disguiseOption = playerActor._hitmanContractsOverhaulState.hcoDisguiseInteraction
+validA.dead = true
+assertTrue(disguiseOption.actionCheck(validA, player), "disguise interaction available on body")
+local acquiredFaction = validA.animVar
+disguiseOption.interact(validA, player)
+assertEqual(player.animVar, validA.animVar, "player inherits the contract faction disguise")
+assertTrue(player:hasKey("security-A"), "body keycard granted")
+assertEqual(player:getOfflimits(), npcAlertnessStates.STATES.IDLE, "keycard disguise grants access reduction")
+
+local selectedBeforeReload = state.targetID
+local objectiveCountBeforeReload = #objectiveHandler.objectives
+events:fire(game.EVENTS.RESET_STARTED)
+assertEqual(state.target, nil, "reset start clears actor references")
+assertEqual(player.animVar, "sean", "reset cleanup restores player visual")
+events:fire(game.EVENTS.RESET_FINISHED)
+assertEqual(state.targetID, selectedBeforeReload, "active contract rebinds same target")
+assertEqual(state.disguise.group, acquiredFaction, "active disguise restored from campaign persistence")
+assertEqual(player.animVar, acquiredFaction, "restored disguise is visible")
+assertEqual(#objectiveHandler.objectives, objectiveCountBeforeReload, "active reload does not duplicate objective")
+require("hco/social/disguise").update(state, 0.1)
+assertTrue(state.disguiseRisk < 1, "calm restored disguise publishes reduced semantic risk for networked sensors")
+
+validC.animVar = acquiredFaction
+validC:setDetection(player, 0)
+validC:increaseDetection(player, 1)
+assertTrue(validC:getDetection(player) < 1, "matching disguise delays visual detection")
+local normalPlayerState = player.state
+player.state = {id = "player_breaking_lock"}
+validC:setDetection(player, 0)
+validC:increaseDetection(player, 1)
+assertEqual(validC:getDetection(player), 1, "native lock-breaking state immediately defeats social cover")
+player.state = normalPlayerState
+namedStoryNPC.x = 1000
+namedStoryNPC.animVar = acquiredFaction
+validC:setSeenBody(validA, true)
+assertTrue(not state.disguise.compromised, "body discovery is local before radio completes")
+assertEqual(validC.radio.open, true, "body investigator starts native radio report")
+validC:setDetection(player, 0)
+validC:increaseDetection(player, 1)
+assertEqual(validC:getDetection(player), 1, "investigator recognizes locally compromised disguise")
+namedStoryNPC:setDetection(player, 0)
+namedStoryNPC:increaseDetection(player, 1)
+assertTrue(namedStoryNPC:getDetection(player) < 1, "distant uninformed guard still accepts disguise")
+
+for step = 1, 3 do
+	curTime = curTime + 1
+	for _, updateState in ipairs(gameStateService.states) do updateState:update(1) end
+end
+assertTrue(state.disguise.compromised, "completed radio call globally compromises disguise")
+assertEqual(validC.radio.open, false, "HCO closes its completed radio report")
+namedStoryNPC:setDetection(player, 0)
+namedStoryNPC:increaseDetection(player, 1)
+assertEqual(namedStoryNPC:getDetection(player), 1, "radio recipients reject compromised disguise")
+state.disguise.compromised = false
+state.compromisedDisguises[acquiredFaction] = nil
+assertTrue(require("hco/social/disguise").onSensorBodySeen(state, {id="drone-sensor"}, validA), "drone body scan recognizes the stolen uniform source")
+assertTrue(state.disguise.compromised and state.compromisedDisguises[acquiredFaction], "networked drone evidence globally compromises the stolen identity")
+
+state.target.alertness = npcAlertnessStates.STATES.ALERT
+for _, updateState in ipairs(gameStateService.states) do updateState:update(0.6) end
+assertTrue(state.targetAI.phase ~= "ROUTINE", "target enters threat routine")
+assertTrue(state.targetAI.safePoint, "secure destination selected")
+
+state.target.x, state.target.y = state.targetAI.safePoint.x, state.targetAI.safePoint.y
+for _, updateState in ipairs(gameStateService.states) do updateState:update(0.2) end
+assertEqual(state.targetAI.phase, "SHELTERED", "target physically reaches selected shelter")
+local breachedPoint = state.targetAI.safePoint
+local switchCount = state.targetAI.secureSwitches
+local camera = setmetatable({x = breachedPoint.x, y = breachedPoint.y}, {__index = cameraClass})
+function camera:getPos() return self.x, self.y end
+camera:disrupt()
+assertEqual(state.security.evidencePositions[#state.security.evidencePositions].source, "camera-disrupted", "camera disruption creates sensor evidence")
+for _, updateState in ipairs(gameStateService.states) do updateState:update(0.2) end
+assertTrue(state.targetAI.secureSwitches > switchCount, "compromised shelter triggers a new secure move")
+assertTrue(state.targetAI.safePoint.x ~= breachedPoint.x or state.targetAI.safePoint.y ~= breachedPoint.y, "target abandons breached shelter")
+
+player.x = -1000
+state.target.x = 2500
+local recoveryBefore = state.targetAI.recoveries
+for step = 1, 13 do
+	curTime = curTime + 1
+	for _, updateState in ipairs(gameStateService.states) do updateState:update(1) end
+end
+assertTrue(state.targetAI.recoveries > recoveryBefore, "blocked route triggers watchdog recovery within ten seconds")
+
+events:fire(actor.EVENTS.NEUTRALIZED, state.target)
+assertEqual(state.contract.status, "completed", "contract completed")
+assertEqual(state.contract.rewardPaid, true, "reward settlement persisted")
+assertEqual(state.targetStatus, "completed", "neutralization alone resolves objective")
+assertEqual(game.playthrough.money, state.contract.resolvedReward, "exactly one campaign reward paid")
+
+local paidReward = game.playthrough.money
+state.target.dead = true
+events:fire(actor.EVENTS.DIED, state.target, player)
+assertEqual(game.playthrough.money, paidReward, "death after neutralization cannot pay twice")
+
+events:fire(game.EVENTS.RESET_STARTED)
+events:fire(game.EVENTS.RESET_FINISHED)
+assertEqual(state.target, nil, "completed contract does not respawn after reload")
+assertEqual(#objectiveHandler.objectives, 1, "no duplicate objective inserted")
+
+world.mapID = "iv2_hideout"
+events:fire(game.EVENTS.RESET_STARTED)
+events:fire(game.EVENTS.RESET_FINISHED)
+assertEqual(state.target, nil, "unsupported hideout quietly skips contract")
+
+world.mapID = "empty-custom-map"
+world.npcs = {}
+events:fire(game.EVENTS.RESET_STARTED)
+events:fire(game.EVENTS.RESET_FINISHED)
+assertEqual(state.target, nil, "custom map without NPCs quietly skips contract")
+
+local function resetNPC(npc, x)
+	npc.dead = false
+	npc.unconscious = false
+	npc.patrol = createRoute("patrol-" .. npc.id)
+	npc.patrolIndex = 1
+	npc.state = nil
+	npc.alertness = npcAlertnessStates.STATES.IDLE
+	npc.enemyInSight = false
+	npc.hunchTime = 999
+	npc.x = x
+	npc.y = 0
+	npc._hcoDisguiseTaken = nil
+	if not npc.weapon then
+		npc.weapon = {id = "weapon-" .. npc.id, weaponType = 2}
+		function npc.weapon:getID() return self.id end
+		function npc.weapon:getType() return self.weaponType end
+	end
+end
+
+resetNPC(validA, 130)
+resetNPC(validB, 150)
+resetNPC(validC, 170)
+resetNPC(validD, 190)
+world.mapID = "objective-failure-map"
+world.npcs = {namedStoryNPC, stationaryNPC, validA, validB, validC, validD, objectiveCritical}
+local activeObjectives = objectiveHandler.objectives
+objectiveHandler.objectives = nil
+events:fire(game.EVENTS.RESET_STARTED)
+events:fire(game.EVENTS.RESET_FINISHED)
+assertEqual(state.target, nil, "objective attach failure rolls back target mutation")
+assertEqual(state.contract, nil, "objective attach failure clears partial runtime contract")
+assertEqual(validA._hcoEscort, nil, "objective attach failure rolls back escort role")
+assertEqual(validA.experience, 2, "objective attach failure restores guard experience")
+assertEqual(validA.health, 75, "objective attach failure restores guard health")
+assertEqual(validA.maxHealth, 75, "objective attach failure restores guard maximum health")
+assertEqual(validA:getState().id, "goon_idle", "objective attach failure restores guard state")
+assertEqual(validB:getPatrolRouteIndex(), 1, "objective attach failure restores target patrol position")
+objectiveHandler.objectives = activeObjectives
+
+resetNPC(validA, 130)
+resetNPC(validB, 150)
+resetNPC(validC, 170)
+resetNPC(validD, 190)
+world.mapID = "escape-map"
+world.npcs = {namedStoryNPC, stationaryNPC, validA, validB, validC, validD, objectiveCritical}
+events:fire(game.EVENTS.RESET_STARTED)
+events:fire(game.EVENTS.RESET_FINISHED)
+assertEqual(state.targetID, "guard-b", "escape scenario creates deterministic contract")
+
+validA.dead = true
+disguiseOption.interact(validA, player)
+validC.radio.disrupted = true
+validC.animVar = acquiredFaction
+validC:setSeenBody(validA, true)
+for step = 1, 9 do
+	curTime = curTime + 1
+	for _, updateState in ipairs(gameStateService.states) do updateState:update(1) end
+end
+assertTrue(not state.disguise.compromised, "disrupted radio prevents global disguise compromise")
+validC.radio.disrupted = false
+
+local moneyBeforeEscape = game.playthrough.money
+state.target.alertness = npcAlertnessStates.STATES.ALERT
+for _, updateState in ipairs(gameStateService.states) do updateState:update(0.6) end
+for _, escortData in ipairs(state.escorts) do
+	escortData.actor.dead = true
+end
+for _, updateState in ipairs(gameStateService.states) do updateState:update(0.2) end
+assertEqual(state.targetAI.phase, "EVACUATING", "sustained threat starts physical evacuation")
+assertTrue(state.targetAI.safePoint, "evacuation owns a physical destination")
+state.target.x, state.target.y = state.targetAI.safePoint.x, state.targetAI.safePoint.y
+for _, updateState in ipairs(gameStateService.states) do updateState:update(0.2) end
+assertEqual(state.contract.status, "failed_escaped", "reaching evacuation fails optional contract")
+assertEqual(game.playthrough.money, moneyBeforeEscape, "escaped target grants no reward")
+
+events:fire(game.EVENTS.RESET_STARTED)
+events:fire(game.EVENTS.RESET_FINISHED)
+assertEqual(state.target, nil, "escaped contract remains terminal after reload")
+
+local function runDirectDeathScenario(mapID, attacker, label)
+	resetNPC(validA, 130)
+	resetNPC(validB, 150)
+	resetNPC(validC, 170)
+	resetNPC(validD, 190)
+	world.mapID = mapID
+	world.npcs = {namedStoryNPC, stationaryNPC, validA, validB, validC, validD, objectiveCritical}
+	events:fire(game.EVENTS.RESET_STARTED)
+	events:fire(game.EVENTS.RESET_FINISHED)
+	assertTrue(state.target, label .. " starts a contract")
+	local moneyBefore = game.playthrough.money
+	state.target.dead = true
+	events:fire(actor.EVENTS.DIED, state.target, attacker)
+	assertEqual(state.contract.status, "completed", label .. " completes directly from death")
+	assertTrue(game.playthrough.money > moneyBefore, label .. " pays campaign reward")
+	local paid = game.playthrough.money
+	events:fire(actor.EVENTS.DIED, state.target, attacker)
+	assertEqual(game.playthrough.money, paid, label .. " cannot pay twice")
+end
+
+runDirectDeathScenario("environment-kill-map", nil, "environmental kill")
+runDirectDeathScenario("npc-kill-map", validC, "NPC kill")
+
+resetNPC(validA, 130)
+resetNPC(validB, 150)
+resetNPC(validC, 170)
+resetNPC(validD, 190)
+world.mapID = "invalid-map"
+events:fire(game.EVENTS.RESET_STARTED)
+events:fire(game.EVENTS.RESET_FINISHED)
+local invalidTarget = state.target
+assertTrue(invalidTarget, "invalid-reference scenario starts active")
+events:fire(game.EVENTS.RESET_STARTED)
+local remaining = {}
+for _, npc in ipairs(world.npcs) do
+	if npc ~= invalidTarget then table.insert(remaining, npc) end
+end
+world.npcs = remaining
+events:fire(game.EVENTS.RESET_FINISHED)
+assertEqual(state.target, nil, "missing saved target is never rerolled")
+assertEqual(state.contract.status, "failed_invalid", "missing saved target fails closed")
+
+-- Large-map migration: two targets, isolated guards, objective slots and v3 bundle.
+local hcoConfig = require("hco/config")
+hcoConfig.TWO_CONTRACT_ACTOR_THRESHOLD = 12
+hcoConfig.THREE_CONTRACT_ACTOR_THRESHOLD = 99
+world.mapID = "multi-contract-map"
+world.npcs = {}
+for index = 1, 20 do
+	table.insert(world.npcs, createNPC({id = "multi-" .. tostring(index), patrol = true, experience = index % 3 + 1, radio = index % 4 == 0, x = 100 + index * 55, y = 180 + (index % 4) * 45}))
+end
+events:fire(game.EVENTS.RESET_STARTED)
+events:fire(game.EVENTS.RESET_FINISHED)
+assertEqual(#state.contracts, 2, "large map creates two contract contexts")
+assertTrue(state.contracts[1].target ~= state.contracts[2].target, "contract targets remain unique")
+local assigned = {}
+for _, context in ipairs(state.contracts) do
+	assertTrue(#context.escorts >= 5, "every large-map contract receives a heavy protection detail")
+	local responseLookup = {}
+	for _, data in ipairs(context.escorts) do
+		assertTrue(not assigned[data.actor], "guard is never shared between contract details")
+		assigned[data.actor] = true
+		if data.role == "response_unit" then
+			responseLookup[data.actor] = true
+			assertTrue(data.actor.following == nil, "response unit remains autonomous instead of entering a follower state")
+		end
+	end
+	for _, leader in ipairs(context.escorts) do
+		assertTrue(not responseLookup[leader.actor:getFollower()], "no close-protection leader retains a response unit as native follower")
+	end
+	assertTrue(not responseLookup[context.target:getFollower()], "protected target never retains a response unit as native follower")
+end
+local multiRecords = require("hco/contracts/persistence").loadAll("multi-contract-map")
+assertEqual(#multiRecords, 2, "persistence v3 stores both contracts")
+
+local suppressedWeapon = {owner=game.playerActor, getSuppressed=function() return true end}
+events:fire(weapons.EVENTS.FIRED, suppressedWeapon)
+events:fire(weapons.EVENTS.FIRED, suppressedWeapon)
+events:fire(weapons.EVENTS.FIRED, suppressedWeapon)
+assertTrue(not state.security.dronesTriggeredByGunfire, "suppressed player fire preserves passive patrol")
+local loudWeapon = {owner=game.playerActor, getSuppressed=function() return false end}
+events:fire(weapons.EVENTS.FIRED, loudWeapon)
+events:fire(weapons.EVENTS.FIRED, loudWeapon)
+events:fire(weapons.EVENTS.FIRED, loudWeapon)
+assertTrue(state.security.dronesTriggeredByGunfire, "loud player fire triggers drone escalation")
+assertEqual(state.security.droneMode, "AGGRESSIVE", "loud player fire switches drones to aggressive search")
+
+require("hco/bootstrap").start()
+assertEqual(#events.directReceivers[game.EVENTS.MAP_LOADED], 1, "duplicate lifecycle listener prevented")
+
+events:fire(game.EVENTS.GAME_UNLOADED)
+assertEqual(state.target, nil, "target released on unload")
+
+local balance = require("hco/balance")
+game.difficulty = {id="easy_real"}
+local easyTuning = balance.snapshot({threatRating=3})
+assertEqual(easyTuning.threatLabel, "II", "easy difficulty lowers the native contract threat rating")
+assertTrue(easyTuning.detectionTimeScale > 1 and easyTuning.droneCountScale < 1, "easy difficulty slows acquisition and reduces wings")
+game.difficulty = {id="true"}
+local trueTuning = balance.snapshot({threatRating=3})
+assertEqual(trueTuning.threatLabel, "IV", "True difficulty raises the native contract threat rating")
+assertTrue(trueTuning.detectionTimeScale < 1 and trueTuning.rewardScale > 1, "True difficulty increases pressure and reward")
+game.difficulty = {id="custom",enemyVisRangeMult=1.4,playerDamageMult=1.5}
+local customTuning = balance.snapshot({threatRating=3})
+assertTrue(customTuning.sensorRangeScale==1.4 and customTuning.rewardScale>1, "custom difficulty fields produce bounded adaptive tuning")
+game.difficulty = nil
+
+print("HCO_RUNTIME_SMOKE_PASS")
+love = love or {}
+love.event = love.event or {quit=function() end}
+function love.update() love.event.quit(0) end

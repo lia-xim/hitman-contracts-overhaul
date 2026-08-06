@@ -1,8 +1,8 @@
-# Completion Audit — 0.12.4-rc28
+# Completion Audit — 0.13.0-rc29
 
 **Audit date:** 2026-08-06  
-**Goal status:** active; the native drone-render breakthrough is proven, but the full specification and final live acceptance are not complete  
-**Authority inspected:** RC28 source, `SPECIFICATION.md`, current smoke harnesses, decompiled `1.4.12HF3` follower/camera/projectile/damage/outline/physics/path-grid interfaces and user-supplied live screenshots/errors
+**Goal status:** production-candidate code complete for the current feature surface; final live acceptance is not complete
+**Authority inspected:** RC29 source, `SPECIFICATION.md`, current smoke harnesses, decompiled `1.4.12HF3` follower/camera/projectile/damage/outline/physics/path-grid interfaces and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -21,7 +21,9 @@
 | Drone detection relay | Pass | Prior cone did not consistently prove contact | Live test required |
 | Drone tracking/gimbal | RC22 pass in harness | Earlier cone swept away from player | Live fix confirmation required |
 | Armed drone attacks | Native bullet and charged-laser harness pass | Not yet observed | Live test required |
-| Drone EMP/destruction | RC28 edge-hit, fixture-repair and crash-lifecycle pass in harness | Destruction works; sporadic Heavy misses and missing crash polish reported before RC28 | RC28 live pass required |
+| Drone EMP/destruction | RC29 retains RC28 edge-hit, fixture-repair and crash lifecycle with spatial polish | Destruction works; last reported Heavy miss/crash-polish issues predate RC28 | RC29 live pass required |
+| Difficulty/fleet balance | Native preset/custom assertions and roster/global caps pass | Not yet compared live | Live comparison required |
+| Drone semantic sensing | Disguise-risk, body-evidence and source-compromise assertions pass | Not yet observed | Live test required |
 | Vanilla mission/coexistence | No mock can prove fully | Normal shooting issue was mission-script behavior, not HCO | Broader live pass required |
 
 ## Requirement verdict
@@ -31,12 +33,12 @@ The core optional-contract product exists and works far enough to be played. HCO
 1. Validate and tune the mobile target's retreat/escape behavior and protection-detail combat pressure on several real maps.
 2. Guarantee stronger mission-appropriate weapons and reliable active response for the protection tiers.
 3. Complete live acceptance for disguise, credentials, identity checks, body evidence and radio compromise.
-4. Upgrade drone perception from geometric player detection to semantic detection of bodies, exposed weapons and unauthorized identities.
-5. Add validated aerial corridors/obstruction recovery, a meaningful operator/radio dependency and sabotage counterplay.
-6. Build thermal surveillance and the remaining systemic contract types.
-7. Live-test and tune the implemented Pistol/SMG/Laser attacks after native projectile and damage API verification. Every attack must remain telegraphed and counterable.
-8. Complete map profiles, localization, audio callouts and the full reload/compatibility matrix.
+4. Live-test the implemented semantic drone perception for calm/risky identities, bodies and source-uniform compromise.
+5. Live-approve the implemented floor-grid/footprint obstruction recovery; meaningful operator/radio dependency remains a future expansion.
+6. Treat thermal surveillance and additional systemic contract types as explicit post-1.0 expansions unless promoted into the release scope.
+7. Live-test and tune the implemented Pistol/SMG/Laser attacks. Every attack must remain telegraphed and counterable.
+8. Complete the live map, reload and compatibility matrix; localization/audio callouts remain post-candidate content work.
 
-## RC28 acceptance
+## RC29 acceptance
 
-RC28 is approved for local testing, not final Workshop release. Automated proof covers visible Heavy rotor-edge hits, recovery after a deliberately destroyed native fixture, light/heavy crash motion, landing presentation, persistent wreck state and cleanup. The next pass must prove those properties in a moving live airframe and approve the effect's scale/timing. It must also prove the former `getWatchBack` crash cannot recur when response units enter combat/search, then validate search-ring exploration, flank relocations, idle recovery and real-map building boundaries. The remaining weapon/audio/EMP/counterplay behaviors must run without a traceback.
+RC29 is approved as a production candidate for local/Workshop testing, not yet as final `1.0`. Automated proof now covers native-difficulty tuning, bounded global/composition fleets, semantic identity/body sensing, family-specific effects and the complete RC28 hit/crash lifecycle. The next pass must compare pressure on at least two difficulties, prove calm/risky disguise timing and source-body compromise, then exercise every drone family, multi-contract cap, response-unit combat/search and real-map boundaries without traceback. The exact promotion matrix is maintained in `PRODUCTION_READINESS.md`.

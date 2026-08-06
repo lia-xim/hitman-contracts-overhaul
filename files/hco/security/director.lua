@@ -1,4 +1,5 @@
 local config = require("hco/config")
+local balance = require("hco/balance")
 local persistence = require("hco/contracts/persistence")
 local drones = require("hco/security/drones")
 local feedback = require("hco/feedback")
@@ -246,8 +247,27 @@ function director.attach(state, report)
 		droneCooldown = 0,
 		droneMode = "PATROL"
 	}
+	security.reportDroneBodyEvidence = function(observer, body)
+		director.notifyBodyEvidence(state, observer, body)
+		local root = state.root or state
+		if type(root.hcoDroneBodySeen) == "function" then
+			local ok, err = pcall(root.hcoDroneBodySeen, observer, body)
+			if not ok then util.log(config, "drone disguise-evidence hook failed: " .. tostring(err)) end
+		end
+	end
 	local profile = profiles.resolve(state.contract and state.contract.seed or 0, state.contract and state.contract.archetype)
-	security.droneDoctrine = profile.drone or {name="Search", count=config.DRONE_DEPLOY_COUNT, speed=1, radius=1, detect=1, armor=1}
+	local tuning = state.balance or balance.snapshot(profile)
+	state.balance = tuning
+	local sourceDoctrine = profile.drone or {name="Search", count=config.DRONE_DEPLOY_COUNT, speed=1, radius=1, detect=1, armor=1}
+	security.balance = tuning
+	security.droneDoctrine = {
+		name = sourceDoctrine.name,
+		count = balance.scaledCount(sourceDoctrine.count or config.DRONE_DEPLOY_COUNT, tuning.droneCountScale, 1),
+		speed = sourceDoctrine.speed or 1,
+		radius = sourceDoctrine.radius or 1,
+		detect = sourceDoctrine.detect or 1,
+		armor = sourceDoctrine.armor or 1
+	}
 	local escortLookup = {}
 
 	for index, escortData in ipairs(state.escorts or {}) do
