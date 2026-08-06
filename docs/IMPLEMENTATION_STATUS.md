@@ -57,7 +57,7 @@ The Scout deliberately does not shoot. Six armed variants join escalated wings: 
 3. Stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
 5. Disrupt a drone: its body should flicker and it must stop acquiring/relaying until disruption ends.
-6. Shoot through the visible center of a moving light drone and then a heavy drone: the light model must fall on the first registered hit. Heavy hits must tint the complete airframe, emit an expanding spark ring and briefly show two/three pips; ordinary fire must kill within two/three hits and Model-700-class fire may one-shot it.
+6. Shoot through the visible center of a moving light drone and then a heavy drone: the light model must fall on the first registered hit. Heavy hits must tint the complete airframe, emit an expanding spark ring and briefly show two/three pips; every heavy must fall on hit two or three, including against Model-700-class fire.
 7. Trigger an armed wing: verify a Pistol/SMG native projectile and a Laser that holds its aim line for 0.9/1.4 seconds before firing.
 8. Circle a tracking drone: the gimbal should follow first, then the body should yaw; the drone must hold a standoff slot instead of flying through or endlessly orbiting the player.
 9. Observe an aggressive wing for at least 20 seconds: no drone should remain unexpectedly still for more than roughly half a second, and blocked drones should choose a new heading.

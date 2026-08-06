@@ -4,9 +4,9 @@
 
 - Live RC26 evidence confirms the player-projectile counterplay now works for small drones, but heavy drones appeared immune and registered no readable impact.
 - Roster coverage now enforces one armor point for every light model and a hard two/three-point range for every heavy model, including doctrine scaling.
-- Runtime coverage proves an ordinary projectile removes one heavy armor point while a Model-700-class `65 damage / 11 penetration` projectile removes all three.
+- Runtime coverage proves an ordinary projectile removes one heavy armor point while a Model-700-class `65 damage / 11 penetration` projectile removes two without bypassing the required first surviving impact.
 - Airframe coverage proves surviving hits propagate a 0.42-second impact state and render nine sparks plus two/three armor pips instead of the former five tiny pixels.
-- Live boundary: RC27 still requires confirmation that the user's high-caliber weapon produces the expected obvious flash/ricochet and that all visible heavy models fall within the two/three-hit ceiling.
+- Live boundary: RC27 still requires confirmation that the user's high-caliber weapon produces the expected obvious flash/ricochet and that all visible heavy models fall within the strict two/three-hit window.
 
 ## RC26 live blocker correction
 
@@ -149,6 +149,6 @@ Expected marker: `HCO_EVIDENCE_COLLECTOR_PASS`
 - Post-test evidence collector: **PASS** — `HCO_EVIDENCE_COLLECTOR_PASS` with 0 hash mismatches.
 - Source/install relative-file parity: **PASS** — 40 payload files including 31 Lua modules and nine runtime media files.
 - Source/install SHA-256 parity: **PASS** — every installed RC27 payload file matches the repository source; zero extras.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.12.3-rc27.zip` contains the required nested `files/` root and has SHA-256 `5FB0BE99F34B81E960F25A7D37856D275637E8241DE9E6D31500875C7123BE80`.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.12.3-rc27.zip` contains the required nested `files/` root and has SHA-256 `259DC23E84876139E5E5884A7B375618E2482D85C25322AFC6CF452ED3585881`.
 
 The final markers, installed-file parity and package hash above were collected from RC27 before handoff. Automated results prove internal behavior and failure handling only; they do not replace the final live-mission pass.

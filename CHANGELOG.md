@@ -3,7 +3,7 @@
 ## 0.12.3-rc27 — 2026-08-06
 
 - Rebalanced drones as fragile tactical threats: every Scout/light model is a strict one-hit target, Heavy Pistol has two armor points, and Heavy SMG/Laser have three. Doctrine scaling can never push a heavy model beyond three hits.
-- Added weapon-aware armor damage using the native bullet damage and armor-penetration APIs. Ordinary rounds remove one point, strong rifle/hand-cannon rounds remove two, and Model-700-class high-caliber rounds can remove all three.
+- Added weapon-aware armor damage using the native bullet damage and armor-penetration APIs. Ordinary rounds remove one point and strong rifle/hand-cannon rounds remove two, but every heavy model always survives its first hit: large drones consistently take two or three shots.
 - Replaced the nearly invisible five-pixel hit flash with a 0.42-second tinted airframe flash, expanding impact ring, nine-pixel spark burst and a temporary two/three-pip armor readout.
 - Increased spatial ricochet feedback and let the wall-safe projectile fallback process every intersecting pellet/projectile in the frame until the drone breaks.
 - Added regression coverage for one-hit light armor, bounded heavy armor, normal-versus-high-caliber damage, impact state propagation and visible spark/pip rendering.

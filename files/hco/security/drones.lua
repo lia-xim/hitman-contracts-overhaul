@@ -81,8 +81,8 @@ local function getArmorDamage(bullet)
 	-- The Model 700, high-caliber rifles and similarly penetrating weapons must
 	-- feel materially stronger than a pistol. Heavy describes the drone's weapon
 	-- package, not a large health pool: ordinary rounds take 2–3 hits, while a
-	-- powerful rifle can tear through the complete airframe in one clean hit.
-	if damage >= 55 or penetration >= 9 then return 3, damage, penetration end
+	-- powerful rifle compresses a three-hit airframe to two clean hits.
+	if damage >= 55 or penetration >= 9 then return 2, damage, penetration end
 	if damage >= 35 or penetration >= 6 then return 2, damage, penetration end
 	return 1, damage, penetration
 end
@@ -397,7 +397,13 @@ function drones.initialize()
 	function drone:onHitBullet(bullet, hitData)
 		if self.broken then return end
 		local armorDamage, bulletDamage, penetration = getArmorDamage(bullet)
-		self.hcoArmor = math.max(0, (self.hcoArmor or 1) - armorDamage)
+		local currentArmor = self.hcoArmor or 1
+		local maximumArmor = self.hcoArmorMax or currentArmor
+		-- A heavy drone must always register at least one surviving impact. This
+		-- keeps the requested two-hit minimum even for high-caliber rifles while
+		-- still allowing those weapons to turn a three-hit heavy into two hits.
+		if maximumArmor > 1 and currentArmor == maximumArmor then armorDamage = math.min(armorDamage, currentArmor - 1) end
+		self.hcoArmor = math.max(0, currentArmor - armorDamage)
 		self.hcoHitFlash = 0.42
 		self.hcoImpactPulse = 0.42
 		self.hcoArmorDisplay = 0.95
