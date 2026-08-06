@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.2-rc33 — 2026-08-07
+
+- Fixed destroyed drones remaining permanently on the first wreck frame. Once the native sensor carrier leaves the dynamic list, its airframe now advances from the persistent per-contract update instead of waiting for another static decor draw.
+- Added an explicit crash clock, runtime batch-frame updates and bounded quadtree reinsertion for tumble, sparks and smoke. The fourth asymmetric wreck frame remains cached after the finite effect window ends.
+- Added a regression that advances damage frame one to frame two and then the final wreck without calling the decor draw callback between ticks, matching the live-reported failure.
+
 ## 0.13.2-rc32 — 2026-08-07
 
 - Moved destroyed airframes from an unreliable direct quadtree texture draw into a second registered native sprite batch dedicated to the wreck atlas. The intact slot is still released atomically, while the tumble stages and final wreck retain their own durable renderer slot until context cleanup.

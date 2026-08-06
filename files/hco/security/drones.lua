@@ -750,7 +750,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC32 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batches " .. (stats.batchReady and stats.wreckBatchReady and "READY" or "MISSING") .. ", live/wreck sprites " .. (stats.spriteReady and stats.wreckSpriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC33 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batches " .. (stats.batchReady and stats.wreckBatchReady and "READY" or "MISSING") .. ", live/wreck sprites " .. (stats.spriteReady and stats.wreckSpriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)
@@ -768,6 +768,9 @@ function drones.request(context, count, reason, quiet)
 end
 
 function drones.update(context, dt)
+	-- Wreck animation ownership outlives the destroyed sensor carrier. Tick it
+	-- before deployment early-returns so a quiet contract still reaches frame 4.
+	airframes.update(context, dt)
 	local security = context.security
 	if not security then return end
 	updateRenderDiagnostic(security, dt)

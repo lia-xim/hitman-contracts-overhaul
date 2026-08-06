@@ -342,7 +342,8 @@ function airframes.initialize()
 	end
 
 	local function crashPose(self, time)
-		local age = math.max(0, time - (self.hcoCrashAt or time))
+		local age = self.hcoCrashElapsed
+		if age == nil then age = math.max(0, time - (self.hcoCrashAt or time)) end
 		local duration = self.hcoCrashDuration or 0.85
 		local progress = util.clamp(age / duration, 0, 1)
 		local eased = 1 - (1 - progress) * (1 - progress)
@@ -352,6 +353,17 @@ function airframes.initialize()
 		local renderAngle = (self.hcoCrashStartAngle or 0) + (self.hcoCrashSpin or math.pi * 2) * eased + math.sin(progress * math.pi * 7) * (1 - progress) * 0.16
 		local scale = (self.hcoRenderScale or 0.34) * (1 - eased * 0.12)
 		return drawX, drawY, renderAngle, scale, age, progress
+	end
+
+	local function updateWreckFrame(self, drawX, drawY, renderAngle, scale, progress)
+		releaseSlot(self)
+		if not ensureWreckSlot(self) or not wreckSprite or not wreckQuads then return false end
+		local typeQuads = wreckQuads[self.hcoTypeIndex or 1] or wreckQuads[1]
+		local frame = progress < 1 and math.min(FRAME_COUNT - 1, math.floor(progress * (FRAME_COUNT - 1)) + 1) or FRAME_COUNT
+		wreckBatch:setColor(255, 255, 255, 255)
+		wreckBatch:updateSprite(self.hcoWreckSlot, typeQuads[frame], drawX, drawY, renderAngle, scale, scale, 48, 48)
+		self.hcoCrashFrame = frame
+		return true
 	end
 
 	local function drawCrashEffects(self, drawX, drawY, age, progress)
@@ -411,9 +423,33 @@ function airframes.initialize()
 		graphics.setColor(255, 255, 255, 255)
 	end
 
+	function visual:updateCrash(dt)
+		if not self.hcoCrashAt then return false end
+		local step = math.max(0, tonumber(dt) or 0)
+		local duration = self.hcoCrashDuration or 0.85
+		local previousElapsed = self.hcoCrashElapsed or 0
+		self.hcoCrashElapsed = math.min(duration + 4.1, previousElapsed + step)
+		local changed = self.hcoCrashElapsed ~= previousElapsed
+		local drawX, drawY, renderAngle, scale, age, progress = crashPose(self, (self.hcoCrashAt or 0) + self.hcoCrashElapsed)
+		self.hcoCrashDrawX, self.hcoCrashDrawY = drawX, drawY
+		self.hcoCrashRenderAngle, self.hcoCrashRenderScale = renderAngle, scale
+		self.hcoCrashAge, self.hcoCrashProgress = age, progress
+		if self._visible and (changed or not self.hcoCrashFrame or not self.hcoWreckSlot) then updateWreckFrame(self, drawX, drawY, renderAngle, scale, progress) end
+		-- Decor entities are otherwise treated as static after their carrier leaves
+		-- the dynamic list. Reinsert during the finite tumble/smoke window so the
+		-- native quadtree requests fresh effect draws instead of caching frame one.
+		if changed and self._placed and self.renderTree and age < duration + 4.1 then self.renderTree:insert(self) end
+		return true
+	end
+
 	function visual:enterVisibilityRange()
 		self._visible = true
-		if self.hcoCrashAt then ensureWreckSlot(self) else ensureSlot(self) end
+		if self.hcoCrashAt then
+			local drawX, drawY, renderAngle, scale, _, progress = crashPose(self, curTime or 0)
+			updateWreckFrame(self, drawX, drawY, renderAngle, scale, progress)
+		else
+			ensureSlot(self)
+		end
 	end
 
 	function visual:leaveVisibilityRange()
@@ -437,7 +473,13 @@ function airframes.initialize()
 		end
 		local crashAge, crashProgress
 		if self.hcoCrashAt then
-			drawX, drawY, renderAngle, scale, crashAge, crashProgress = crashPose(self, time)
+			drawX = self.hcoCrashDrawX
+			drawY = self.hcoCrashDrawY
+			renderAngle = self.hcoCrashRenderAngle
+			scale = self.hcoCrashRenderScale
+			crashAge = self.hcoCrashAge
+			crashProgress = self.hcoCrashProgress
+			if not drawX or crashProgress == nil then drawX, drawY, renderAngle, scale, crashAge, crashProgress = crashPose(self, time) end
 			drawCrashEffects(self, drawX, drawY, crashAge, crashProgress)
 		else
 			drawFlightEffects(self, drawX, drawY, renderAngle)
@@ -446,14 +488,7 @@ function airframes.initialize()
 			-- The engine renders durable world sprites through registered batches.
 			-- Keeping wrecks in their own batch prevents the intact frame from being
 			-- cached while ensuring the crash and landed shell survive every draw pass.
-			releaseSlot(self)
-			if ensureWreckSlot(self) and wreckSprite and wreckQuads then
-				local typeQuads = wreckQuads[self.hcoTypeIndex or 1] or wreckQuads[1]
-				local frame = crashProgress < 1 and math.min(FRAME_COUNT - 1, math.floor(crashProgress * (FRAME_COUNT - 1)) + 1) or FRAME_COUNT
-				wreckBatch:setColor(255, 255, 255, 255)
-				wreckBatch:updateSprite(self.hcoWreckSlot, typeQuads[frame], drawX, drawY, renderAngle, scale, scale, 48, 48)
-				return
-			end
+			if updateWreckFrame(self, drawX, drawY, renderAngle, scale, crashProgress) then return end
 		end
 		releaseWreckSlot(self)
 		if ensureSlot(self) and sprite and quads then
@@ -565,6 +600,7 @@ function airframes.crash(shell, owner, fallbackX, fallbackY)
 	local playableX, playableY = flight.snapToPlayable(endX, endY, startX, startY)
 	if tonumber(playableX) and tonumber(playableY) then endX, endY = playableX, playableY end
 	shell.hcoCrashAt = curTime or 0
+	shell.hcoCrashElapsed = 0
 	shell.hcoCrashDuration = shell.hcoHeavy and 0.95 or 0.78
 	shell.hcoCrashStartX, shell.hcoCrashStartY = startX, startY
 	shell.hcoCrashEndX, shell.hcoCrashEndY = endX, endY
@@ -578,8 +614,17 @@ function airframes.crash(shell, owner, fallbackX, fallbackY)
 	-- can leave a one-frame intact ghost or, on some builds, lose the shell when
 	-- its only visible slot is released.
 	releaseSlot(shell)
-	if shell._visible then ensureWreckSlot(shell) end
+	if type(shell.updateCrash) == "function" then shell:updateCrash(0) elseif shell._visible then ensureWreckSlot(shell) end
 	return endX, endY
+end
+
+function airframes.update(context, dt)
+	for _, shell in ipairs(live) do
+		if shell and shell.hcoContext == context and shell.hcoCrashAt and shell.isValid and shell:isValid() and type(shell.updateCrash) == "function" then
+			local ok, err = pcall(shell.updateCrash, shell, dt)
+			if not ok then util.log(config, "wreck animation update failed: " .. tostring(err)) end
+		end
+	end
 end
 
 function airframes.drawOutline(shell)

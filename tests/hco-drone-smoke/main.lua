@@ -98,6 +98,7 @@ package.preload["hco/security/drone_airframe"]=function()
 	end
 	function module.sync(shell,owner) if shell and shell.valid then local offset=owner.hcoCenterOffset or 13 shell.x,shell.y=owner.x+offset,owner.y+offset end end
 	function module.crash(shell,owner,x,y) if shell and shell.valid then shell.crashed=true return x+10,y+10 end return x,y end
+	function module.update() end
 	function module.drawOutline(shell) if shell and shell.valid then outlineDraws=outlineDraws+1 return true end return false end
 	function module.remove(shell) if shell then shell.valid=false end end
 	function module.clearContext(context) for _,shell in ipairs(shells) do if shell.owner and shell.owner.hcoContext==context then shell.valid=false end end end

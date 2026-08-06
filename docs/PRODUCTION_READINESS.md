@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.13.2-rc32`
+**Candidate:** `0.13.2-rc33`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 

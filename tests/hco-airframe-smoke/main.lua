@@ -146,6 +146,9 @@ local crashStats=airframes.diagnostics()
 assertTrue(crashStats.airframes==0 and crashStats.wrecks==1,"crashing shell leaves the active roster and enters wreck lifecycle")
 assertTrue(crashStats.wreckBatchReady,"crashing shell immediately acquires the dedicated native wreck batch")
 curTime=2.4
+local updatesBeforeCrashTick=batchUpdates
+airframes.update(owner.hcoContext,0.4)
+assertTrue(batchUpdates>updatesBeforeCrashTick and lastWreckUpdate.quad.x==96,"runtime tick advances a static wreck from damage frame one to frame two without relying on another decor draw")
 shell:draw()
 assertTrue(lastWreckUpdate~=nil,"destroyed airframe updates the dedicated native wreck batch")
 assertTrue(lastWreckUpdate.x~=crashStartX or lastWreckUpdate.y~=crashStartY,"mid-crash wreck sprite moves away from its flight position")
@@ -154,6 +157,7 @@ assertTrue(shell.hcoSlot==nil,"destroyed airframe releases the cached intact spr
 assertTrue(shell.hcoWreckSlot~=nil,"destroyed airframe retains a visible native wreck slot")
 assertTrue(priorityRenderer.activeRenderMap[spriteBatchController.containers.hco_drone_wreck_airframes]~=nil,"wreck batch remains registered in the priority renderer")
 curTime=3.2
+airframes.update(owner.hcoContext,0.8)
 shell:draw()
 assertTrue(lastWreckUpdate.quad.x==288,"landed drone persists as the unmistakable final wreck frame")
 assertTrue(not airframes.drawOutline(shell),"landed wreck never keeps an aim outline")

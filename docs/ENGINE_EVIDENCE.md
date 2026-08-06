@@ -181,6 +181,10 @@ Sources: `engine/spritebatchcontroller.lua`, `game/bullet.lua`, `game/weapon.lua
 - Every bullet records its muzzle through `setShootPos(x, y)` before that update. RC32 uses this native origin for the first sweep, then stores a previous point per bullet and drone.
 - Bullets come from `objectBuffer:retrieve()` and return through `store()`. The native shot number/muzzle identity resets HCO's consumed-hit and sweep tables when a pooled bullet object begins another player shot.
 
+## RC33 decor versus dynamic update ownership
+
+The live RC32 screenshot proved the wreck batch was durable but froze on its first frame. This separates persistence from animation ownership: `security_camera:setBroken(true)` removes the destroyed carrier through `game.removeDynamicObject(self)`, while the independent airframe remains in the decor quadtree. The moving carrier previously called `airframes.sync()` every dynamic update; after destruction that source of reinsertion and frame refresh no longer exists. RC33 advances crash time and batch transforms from the already persistent HCO contract update before deployment early-returns, while limiting decor reinsertion to the finite effects window.
+
 ## Known real-engine validation boundary
 
 The interfaces above are source-verified and exercised by mocks with their important return semantics. Only the final in-game pass can prove cross-system timing, map-specific path quality, rendered objective behavior, and AI-state interactions in a live mission.
