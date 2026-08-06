@@ -60,7 +60,7 @@ local function notifyConfirmedSighting(self, player)
 	context.security.huntPhase = "PRESSURE"
 	context.security.droneMode = "AGGRESSIVE"
 	for _, guard in ipairs(context.security.guards or {}) do
-		if util.isAlive(guard.actor) then
+		if guard.role ~= "close_protection" and util.isAlive(guard.actor) then
 			context.security.knowledge[util.getID(guard.actor)] = {x=x,y=y,confidence=1,source="search-drone",time=curTime or 0,actor=guard.actor}
 			util.call(guard.actor, "setSightPos", x, y, true)
 			util.call(guard.actor, "setSightTime", 0)
@@ -82,7 +82,10 @@ local function notifyConfirmedSighting(self, player)
 end
 
 function drones.initialize()
-	if registered or not objects or type(objects.registerNew) ~= "function" or not objects.getClassData or not objects.getClassData("security_camera") then return false end
+	if registered then return true end
+	if not objects or type(objects.create) ~= "function" or not objects.getClassData then return false end
+	local nativeCameraClass = objects.getClassData("security_camera")
+	if not nativeCameraClass then return false end
 	local drone = {
 		class = CLASS_ID,
 		QUADLIST = {"Camera_1"},
@@ -111,7 +114,11 @@ function drones.initialize()
 		end
 	end
 
-	function drone:getDrawColor() return 255, 255, 255, 0 end
+	function drone:getDrawColor()
+		-- Keep the native camera body visible as a guaranteed in-engine marker.
+		-- The animated flight sheet is layered over it when available.
+		return 255, 255, 255, 255
+	end
 
 	function drone:postDraw()
 		if self.broken or not sprite or not quads then return end
@@ -157,7 +164,9 @@ function drones.initialize()
 
 	function drone:breakCam(breaker, quiet)
 		if self.broken then return end
-		drone.baseClass.breakCam(self, breaker, quiet)
+		-- Native security cameras report to a booth. Runtime drones deliberately
+		-- have no booth, so calling the native breakCam would index nil.
+		if type(self.setBroken) == "function" then pcall(self.setBroken, self, true) else self.broken = true end
 		if self.hcoRotorSound then
 			if type(self.hcoRotorSound.stop) == "function" then audio.stop(self.hcoRotorSound) elseif sound and sound.manager then pcall(sound.manager.stopSound, sound.manager, self.hcoRotorSound) end
 			self.hcoRotorSound = nil
@@ -178,7 +187,7 @@ function drones.initialize()
 		return drone.baseClass.remove(self)
 	end
 
-	objects.registerNew(drone, "security_camera")
+	drone.baseClass = nativeCameraClass
 	droneClass = drone
 	registered = true
 	loadSprite()
@@ -188,21 +197,16 @@ end
 local function spawn(context, index)
 	local target = context.target
 	local x, y = util.getPos(target)
-	if not x then return nil end
+	if not x then return nil, "target-position-unavailable" end
 	if not registered then drones.initialize() end
-	local ok, instance = pcall(objects.create, CLASS_ID)
-	local usedFallback = false
-	local customError = not ok and tostring(instance) or (not instance and "custom class returned nil" or nil)
-	if not ok or not instance then
-		ok, instance = pcall(objects.create, "security_camera")
-		usedFallback = true
-	end
-	if not ok or not instance then return nil, "create-failed custom=" .. tostring(customError) .. " fallback=" .. tostring(instance) end
-	if usedFallback and droneClass then
-		-- Some game builds do not accept a class registered after the native
-		-- object registry has finalized. A vanilla camera is still a fully native
-		-- physical/light object, so decorate that instance with the HCO movement,
-		-- rendering, damage, and cleanup methods instead of losing the drone.
+	if not droneClass and not drones.initialize() then return nil, "native-camera-class-unavailable" end
+	local ok, instance = pcall(objects.create, "security_camera")
+	local usedFallback = true
+	if not ok or not instance then return nil, "native-camera-create-failed: " .. tostring(instance) end
+	if droneClass then
+		-- Keep the engine-owned physical camera object and replace only the
+		-- behavior of this instance. This avoids relying on late class registration,
+		-- which silently failed in the live Workshop/local-mod runtime.
 		instance.getDrawColor = droneClass.getDrawColor
 		instance.postDraw = droneClass.postDraw
 		instance.update = droneClass.update
@@ -215,7 +219,7 @@ local function spawn(context, index)
 		instance.hcoSearchStep = 0
 		loadSprite()
 		instance.hcoRotorSound = audio.startRotor(instance)
-		util.log(config, "drone custom class unavailable; native security-camera fallback active")
+		util.log(config, "native security-camera drone instance prepared")
 	end
 	local angle = index * math.pi * 2 / math.max(1, config.DRONE_DEPLOY_COUNT)
 	instance.hcoContext = context
@@ -226,7 +230,7 @@ local function spawn(context, index)
 	instance.hcoArmor = doctrine.armor or 1
 	instance.hcoFallback = usedFallback
 	instance.radius = config.DRONE_SCAN_RADIUS * (doctrine.radius or 1)
-	instance:setPos(x + math.cos(angle) * 100, y + math.sin(angle) * 100)
+	instance:setPos(x + math.cos(angle) * 180, y + math.sin(angle) * 180)
 	instance:setViewAngle(math.deg(angle))
 	local placed, placeError = pcall(function()
 		instance:onPlacedIntoMap()
@@ -277,7 +281,10 @@ function drones.update(context, dt)
 		util.log(config, "drone deployment launched slot=" .. tostring(context.slot or 1) .. " count=" .. tostring(launched))
 	elseif lastError then
 		util.log(config, "drone deployment failed slot=" .. tostring(context.slot or 1) .. " error=" .. tostring(lastError))
-		if not security.droneFailureShown then security.droneFailureShown = true feedback.show("HCO DRONE SUPPORT OFFLINE — check log") end
+		if not security.droneFailureShown then
+			security.droneFailureShown = true
+			feedback.show("HCO DRONE SUPPORT OFFLINE — " .. tostring(lastError):sub(1, 150))
+		end
 	end
 	security.droneDeploymentQuiet = false
 end

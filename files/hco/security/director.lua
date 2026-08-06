@@ -1,6 +1,7 @@
 local config = require("hco/config")
 local persistence = require("hco/contracts/persistence")
 local drones = require("hco/security/drones")
+local feedback = require("hco/feedback")
 local profiles = require("hco/contracts/profiles")
 local util = require("hco/util")
 
@@ -46,11 +47,17 @@ local function mobilizeProtection(state, x, y, reason)
 	security.targetThreatLevel = 1
 	security.huntPhase = "PRESSURE"
 	security.droneMode = "AGGRESSIVE"
-	forceCombatContact(state.target, player, x, y)
+	if not security.fullResponseAnnounced then
+		security.fullResponseAnnounced = true
+		local strength = state.protectionStrength or {}
+		feedback.show("TARGET EVACUATING — RESPONSE TEAM DEPLOYED (" .. tostring(strength.response or 0) .. ")")
+	end
 
 	for _, guard in ipairs(security.guards or {}) do
-		forceCombatContact(guard.actor, player, x, y)
-		setKnowledge(security, guard.actor, x, y, 1, reason)
+		if guard.role ~= "close_protection" then
+			forceCombatContact(guard.actor, player, x, y)
+			setKnowledge(security, guard.actor, x, y, 1, reason)
+		end
 	end
 
 	drones.request(state, security.droneDoctrine.count or config.DRONE_DEPLOY_COUNT, reason)
@@ -512,8 +519,8 @@ function director.update(state, dt)
 
 				if entry.confidence >= 0.95 and not security.dronesTriggeredByContact then
 					security.dronesTriggeredByContact = true
-					drones.request(state, security.droneDoctrine.count or config.DRONE_DEPLOY_COUNT, "confirmed-hostile-contact")
-					util.log(config, "drone deployment requested by confirmed contact slot=" .. tostring(state.slot or 1))
+					mobilizeProtection(state, entry.x, entry.y, "confirmed-hostile-contact")
+					util.log(config, "full response mobilized by confirmed contact slot=" .. tostring(state.slot or 1))
 				end
 			else
 				local entry = security.knowledge[util.getID(actorObject)]

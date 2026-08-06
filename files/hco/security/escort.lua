@@ -124,7 +124,8 @@ function escort.attach(state, report)
 	local elite = goonClass and goonClass.EXPERIENCE_LEVELS and goonClass.EXPERIENCE_LEVELS.ELITE
 	local leader = state.target
 	local profile = profiles.resolve(state.contract and state.contract.seed or 0, state.contract and state.contract.archetype)
-	local escortCount = math.min(profile.escorts or config.ESCORT_COUNT, state.escortLimit or math.huge)
+	local requestedProtection = (profile.bodyguards or 5) + (profile.responseUnits or 0)
+	local escortCount = math.min(requestedProtection, state.escortLimit or math.huge)
 	local healthMultiplier = profile.healthMultiplier or config.ESCORT_HEALTH_MULTIPLIER
 	local _, targetHealth = util.call(state.target, "getHealth")
 	local _, targetMaxHealth = util.call(state.target, "getMaxHealth")
@@ -156,7 +157,7 @@ function escort.attach(state, report)
 			originalState = originalState,
 			originalRoute = originalRoute,
 			originalRouteIndex = originalRouteIndex,
-			role = index <= 2 and "close_protection" or (index <= 5 and "advance_guard" or "response_unit")
+			role = index <= (profile.bodyguards or 5) and "close_protection" or "response_unit"
 		}
 
 		actorObject._hcoEscort = true
@@ -189,7 +190,12 @@ function escort.attach(state, report)
 		state.contract.metrics.livingEscortCount = #state.escorts
 	end
 
-	util.log(config, "elite escort assigned count=" .. tostring(#state.escorts))
+	local closeCount, responseCount = 0, 0
+	for _, data in ipairs(state.escorts) do
+		if data.role == "close_protection" then closeCount = closeCount + 1 else responseCount = responseCount + 1 end
+	end
+	state.protectionStrength = {close = closeCount, response = responseCount, requestedResponse = profile.responseUnits or 0}
+	util.log(config, "elite protection assigned close=" .. tostring(closeCount) .. " response=" .. tostring(responseCount) .. " requestedResponse=" .. tostring(profile.responseUnits or 0))
 end
 
 function escort.update(state)
@@ -213,9 +219,9 @@ function escort.update(state)
 		if util.isAlive(actorObject) then
 			if state.targetAI.phase == "ROUTINE" and util.distance(actorObject, leader) > config.ESCORT_REJOIN_DISTANCE then
 				makeFollow(actorObject, leader)
-			elseif state.targetAI.phase ~= "ROUTINE" and util.distance(actorObject, state.target) > config.ESCORT_REPLACE_DISTANCE then
-				-- Re-form around the target; security knowledge is propagated by the
-				-- director only when there is a direct, nearby, or radio source.
+			elseif state.targetAI.phase ~= "ROUTINE" and data.role == "close_protection" then
+				-- Close protection evacuates with the principal. Response units are
+				-- deliberately left under the security director's search orders.
 				makeFollow(actorObject, state.target)
 			end
 

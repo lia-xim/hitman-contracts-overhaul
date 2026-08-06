@@ -84,6 +84,10 @@ local function runSubsystem(state, name, callback, ...)
 	if not ok then
 		state.subsystemErrors[name] = tostring(err)
 		util.log(config, "subsystem disabled name=" .. name .. " error=" .. tostring(err))
+		if name == "search-drones" then
+			local message = tostring(err):gsub("^.-hco[/\\]", "hco/")
+			feedback.show("HCO DRONE RUNTIME ERROR — " .. message:sub(1, 180))
+		end
 	end
 end
 

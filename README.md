@@ -4,14 +4,14 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.10.0-rc11`  
+**Current build:** `0.10.0-rc12`
 **Target game:** Intravenous 2 `1.4.12HF3`  
-**Status:** public release candidate; boot and automated subsystem checks pass, while RC11 drone visibility and patrol-to-search escalation still require final in-game validation.
+**Status:** public release candidate; boot and automated subsystem checks pass, while RC12's native-camera drone carrier, target evacuation, and split protection response require final in-game validation.
 
 ## Highlights
 
 - One to three deterministic optional contracts per compatible mission.
-- Executive, Broker, Fixer, and Commander archetypes with distinct appearance, rewards, drone doctrines, and 5/10/15/20 requested protection tiers, constrained by the map's safe NPC population.
+- Executive, Broker, Fixer, and Commander archetypes with distinct appearance, rewards, drone doctrines, five close bodyguards, and 5/10/15/20 separate response units, constrained by the map's safe NPC population.
 - Stronger protected targets and elite guards with archetype-scaled health.
 - Mobile target phases, safe-area relocation, physical evacuation, and anti-stuck recovery without teleporting targets.
 - Field-intelligence dead drops that reveal exact moving target markers.
@@ -20,7 +20,8 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - One to three archetype-scaled drones patrol around each protected target from contract start, then switch to a faster and more exact aggressive search after escalation.
 - Immediate protection mobilization and drone request on confirmed contact, guard damage, or protection casualties.
 - Three loud player shots within eight seconds trigger aggressive drone support independently of visual-contact hand-off; NPC fire and suppressed player fire do not.
-- Native security-camera fallback keeps drones available when a game build rejects the late custom object class.
+- Engine-owned security-camera carriers avoid fragile late class registration; the native camera body remains visible even if the custom drone sprite cannot load.
+- Confirmed contact sends the target and its five close guards toward safety while response units hunt the player instead of dragging the principal into combat.
 - Native contract-completion banner, audio feedback, campaign payout, and save/reload persistence.
 - Transactional activation, duplicate-copy protection, and isolated subsystem failure handling.
 

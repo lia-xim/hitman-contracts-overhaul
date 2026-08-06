@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0-rc12 — 2026-08-06
+
+- Replaced late custom drone-class creation with per-instance behavior on an engine-owned security-camera carrier.
+- Kept a visible native drone body when the custom flight sprite is unavailable and removed the invalid camera-booth dependency from drone destruction.
+- Added exact on-screen drone spawn/runtime diagnostics instead of a silent `INBOUND` dead end.
+- Split protection into five close bodyguards and archetype-scaled 5/10/15/20 response units.
+- Fixed the confirmed-hostile-contact path so it mobilizes the full response rather than only queuing drones.
+- Prevented HCO from ordering the target into combat and continuously reasserted its native fear-run escape state when vanilla perception tries to re-enter combat.
+- Added a compact response deployment notice containing the actual number of available response units.
+
 ## 0.10.0-rc11 — 2026-08-06
 
 - Added passive drone patrols from the beginning of every active contract.

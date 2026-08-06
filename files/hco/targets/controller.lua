@@ -8,6 +8,12 @@ local util = require("hco/util")
 
 local controller = {}
 
+local combatStates = {
+	goon_combat = true,
+	goon_startled_combat = true,
+	goon_alert = true
+}
+
 local THREAT_STATES = {
 	goon_alert = true,
 	goon_combat = true,
@@ -680,6 +686,19 @@ function controller.update(state, dt)
 	end
 
 	local level = threatLevel(state)
+
+	-- Native combat perception can replace the flight state after the player
+	-- fires. A protected principal must never join the assault: reassert the
+	-- current safe destination and fear-run state when combat AI takes over.
+	if ai.phase ~= "ROUTINE" and ai.safePoint and combatStates[getStateID(target)] then
+		ai.flightReassertTime = math.max(0, (ai.flightReassertTime or 0) - dt)
+		if ai.flightReassertTime == 0 then
+			issueMove(state, ai.safePoint, ai.phase == "EVACUATING" and "EVACUATING" or "THREATENED", false)
+			ai.flightReassertTime = 0.6
+		end
+	else
+		ai.flightReassertTime = 0
+	end
 
 	if ai.phase == "ROUTINE" then
 		local _, patrolIndex = util.call(target, "getPatrolRouteIndex")
