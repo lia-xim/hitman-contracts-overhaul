@@ -5,6 +5,8 @@ local airframes = {}
 local CLASS_ID = "hco_drone_airframe"
 local BATCH_ID = "hco_drone_airframes"
 local BATCH_DEPTH = 68
+local AIRFRAME_SCALE = 0.28
+local SPRITE_FORWARD_OFFSET = -math.pi * 0.5
 local classData
 local sprite, quads, batch
 local live = {}
@@ -103,6 +105,8 @@ function airframes.initialize()
 		self.hcoFrame = 1
 		self.hcoAngle = 0
 		self.hcoSlot = nil
+		self.hcoMoveX, self.hcoMoveY = 0, 0
+		self.hcoPhase = 0
 		self.renderTree = game.worldObject:getDecorQuadTree()
 	end
 
@@ -116,10 +120,56 @@ function airframes.initialize()
 	end
 
 	function visual:setPose(x, y, angle, frame)
+		local dx, dy = x - (self.x or x), y - (self.y or y)
+		self.hcoMoveX = self.hcoMoveX * 0.72 + dx * 0.28
+		self.hcoMoveY = self.hcoMoveY * 0.72 + dy * 0.28
 		self.x, self.y = x, y
 		self.hcoAngle = angle or self.hcoAngle
 		self.hcoFrame = frame or self.hcoFrame
 		if self._placed and self.renderTree then self.renderTree:insert(self) end
+	end
+
+	local function drawFlightEffects(self, drawX, drawY, renderAngle)
+		local graphics = love.graphics
+		local time = curTime or 0
+		local speed = math.sqrt(self.hcoMoveX * self.hcoMoveX + self.hcoMoveY * self.hcoMoveY)
+		local moveX, moveY = 0, 0
+		if speed > 0.01 then moveX, moveY = self.hcoMoveX / speed, self.hcoMoveY / speed end
+
+		-- Soft offset shadow and short pixel wakes make altitude and direction
+		-- readable without adding a non-native particle system.
+		graphics.setColor(0, 0, 0, 75)
+		graphics.circle("fill", drawX + 5, drawY + 7, 9)
+		if speed > 0.12 and type(graphics.rectangle) == "function" then
+			local sideX, sideY = -moveY, moveX
+			for index = 1, 4 do
+				local spread = math.sin(time * 9 + self.hcoPhase + index * 1.7) * (1 + index * 0.6)
+				local px = drawX - moveX * (10 + index * 6) + sideX * spread
+				local py = drawY - moveY * (10 + index * 6) + sideY * spread
+				graphics.setColor(70, 195, 225, math.max(25, 125 - index * 24))
+				graphics.rectangle("fill", math.floor(px), math.floor(py), index == 1 and 3 or 2, 2)
+			end
+		end
+
+		graphics.push()
+		graphics.translate(drawX, drawY)
+		graphics.rotate(renderAngle)
+		graphics.setLineWidth(1)
+		local rotorPulse = 3.2 + math.abs(math.sin(time * 18 + self.hcoPhase)) * 1.4
+		local rotorAlpha = self.hcoDisrupted and 65 or 125
+		graphics.setColor(125, 225, 245, rotorAlpha)
+		for _, rotor in ipairs({{-9,-7},{9,-7},{-9,7},{9,7}}) do graphics.circle("line", rotor[1], rotor[2], rotorPulse) end
+		local sensorPulse = 1.8 + math.abs(math.sin(time * 7 + self.hcoPhase)) * 1.2
+		if self.hcoDisrupted then
+			graphics.setColor(90, 150, 255, 170)
+		elseif self.hcoAggressive or self.hcoAcquiring then
+			graphics.setColor(255, 70, 55, 230)
+		else
+			graphics.setColor(65, 245, 255, 220)
+		end
+		graphics.circle("fill", 0, 9, sensorPulse)
+		graphics.pop()
+		graphics.setColor(255, 255, 255, 255)
 	end
 
 	function visual:enterVisibilityRange()
@@ -134,9 +184,14 @@ function airframes.initialize()
 
 	function visual:draw()
 		drawPasses = drawPasses + 1
+		local bob = math.sin((curTime or 0) * 6.5 + self.hcoPhase) * 1.1
+		local drawX, drawY = self.x, self.y + bob
+		local renderAngle = (self.hcoAngle or 0) + SPRITE_FORWARD_OFFSET
+		drawFlightEffects(self, drawX, drawY, renderAngle)
 		if ensureSlot(self) and sprite and quads then
-			batch:setColor(255, 255, 255, 255)
-			batch:updateSprite(self.hcoSlot, quads[self.hcoFrame or 1], self.x, self.y, self.hcoAngle or 0, 0.68, 0.68, 48, 48)
+			local alpha = self.hcoDisrupted and (110 + math.floor(math.abs(math.sin((curTime or 0) * 17)) * 100)) or 255
+			batch:setColor(255, 255, 255, alpha)
+			batch:updateSprite(self.hcoSlot, quads[self.hcoFrame or 1], drawX, drawY, renderAngle, AIRFRAME_SCALE, AIRFRAME_SCALE, 48, 48)
 			return
 		end
 		-- Texture-independent last resort, still executed by the native world
@@ -169,6 +224,7 @@ function airframes.create(owner, x, y)
 	local ok, shell = pcall(objects.create, CLASS_ID)
 	if not ok or not shell then return nil, "airframe-create-failed: " .. tostring(shell) end
 	shell.hcoOwner = owner
+	shell.hcoPhase = ((owner and owner.hcoIndex) or 1) * 1.61803398875
 	shell:setPose(x, y, owner and owner.curViewAngRad or 0, 1)
 	local placed, placeError = pcall(shell.onPlacedIntoMap, shell)
 	if not placed then return nil, "airframe-placement-failed: " .. tostring(placeError) end
@@ -178,6 +234,9 @@ end
 
 function airframes.sync(shell, owner)
 	if shell and shell.isValid and shell:isValid() and owner then
+		shell.hcoDisrupted = owner.disrupted == true
+		shell.hcoAggressive = owner.hcoContext and owner.hcoContext.security and owner.hcoContext.security.droneMode == "AGGRESSIVE"
+		shell.hcoAcquiring = (owner.hcoDetect or 0) > 0
 		shell:setPose((owner.x or 0) + 13, (owner.y or 0) + 13, owner.curViewAngRad or 0, owner.hcoFrame or 1)
 	end
 end

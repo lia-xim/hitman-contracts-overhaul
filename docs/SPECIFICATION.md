@@ -559,7 +559,7 @@ Rules:
 
 ### 11.3 Drones
 
-Drones are phase-three content, not part of the first playable slice.
+Drones began as phase-three content outside the first playable slice. The RC6 decision in section 26 promoted physical search drones into the active release candidate; RC21 adds the native-airframe and counterplay decisions that now govern them.
 
 Rules:
 
@@ -834,7 +834,7 @@ Every event callback must validate:
 
 ## 20. Implementation phases
 
-**Implementation checkpoint (`0.9.0-rc2`, 2026-08-06):** Phases 0–5 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation, and rollback tests. These are implementation results, not substitutes for real-game proof. Per the user's explicit decision, the coherent RC was built first and is now tested in-game as one integrated build. Phase 6 physical thermal-camera and drone actors remains a post-v1 expansion; the RC only integrates existing cameras with disguise and sensor-evidence behavior.
+**Implementation checkpoint (`0.10.0-rc21`, 2026-08-06):** Phases 0–5 and the physical search-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. The native drone body has been observed in game; RC21's corrected scale/orientation, flight effects and destruction/disruption behavior still need live acceptance. Thermal cameras, operators, power relationships and armed-drone variants remain incomplete. Automated results are not substitutes for real-game proof.
 
 ### Phase 0: Runtime probe
 
@@ -1122,3 +1122,11 @@ Do not claim RC6's new visual drone layer as in-game verified until this pass is
 - Contract completion uses a compact fading native HUD indicator containing archetype, payout and optional-condition result, plus an original chime and native confirmation cue.
 - Custom audio failure must fall back to verified native sound IDs without affecting contract settlement.
 - ElevenLabs voice/SFX is reserved for a later authored radio-callout pack after custom voice localization, volume ducking and Workshop asset-loading behavior are live-verified.
+
+### RC21 drone role and counterplay decision
+
+- The first native-airframe live pass proved that custom physical drones can render through the game's decor quadtree and sprite-batch lifecycle. Airframes must remain actor-scaled, align their sensor nose with the scanlight, and communicate flight through restrained pixel wakes, hover motion, rotor pulses and state color rather than a detached overlay.
+- Every drone is a world object that can be shot down or electronically disrupted. Disruption suspends HCO detection and relay behavior; destruction removes the light/airframe/sound and creates localized crash evidence that nearby response guards investigate.
+- Baseline Watcher and Smuggler Eye drones are information weapons: their danger is detection, last-known-position relay and coordinated response. They do not deal unavoidable off-screen damage.
+- A future armed Hunter or Interceptor may attack only after confirmed tracking. Its attack must use an obvious red aim laser or charge cue, line of sight, a reaction window, a cooldown and ordinary destructibility/disruption. Prefer a shock dart or short suppressive burst over a continuous damage laser. The visible laser is a telegraph, never an instant magical damage ray.
+- Armed-drone damage is not considered implemented until the native projectile/damage API is inspected and both player counterplay and AI friendly-fire behavior pass a real mission test.

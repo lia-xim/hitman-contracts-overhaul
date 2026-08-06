@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0-rc21 — 2026-08-06
+
+- Reduced the native drone airframe from the oversized first live pass to a roughly 27-pixel world footprint and rotated the source artwork by -90 degrees so its sensor nose follows the scanlight and flight heading.
+- Added native-world flight presentation: subtle hover bob, offset altitude shadow, animated rotor pulses, state-colored sensor pulse and a short pixel wake opposite the current movement vector.
+- Made electronic disruption authoritative for both the native camera carrier and HCO detection; a disrupted drone now flickers and cannot confirm or relay the player.
+- Completed bullet destruction behavior: a destroyed drone loses its light and airframe, stops its rotor sound, creates localized crash evidence, raises the local hunt state and sends up to three available response guards to investigate.
+- Kept baseline drones information-first rather than adding unavoidable hitscan damage. A separately telegraphed, counterable armed Hunter/Interceptor remains an explicit future item.
+
 ## 0.10.0-rc20 — 2026-08-06
 
 - Replaced the external drone overlay with a registered native `hco_drone_airframe` world entity.

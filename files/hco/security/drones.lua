@@ -140,6 +140,12 @@ function drones.initialize()
 		audio.updateRotor(self.hcoRotorSound, self)
 		self.hcoFrameTime = self.hcoFrameTime + dt
 		if self.hcoFrameTime >= 0.09 then self.hcoFrameTime = 0 self.hcoFrame = self.hcoFrame % 4 + 1 end
+		if self.disrupted then
+			self.hcoDetect = 0
+			local result = drone.baseClass.update(self, dt)
+			airframes.sync(self.hcoAirframe, self)
+			return result
+		end
 
 		local security = self.hcoContext and self.hcoContext.security
 		local aggressive = security and security.droneMode == "AGGRESSIVE"
@@ -175,16 +181,43 @@ function drones.initialize()
 
 	function drone:breakCam(breaker, quiet)
 		if self.broken then return end
-		-- Native security cameras report to a booth. Runtime drones deliberately
-		-- have no booth, so calling the native breakCam would index nil.
+		local crashX, crashY = (self.x or 0) + 13, (self.y or 0) + 13
+		-- Mirror the native camera destruction lifecycle but omit only the booth
+		-- callback, because runtime drones deliberately have no camera booth.
 		if type(self.setBroken) == "function" then pcall(self.setBroken, self, true) else self.broken = true end
+		if self.lightBuffer then
+			if type(self.disableLight) == "function" then pcall(self.disableLight, self) end
+			if type(self.lightBuffer.clearEffects) == "function" then pcall(self.lightBuffer.clearEffects, self.lightBuffer) end
+		end
+		if type(self.setDisrupted) == "function" then pcall(self.setDisrupted, self, false) end
+		if type(self.setDisruptTime) == "function" then pcall(self.setDisruptTime, self, nil) end
 		airframes.remove(self.hcoAirframe)
 		self.hcoAirframe = nil
 		if self.hcoRotorSound then
 			if type(self.hcoRotorSound.stop) == "function" then audio.stop(self.hcoRotorSound) elseif sound and sound.manager then pcall(sound.manager.stopSound, sound.manager, self.hcoRotorSound) end
 			self.hcoRotorSound = nil
 		end
-		if self.hcoContext and self.hcoContext.security then self.hcoContext.security.dronesDestroyed = (self.hcoContext.security.dronesDestroyed or 0) + 1 end
+		local security = self.hcoContext and self.hcoContext.security
+		if security then
+			security.dronesDestroyed = (security.dronesDestroyed or 0) + 1
+			security.droneCrashEvidence = {x=crashX,y=crashY,time=curTime or 0,breaker=breaker}
+			security.droneMode = "AGGRESSIVE"
+			if security.huntPhase == "STAND_DOWN" or security.huntPhase == "DECAY" then security.huntPhase = "LOCAL_REACTION" end
+			local dispatched = 0
+			for _, guard in ipairs(security.guards or {}) do
+				if guard.role ~= "close_protection" and util.isAlive(guard.actor) and dispatched < 3 then
+					util.call(guard.actor, "setSightPos", crashX, crashY, false)
+					local okState, guardState = util.call(guard.actor, "getState")
+					if okState and guardState and type(guardState.goToAlert) == "function" then pcall(guardState.goToAlert, guardState) end
+					dispatched = dispatched + 1
+				end
+			end
+			feedback.show("DRONE DOWN — RESPONSE TEAM INVESTIGATING CRASH SITE")
+		end
+		if not quiet then
+			if noise and type(noise.emit) == "function" then pcall(noise.emit, noise, crashX, crashY, self.breakNoise or 700, self, noise.SOUND_TYPES and noise.SOUND_TYPES.OBJECTS) end
+			if sound and type(sound.play) == "function" then pcall(sound.play, sound, "camera_break", self) end
+		end
 	end
 
 	function drone:onHitBullet(bullet, hitData)
@@ -278,7 +311,7 @@ local function updateRenderDiagnostic(security, dt)
 	security.droneRenderDiagnostic = nil
 	local stats = airframes.diagnostics()
 	local rendered = stats.drawPasses > diagnostic.startPasses
-	feedback.show("HCO RC20 NATIVE AIRFRAME — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
+	feedback.show("HCO RC21 FLIGHT MODEL — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batch " .. (stats.batchReady and "READY" or "MISSING") .. ", sprite " .. (stats.spriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
 function drones.request(context, count, reason, quiet)

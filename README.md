@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.10.0-rc17`
-**Target game:** Intravenous 2 `1.4.12HF3`  
-**Status:** public release candidate; RC20 replaces the failed overlay experiment with a native world-entity, decor-quadtree, and engine-sprite-batch airframe path. Live drone rendering, geometric player detection, target evacuation, and split protection response still require final in-game validation.
+**Current build:** `0.10.0-rc21`
+**Target game:** Intravenous 2 `1.4.12HF3`
+**Status:** public release candidate; the native drone body is now visible in game. RC21 corrects its first-pass size/orientation and adds flight effects, EMP suppression, bullet destruction and crash-site response. Those changes still need the next live mission pass.
 
 ## Highlights
 
@@ -16,11 +16,13 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Mobile target phases, safe-area relocation, physical evacuation, and anti-stuck recovery without teleporting targets.
 - Field-intelligence dead drops that reveal exact moving target markers.
 - Body-search disguises, plausible weapons, restricted areas, credentials, colleague recognition, compromise, and interruptible radio checks.
-- Physical, animated, destructible search drones with scan cones, rotor audio, search sectors, and coordinated pressure responses.
+- Physical, actor-scaled, animated and destructible search drones with scan cones, rotor audio, search sectors and coordinated pressure responses.
+- Native-airframe flight presentation with hover motion, rotor/sensor pulses, a short pixel wake, state colors and a readable sensor heading.
 - One to three archetype-scaled drones patrol around each protected target from contract start, then switch to a faster and more exact aggressive search after escalation.
 - Immediate protection mobilization and drone request on confirmed contact, guard damage, or protection casualties.
 - Three loud player shots within eight seconds trigger aggressive drone support independently of visual-contact hand-off; NPC fire and suppressed player fire do not.
-- Engine-owned security-camera carriers provide physics, searchlights, obstruction, and bullet interaction. A registered `hco_drone_airframe` world entity supplies the visible body through the same quadtree and sprite-batch lifecycle used by normal world actors.
+- Engine-owned security-camera carriers provide physics, searchlights, obstruction and bullet interaction. A registered `hco_drone_airframe` world entity supplies the visible body through the same quadtree and sprite-batch lifecycle used by normal world actors.
+- Drones can be electronically disrupted or shot down. Crashes create local evidence and pull available response guards toward the crash position.
 - Confirmed contact sends the target and its five close guards toward safety while response units hunt the player instead of dragging the principal into combat.
 - Native contract-completion banner, audio feedback, campaign payout, and save/reload persistence.
 - Transactional activation, duplicate-copy protection, and isolated subsystem failure handling.
@@ -32,6 +34,8 @@ No menu or hotkey is required. Start a compatible mission from the beginning. HC
 Approach a dead or unconscious guard and choose **Search body / take disguise**. Normal movement and plausible equipment reduce suspicion; running, aiming, firing, lockpicking, carrying a body, restricted access, or close colleagues can expose you.
 
 If security confirms you, takes fire, or loses a protection member, the detail enters combat, shares the last known position, and requests its archetype's drone response.
+
+Baseline drones are information weapons rather than flying aimbots: they expose and relay your last known position. An armed Hunter/Interceptor variant is planned only with a visible aim cue, reaction window, cooldown, line of sight and ordinary destruction/disruption counterplay.
 
 ## Cheat Trainer compatibility
 
@@ -51,6 +55,7 @@ Do not enable both a local and Workshop copy at the same time.
 - `files/` — complete installable mod payload.
 - `docs/SPECIFICATION.md` — full product and systems specification.
 - `docs/ENGINE_EVIDENCE.md` — documented native interface research; no decompiled source is redistributed.
+- `docs/IMPLEMENTATION_STATUS.md` — honest requirement-by-requirement current state and remaining work.
 - `docs/TESTING.md` — reproducible automated and in-game acceptance boundary.
 - `workshop/` — Steam Workshop copy and preview; excluded from release ZIPs.
 - `scripts/` — verification and packaging helpers.
