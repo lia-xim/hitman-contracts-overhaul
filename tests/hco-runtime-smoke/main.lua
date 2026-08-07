@@ -681,6 +681,7 @@ validA.hunchX, validA.hunchY = 360, 160
 securityDirector.update(state, 1)
 assertEqual(state.security.huntPhase, "PRESSURE", "direct sighting starts pressure hunt")
 assertTrue(state.security.dronesTriggeredByContact, "confirmed hostile contact triggers drone doctrine")
+assertEqual(state.security.confirmedIdentityToken, "original", "confirmed guard contact records the currently observed player appearance for drone handoff")
 assertTrue((state.security.droneDeploymentRequested or 0) > 0, "contact queues physical drone deployment")
 assertTrue(validC:getEnemyInSight(player) and validD:getEnemyInSight(player), "confirmed contact gives response guards explicit native target knowledge")
 assertTrue(validA.destX == nil, "close protection remains with target during search")
@@ -724,6 +725,7 @@ namedStoryNPC.lastVisionEnemy = player
 namedStoryNPC.enemiesInSight[player:getID()] = true
 liveDisguiseOption.interact(validA, player)
 assertEqual(player.animVar, validA.animVar, "player inherits the contract faction disguise")
+assertTrue(state.disguiseRisk < 1, "identity takeover publishes reduced sensor risk atomically without one exposed update frame")
 assertEqual(state.identityFX.kind, "acquired", "identity takeover starts a native world-space transition effect")
 assertEqual(validA.postInteractCount, 1, "successful identity takeover refreshes native body menu")
 local takeoverMenu = validA:getInteractOptions(player, true).options
@@ -858,6 +860,7 @@ assertEqual(state.disguise.group, acquiredFaction, "active disguise restored fro
 assertEqual(player.animVar, acquiredFaction, "restored disguise is visible")
 assertEqual(state.disguise.originalAnimVar, "sean", "reload preserves the real pre-disguise player appearance")
 assertEqual(state.identityFX.kind, "restored", "reload starts a restrained identity-restored effect")
+assertTrue(state.disguiseRisk < 1, "checkpoint restore republishes the active identity risk before sensors can update")
 assertTrue(not disguiseOption.actionCheck(validA, player), "used identity source remains consumed after checkpoint reload")
 assertEqual(#objectiveHandler.objectives, objectiveCountBeforeReload, "active reload does not duplicate objective")
 require("hco/social/disguise").update(state, 0.1)

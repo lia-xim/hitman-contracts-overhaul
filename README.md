@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.14.7-rc41`
+**Current build:** `0.14.8-rc42`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate test release. RC41 adds fair bounded exterior-barrier overflight, a target routine-mobility/incident watchdog, first-position disguise takeover, explicit original-identity restoration and a persistent player identity shimmer. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC42 makes alarmed drones respect clean disguises at range, scopes shared confirmation to the actually observed appearance and replaces wall shuffling with stable obstacle following plus destination-progress recovery. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 
@@ -25,12 +25,12 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Light/heavy rotor profiles and laser one-shots are adapted from creator-supplied audio, while ballistic drones retain native weapon sounds.
 - Native-airframe flight presentation with hover motion, rotor/sensor pulses, a short pixel wake, family-colored effects, real laser-charge progress, damage smoke and a readable sensor heading.
 - Four-stage damaged sprites for all seven airframes replace the intact body during the tumble and end in a persistent asymmetric wreck; destroyed drones have no cone, aim cue, weapon state or rotor loop.
-- One to three archetype-scaled drones patrol around each protected target from contract start. They commit to reachable outdoor waypoints instead of constantly re-rolling them; a geometrically boxed-in sensor performs a continuous 360-degree sweep. Confirmed contact turns every HCO wing's searchlights red and shares the reported position across the map security network.
+- One to three archetype-scaled drones patrol around each protected target from contract start. They commit to reachable outdoor waypoints, keep one wall-follow direction and abandon routes that produce motion without destination progress; a geometrically boxed-in sensor performs a continuous 360-degree sweep. Confirmed contact turns every HCO wing's searchlights red and shares the reported position and observed appearance across the map security network.
 - Immediate protection mobilization and drone request on confirmed contact, guard damage, or protection casualties.
 - Three loud player shots within eight seconds trigger aggressive drone support independently of visual-contact hand-off; NPC fire and suppressed player fire do not.
 - Engine-owned security-camera carriers provide physics, searchlights, obstruction and bullet interaction. A registered `hco_drone_airframe` world entity supplies the visible body through the same quadtree and sprite-batch lifecycle used by normal world actors.
 - Drones can be electronically disrupted or shot down. A destroyed airframe tumbles along its last movement vector, sheds sparks and smoke, hits the ground and remains as a dark wreck. The landing creates local evidence and pulls available response guards toward it.
-- Patrol drones classify visible bodies through their real cone and world raycast. Calm plausible disguises delay identity acquisition; aiming, sprinting, firing or other suspicious behavior restores rapid detection, and discovery of the stolen uniform's source compromises it.
+- Patrol drones classify visible bodies through their real cone and world raycast. A clean disguise outside close scrutiny produces capped amber suspicion even during an aggressive search. Inside 155 units, or 205 during an alarm, sustained cone/raycast contact progressively confirms the identity; aiming, firing, compromise or other overt behavior restores rapid detection. Discovery of the stolen uniform's source compromises it.
 - Confirmed contact sends the target and its five close guards toward safety while response units hunt the player instead of dragging the principal into combat.
 - Native contract-completion banner, audio feedback, campaign payout, and save/reload persistence.
 - Transactional activation, duplicate-copy protection, and isolated subsystem failure handling.
@@ -41,7 +41,7 @@ No menu or hotkey is required. Start a compatible mission from the beginning. HC
 
 Approach a dead or unconscious guard and choose **Take disguise / search body**, now the first eligible action in the normal interaction selector. The player visibly adopts that actor variant and receives a restrained persistent cyan identity shimmer; compromised cover is shown in red. Open any dead/unconscious body selector while disguised and choose **Restore original identity** to put the original appearance back on. Stolen credentials remain in the native inventory and consumed uniforms cannot be duplicated. The held weapon, weapon model and holster state do not affect the identity. Keep a believable distance: sustained close eye contact builds observer-local scrutiny, same-unit/elite guards inspect faster, and point-blank visual contact blows the cover immediately. Running, aiming at someone, witnessed firing, lockpicking, carrying a body, a bloodied uniform, fresh evidence, restricted access or target lingering can also expose you. An unseen shot creates investigation at its location without revealing who fired it. A real radio report can be disrupted before local recognition becomes global compromise.
 
-Drones participate in that same social-stealth model. A calm valid identity buys time during routine patrols, not invisibility. Aggressive security uses faster sensor scrutiny, and a drone that finds the body from which the uniform was taken compromises the disguise over the security network.
+Drones participate in that same social-stealth model. Aggressive search means the wing knows where to look, not whom it is looking at. A calm valid identity remains amber suspicion at ordinary distance and must enter close sensor scrutiny before that drone can track, confirm or fire. A guard or drone can share an actually confirmed appearance, but changing into a new disguise invalidates the old visual match. A drone that finds the body from which the uniform was taken compromises that disguise over the security network.
 
 If security confirms you, the detail enters combat and shares your last known position. Heard gunfire, a wounded guard or a protection casualty instead starts a search at the incident location and requests the archetype's drone response without giving uninformed guards your identity.
 

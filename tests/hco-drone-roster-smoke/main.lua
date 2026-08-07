@@ -101,6 +101,9 @@ drone.hcoDestX,drone.hcoDestY=500,313
 local _,_,wallMove,avoided=flight.move(drone,1,60)
 assertTrue(avoided and wallMove>0,"building wall triggers an active avoidance maneuver instead of a standstill")
 assertTrue(drone.x+13<340,"building avoidance does not cross the blocked wall tile")
+local committedWallSide=drone.hcoWallSide
+for _=1,4 do flight.move(drone,0.2,60) end
+assertTrue(committedWallSide~=nil and drone.hcoWallSide==committedWallSide,"wall following keeps one steering side instead of oscillating left and right every frame")
 
 -- A narrow wall/gate between two outdoor cells is crossed as an explicit
 -- unarmed air transit after steering has proven unable to progress. Wide

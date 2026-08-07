@@ -38,6 +38,18 @@ local function forceCombatContact(actorObject, player, x, y)
 	return false
 end
 
+local function currentIdentityToken(state)
+	local active = state and state.disguise
+	if not active then return "original" end
+	return "disguise:" .. tostring(active.group or "unknown") .. ":" .. tostring(active.acquiredTime or 0)
+end
+
+local function confirmPlayerIdentity(state, security, source)
+	security.confirmedIdentityToken = currentIdentityToken(state)
+	security.confirmedIdentityAt = curTime or 0
+	security.confirmedIdentitySource = source
+end
+
 local function mobilizeProtection(state, x, y, reason, confirmedPlayer)
 	local security = state.security
 	local player = game and game.playerActor
@@ -52,6 +64,7 @@ local function mobilizeProtection(state, x, y, reason, confirmedPlayer)
 	security.targetThreatLevel = 1
 	security.huntPhase = "PRESSURE"
 	security.droneMode = "AGGRESSIVE"
+	if confirmedPlayer then confirmPlayerIdentity(state, security, reason) end
 	if not security.fullResponseAnnounced then
 		security.fullResponseAnnounced = true
 		local strength = state.protectionStrength or {}

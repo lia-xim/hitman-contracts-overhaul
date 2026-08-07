@@ -1,4 +1,13 @@
-# Automated Test Report — 0.14.7-rc41
+# Automated Test Report — 0.14.8-rc42
+
+## RC42 disguise-aware drone identity and navigation-progress correction
+
+- Drone coverage proves that an alarmed drone observing a clean disguise from 300 units may build only capped amber suspicion: it cannot track, confirm, publish a network sighting or fire.
+- The same drone must bring the disguised player inside its 205-unit alarm scrutiny range and maintain real cone/raycast contact before it progressively confirms that exact appearance token. A compromised or overt identity still follows the immediate hostile path.
+- A confirmed sighting stores the current identity token across the HCO security network. Changing or restoring clothing invalidates each drone's stale local lock, tracking slot, sight grace and weapon authorization rather than carrying hostility into the new appearance.
+- Disguise takeover and checkpoint restoration publish their reduced behavior risk atomically, closing the one-update-frame window in which a fresh disguise could still look fully exposed to a drone.
+- Flight coverage proves a blocked drone keeps one deterministic wall-follow side instead of oscillating. A separate moving-without-progress fixture verifies that failure to reduce destination distance for 2.4 seconds forces a new route/search or flank approach.
+- All seven LÖVE suites pass against `0.14.8-rc42`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
 
 ## RC41 exterior-transition, principal-awareness and identity-readability correction
 
@@ -257,18 +266,18 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 33 Lua modules parse, including RC41's bounded barrier flight, transit combat lockout, target routine watchdog and reversible disguise identity.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including RC42's appearance-token authority, distance-gated drone scrutiny and destination-progress recovery.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test installation audit: **PASS** — installed `0.14.7-rc41`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
+- Post-test installation audit: **PASS** — installed `0.14.8-rc42`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
 - Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.7-rc41.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `33AA3DA661BAF15380BA318DBB20733A33C7CBA476E6A143670589727833DD1F`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.7-rc41 payload=43`.
-- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 13:52:48; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC41.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.8-rc42.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `7CE46866B504F092AB15E32A061198CCCAEA2B16625DEC9C0052843CD3D83E6F`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.8-rc42 payload=43`.
+- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 14:23:14; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC42.
 
-The markers above were collected from RC41 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC42 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

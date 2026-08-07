@@ -1,8 +1,8 @@
-# Completion Audit — 0.14.7-rc41
+# Completion Audit — 0.14.8-rc42
 
 **Audit date:** 2026-08-07
 **Goal status:** production-candidate code complete for the current feature surface; final live acceptance is not complete
-**Authority inspected:** RC41 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed `1.4.12HF3` interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces and user-supplied live screenshots/errors
+**Authority inspected:** RC42 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed `1.4.12HF3` interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -32,7 +32,7 @@ The core optional-contract product exists and works far enough to be played. HCO
 
 1. Validate and tune the mobile target's retreat/escape behavior and protection-detail combat pressure on several real maps.
 2. Guarantee stronger mission-appropriate weapons and reliable active response for the protection tiers.
-3. Complete the remaining RC41 live matrix for native action order/restore, persistent identity shimmer, direct witnesses, body evidence, radio compromise and reload; the user has accepted the core close-inspection/point-blank response.
+3. Complete the remaining RC42 live matrix for native action order/restore, persistent identity shimmer, drone disguise distance bands, direct witnesses, body evidence, radio compromise and reload; the user has accepted the core close-inspection/point-blank response.
 4. Live-test the implemented semantic drone perception for calm/risky identities, bodies and source-uniform compromise.
 5. Live-approve RC41's committed patrol travel, bounded disarmed wall/gate hop, rejected roof crossing, outdoor fallback, stationary 360-degree scan, all-wing alarm propagation, unaided complete-silhouette hits and animated inert-wreck handoff; meaningful operator/radio dependency remains a future expansion.
 6. Treat thermal surveillance and additional systemic contract types as explicit post-1.0 expansions unless promoted into the release scope.
@@ -41,4 +41,4 @@ The core optional-contract product exists and works far enough to be played. HCO
 
 ## RC41 acceptance
 
-RC41 is approved for local production-candidate testing, not yet as final `1.0`. The user exposed separated exterior zones that could pin drones against walls, an eventually stationary principal and insufficient disguise-state readability. RC41 adds a bounded movement-only exterior hop, target patrol/incident watchdogs, first-position takeover, explicit original-identity restoration and a persistent player shimmer. The next pass must prove the hop never crosses a roofed building, cannot sense/fire until landing, keeps the airframe shootable/visible, restores target movement and behaves correctly in the real body menu.
+RC42 is approved for local production-candidate testing, not yet as final `1.0`. RC41 addressed separated exterior zones, principal movement and disguise readability; the next live result showed that an aggressive drone still converted location alarm into instant identity and that local wall shuffling could evade the idle watchdog. RC42 scopes shared knowledge to the observed appearance, caps clean long-range cover at amber suspicion, requires close progressive scrutiny and adds stable wall following plus destination-progress recovery. The next pass must prove those distance bands and continuous navigation on the reported live map while retaining RC41's roof/barrier and target behavior.

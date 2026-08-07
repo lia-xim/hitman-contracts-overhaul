@@ -209,6 +209,14 @@ The target remains a real Goon using its original patrol route and native moveme
 
 The Goon interaction list is still the sole disguise UI owner. RC41 deterministically places takeover/restoration at the first two list positions, re-enumerates power-of-two action IDs and refreshes cached body menus through the existing hooks. The persistent identity shimmer reuses the already installed `playerActor:postDraw` world hook; restoring clothes writes through the same campaign disguise persistence path.
 
+## RC42 drone identity and navigation evidence
+
+The native `security_camera:update` owns sweep/disruption/light-buffer upkeep but does not itself call `monitorCamera`; HCO's explicit cone/raycast and detection accumulator remain the player-contact authority for runtime drone carriers. The RC41 loop nevertheless had two semantic leaks: `AGGRESSIVE` forced disguise acquisition to at least `0.72`, and any recent `lastKnown` point enabled cone-less tracking. A location-only gunshot/casualty escalation could therefore identify a clean disguise in less than a second even while nearby Goon observers correctly remained at suspicion.
+
+RC42 records confirmed knowledge against the current appearance token and makes location alert, visual suspicion and actionable identity separate values. Long-range clean cover can fill only an amber 42% sensor cap; only real cone/raycast contact inside the 155/205-unit scrutiny band may cross to confirmation. A new actor variant/acquisition timestamp clears each drone's stale detection grace, tracking slot, recent confirmation and weapon token. The existing weapon controller remains unchanged and receives authority only when that same current token has been locally confirmed.
+
+The movement trace also showed why the physical-idle watchdog could miss a visually stuck drone: alternating tangent choices produced non-zero per-frame displacement without reducing destination distance. RC42 retains one deterministic wall-follow side for a blocked episode and separately samples route distance. Failure to improve by seven units across 2.4 seconds invalidates the route and changes the flank/search approach; no teleport or new through-building attack surface is introduced.
+
 ## RC38 native follower-state and threat-knowledge evidence
 
 The live `getWatchBack` traceback resolves to the base game's alert-state `advanceFollowerInstructions(follower, dt)`. That method fetches `follower:getState()` and unconditionally calls `getWatchBack`, `setWatchBack`, `getWatchDistance` and `setWatchDistance`. These methods belong to following states; combat, fear and other ordinary Goon states do not implement that contract. `goon:setFollower` and `goon:getFollower` only write/read a raw actor reference, so a leader can retain a follower after that follower changes state.

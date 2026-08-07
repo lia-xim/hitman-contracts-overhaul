@@ -189,6 +189,62 @@ local function chooseDestination(self)
 	return flight.destination(self, game and game.playerActor, aggressive)
 end
 
+local function forceNavigationRecovery(self, reason)
+	self.hcoDestX, self.hcoDestY = nil, nil
+	self.hcoDestRefreshAt = 0
+	self.hcoBlockedTime = 0
+	self.hcoWallRecovery = (self.hcoWallRecovery or 0) + 1
+	if self.hcoWallSide then self.hcoWallSide = -self.hcoWallSide end
+	if (self.hcoTracking or 0) > 0 then
+		local direction = (self.hcoProgressRecoveries or 0) % 2 == 0 and 1 or -1
+		self.hcoTrackSlotAngle = (self.hcoTrackSlotAngle or 0) + math.rad(78 * direction)
+		self.hcoTracking = math.min(self.hcoTracking, 0.35)
+	else
+		self.hcoSearchPhase = (self.hcoSearchPhase or 0) + 1
+		self.hcoSearchStep = (self.hcoSearchStep or 0) + 2
+		self.hcoNextSearchAt = 0
+	end
+	self.hcoProgressToken = nil
+	self.hcoProgressSampleTime = 0
+	self.hcoProgressStallTime = 0
+	self.hcoProgressRecoveries = (self.hcoProgressRecoveries or 0) + 1
+	util.log(config, "drone navigation recovery model=" .. tostring(self.hcoType and self.hcoType.id) .. " reason=" .. tostring(reason))
+end
+
+local function updateDestinationProgress(self, dt, distance)
+	if flight.isTransiting(self) or not self.hcoDestX or not tonumber(distance) or distance < 36 then
+		self.hcoProgressToken = nil
+		self.hcoProgressSampleTime = 0
+		self.hcoProgressStallTime = 0
+		return false
+	end
+	local token = (self.hcoTracking or 0) > 0 and "tracking"
+		or tostring(math.floor(self.hcoDestX / 4)) .. ":" .. tostring(math.floor(self.hcoDestY / 4))
+	if self.hcoProgressToken ~= token then
+		self.hcoProgressToken = token
+		self.hcoProgressCheckpoint = distance
+		self.hcoProgressSampleTime = 0
+		self.hcoProgressStallTime = 0
+		return false
+	end
+	self.hcoProgressSampleTime = (self.hcoProgressSampleTime or 0) + dt
+	local interval = config.DRONE_PROGRESS_SAMPLE_INTERVAL or 0.6
+	if self.hcoProgressSampleTime < interval then return false end
+	local elapsed = self.hcoProgressSampleTime
+	self.hcoProgressSampleTime = 0
+	if distance <= (self.hcoProgressCheckpoint or distance) - (config.DRONE_PROGRESS_EPSILON or 7) then
+		self.hcoProgressStallTime = 0
+	else
+		self.hcoProgressStallTime = (self.hcoProgressStallTime or 0) + elapsed
+	end
+	self.hcoProgressCheckpoint = distance
+	if self.hcoProgressStallTime >= (config.DRONE_PROGRESS_REPATH_TIME or 2.4) then
+		forceNavigationRecovery(self, "no-destination-progress")
+		return true
+	end
+	return false
+end
+
 local function hasLineOfSight(self, target, requireCone, maximumRange, requireRaycast)
 	local px, py = util.getPos(target)
 	if not px then return false end
@@ -225,22 +281,50 @@ local function canSeePlayer(self, player)
 	return hasPlayerLineOfSight(self, player, true)
 end
 
-local function semanticDetectionFactor(self, aggressive)
-	local root = self.hcoContext and (self.hcoContext.root or self.hcoContext)
+local function currentIdentityToken(root)
+	local active = root and root.disguise
+	if not active then return "original" end
+	return "disguise:" .. tostring(active.group or "unknown") .. ":" .. tostring(active.acquiredTime or 0)
+end
 
-	if not root or not root.disguise then
-		return 1
+local function identityProfile(self, player, aggressive)
+	local context = self.hcoContext
+	local root = context and (context.root or context)
+	local security = context and context.security
+	local active = root and root.disguise
+	local token = currentIdentityToken(root)
+	if not active then
+		return {token=token, disguised=false, exposed=true, canTrack=true, canConfirm=true, factor=1}
 	end
 
-	local risk = util.clamp(tonumber(root.disguiseRisk) or 1, 0, 1)
-	local minimum = config.DRONE_DISGUISE_MIN_DETECTION_FACTOR
-	local factor = minimum + risk * (1 - minimum)
-
-	if aggressive then
-		factor = math.max(config.DRONE_AGGRESSIVE_MIN_DETECTION_FACTOR, factor)
+	local compromised = active.compromised == true
+		or root.compromisedDisguises and root.compromisedDisguises[active.group] == true
+	local risk = compromised and 1 or util.clamp(tonumber(root.disguiseRisk) or 1, 0, 1)
+	local networkConfirmed = security and security.confirmedIdentityToken == token
+	local exposed = risk >= 0.999 or networkConfirmed == true
+	local px, py = util.getPos(player)
+	local offset = centerOffset(self)
+	local sx, sy = (self.x or 0) + offset, (self.y or 0) + offset
+	local distance = px and math.sqrt((px - sx)^2 + (py - sy)^2) or math.huge
+	local scrutinyRange = aggressive and config.DRONE_DISGUISE_AGGRESSIVE_SCRUTINY_RANGE
+		or config.DRONE_DISGUISE_SCRUTINY_RANGE
+	local withinScrutiny = distance <= (scrutinyRange or 155)
+	local factor = exposed and 1 or math.max(config.DRONE_DISGUISE_MIN_DETECTION_FACTOR or 0.22, risk)
+	if not exposed and withinScrutiny then
+		factor = math.max(factor, config.DRONE_DISGUISE_CLOSE_DETECTION_FACTOR or 0.32)
 	end
 
-	return factor
+	return {
+		token=token,
+		disguised=true,
+		exposed=exposed,
+		withinScrutiny=withinScrutiny,
+		canTrack=exposed or withinScrutiny,
+		canConfirm=exposed or withinScrutiny,
+		factor=factor,
+		distance=distance,
+		networkConfirmed=networkConfirmed == true
+	}
 end
 
 local function scanBodyEvidence(self, dt)
@@ -289,13 +373,18 @@ local function notifyConfirmedSighting(self, player)
 	if not x then return end
 	local now = curTime or 0
 	local root = context.root or context
+	local identityToken = currentIdentityToken(root)
+	self.hcoConfirmedIdentityToken = identityToken
 	local contexts = type(root.contracts) == "table" and #root.contracts > 0 and root.contracts or {context}
 	for _, networkContext in ipairs(contexts) do
 		local security = networkContext.security
 		if security then
 			security.knowledge = security.knowledge or {}
 			security.droneSighting = {x=x,y=y,time=now,drone=self}
-			security.lastKnown = {x=x,y=y,confidence=1,source="search-drone-network",time=now,actor=self}
+			security.lastKnown = {x=x,y=y,confidence=1,source="search-drone-network",time=now,actor=player}
+			security.confirmedIdentityToken = identityToken
+			security.confirmedIdentityAt = now
+			security.confirmedIdentitySource = "search-drone-network"
 			security.targetThreatLevel = 1
 			security.huntPhase = "PRESSURE"
 			security.droneMode = "AGGRESSIVE"
@@ -345,6 +434,7 @@ function drones.initialize()
 		QUADLIST = {"Camera_1"},
 		lightColor = color(70, 190, 255, 255) * 2,
 		lightColorInactive = color(255, 80, 50, 255) * 2,
+		lightColorSuspicious = color(255, 188, 62, 255) * 2,
 		radius = config.DRONE_SCAN_RADIUS,
 		lightFOV = config.DRONE_FOV,
 		castOff = 0,
@@ -363,6 +453,8 @@ function drones.initialize()
 		self.hcoBodyAngle = self.curViewAngRad or 0
 		self.hcoSensorAngle = self.curViewAngRad or 0
 		self.hcoTracking = 0
+		self.hcoObservedIdentityToken = nil
+		self.hcoConfirmedIdentityToken = nil
 		self.hcoWeaponCooldown = 0
 		self.hcoWeaponState = "IDLE"
 		self.hcoRotorSound = audio.startRotor(self)
@@ -480,12 +572,28 @@ function drones.initialize()
 		local aggressive = security and security.droneMode == "AGGRESSIVE"
 		local modeSpeed = aggressive and config.DRONE_AGGRESSIVE_SPEED_MULTIPLIER or config.DRONE_PATROL_SPEED_MULTIPLIER
 		local player = game and game.playerActor
+		local identity = identityProfile(self, player, aggressive)
+		if self.hcoObservedIdentityToken ~= identity.token then
+			-- A clothing change invalidates a camera's old visual match. Location-level
+			-- alarm knowledge remains, but neither a stale tracking slot nor a recent
+			-- weapon authorization may identify the new appearance automatically.
+			self.hcoObservedIdentityToken = identity.token
+			self.hcoConfirmedIdentityToken = nil
+			self.hcoLastConfirmedAt = -100
+			self.hcoDetect, self.hcoTracking, self.hcoSightGrace = 0, 0, 0
+			self.hcoDestX, self.hcoDestY = nil, nil
+			self.hcoDestRefreshAt = 0
+		end
 		self.hcoTracking = math.max(0, (self.hcoTracking or 0) - dt)
 		transiting = flight.isTransiting(self)
 		local visibleBeforeMove = not transiting and player and util.isAlive(player) and canSeePlayer(self, player) or false
 		local recentLastKnown = security and security.lastKnown and ((curTime or 0) - (security.lastKnown.time or 0)) <= 8
-		local pursuitCue = not transiting and aggressive and recentLastKnown and player and util.isAlive(player) and hasPlayerLineOfSight(self, player, false) or false
-		local tacticalContact = visibleBeforeMove or pursuitCue
+		-- An alarm is a search order, not biometric knowledge. Cone-less pursuit is
+		-- reserved for an already exposed/currently confirmed identity; a clean
+		-- disguise must first enter this drone's own close scrutiny cone.
+		local pursuitCue = not transiting and identity.exposed and aggressive and recentLastKnown
+			and player and util.isAlive(player) and hasPlayerLineOfSight(self, player, false) or false
+		local tacticalContact = identity.canTrack and (visibleBeforeMove or pursuitCue)
 		if tacticalContact then
 			if self.hcoTracking <= 0 then flight.beginTracking(self, player) else self.hcoTracking = 2.2 end
 		end
@@ -506,6 +614,10 @@ function drones.initialize()
 		local maximumSpeed = aggressive and config.DRONE_MAX_AGGRESSIVE_SPEED or config.DRONE_MAX_PATROL_SPEED
 		local _, velocityAngle, movedDistance = flight.move(self, dt, math.min(requestedSpeed, maximumSpeed))
 		transiting = flight.isTransiting(self)
+		offset = centerOffset(self)
+		centerX, centerY = (self.x or 0) + offset, (self.y or 0) + offset
+		local remainingDistance = self.hcoDestX and math.sqrt((self.hcoDestX - centerX)^2 + (self.hcoDestY - centerY)^2) or nil
+		updateDestinationProgress(self, dt, remainingDistance)
 		if transiting then
 			self.hcoIdleTime = 0
 		elseif movedDistance < 0.05 then
@@ -516,19 +628,12 @@ function drones.initialize()
 		if self.hcoIdleTime >= config.DRONE_IDLE_RELOCATE_TIME then
 			self.hcoIdleTime = 0
 			self.hcoIdleRecoveries = (self.hcoIdleRecoveries or 0) + 1
-			self.hcoDestX, self.hcoDestY = nil, nil
-			if self.hcoTracking > 0 then
-				local direction = self.hcoIdleRecoveries % 2 == 0 and -1 or 1
-				self.hcoTrackSlotAngle = (self.hcoTrackSlotAngle or 0) + math.rad(42 * direction)
-			else
-				self.hcoSearchPhase = (self.hcoSearchPhase or 0) + 1
-				self.hcoSearchStep = (self.hcoSearchStep or 0) + 2
-				self.hcoNextSearchAt = 0
-			end
+			forceNavigationRecovery(self, "physical-idle")
 		end
 		flight.updateAim(self, dt, player, visibleBeforeMove or pursuitCue, velocityAngle)
 		local visible = not transiting and player and util.isAlive(player) and canSeePlayer(self, player) or false
-		if visible then
+		identity = identityProfile(self, player, aggressive)
+		if visible and identity.canTrack then
 			if self.hcoTracking <= 0 then flight.beginTracking(self, player) else self.hcoTracking = 2.2 end
 		end
 		if visible then self.hcoSightGrace = 0.4 else self.hcoSightGrace = math.max(0, (self.hcoSightGrace or 0) - dt) end
@@ -540,21 +645,24 @@ function drones.initialize()
 		local detectionVisible = not transiting and (visible or (self.hcoSightGrace or 0) > 0)
 		if detectionVisible then
 			local detectTime = config.DRONE_DETECT_TIME * (self.hcoDetectScale or 1) * (aggressive and 1 or config.DRONE_PATROL_DETECT_MULTIPLIER)
-			local semanticFactor = semanticDetectionFactor(self, aggressive)
-			self.hcoIdentityFactor = semanticFactor
-			self.hcoDetect = math.min(detectTime, self.hcoDetect + dt * semanticFactor)
-			self.lightColorCurrent = self.lightColorInactive self:updateCastColor()
-			if self.hcoDetect >= detectTime and ((curTime or 0) - (self.hcoLastConfirmedAt or -100)) >= 0.75 then
+			self.hcoIdentityFactor = identity.factor
+			local detectionCeiling = identity.canConfirm and detectTime
+				or detectTime * (config.DRONE_DISGUISE_SUSPICION_CAP or 0.42)
+			self.hcoDetect = math.min(detectionCeiling, self.hcoDetect + dt * identity.factor)
+			self.lightColorCurrent = identity.disguised and not identity.exposed and self.lightColorSuspicious or self.lightColorInactive
+			self:updateCastColor()
+			if identity.canConfirm and self.hcoDetect >= detectTime and ((curTime or 0) - (self.hcoLastConfirmedAt or -100)) >= 0.75 then
 				self.hcoLastConfirmedAt = curTime or 0
 				notifyConfirmedSighting(self, player)
 			end
 		else
 			self.hcoDetect = math.max(0, self.hcoDetect - dt * 0.65)
 			self.hcoIdentityFactor = 1
-			-- Once any drone confirms the player, the complete network enters a
-			-- visibly red search state. An individual armed drone still needs its own
-			-- unobstructed view before weapon authority is granted.
-			self.lightColorCurrent = aggressive and self.lightColorInactive or self.lightColor self:updateCastColor()
+			-- Red means the current appearance is actionable. A clean disguise keeps
+			-- the network in amber search until close scrutiny or other evidence
+			-- actually establishes identity.
+			self.lightColorCurrent = aggressive and (identity.disguised and not identity.exposed and self.lightColorSuspicious or self.lightColorInactive) or self.lightColor
+			self:updateCastColor()
 		end
 		local px, py = util.getPos(player)
 		local aimError = math.pi
@@ -562,7 +670,9 @@ function drones.initialize()
 			local offset = centerOffset(self)
 			aimError = flight.angleDifference(math.atan2(py - ((self.y or 0) + offset), px - ((self.x or 0) + offset)), self.hcoSensorAngle or 0)
 		end
-		local confirmed = aggressive and self.hcoTracking > 0 and ((curTime or 0) - (self.hcoLastConfirmedAt or -100)) < 3
+		local confirmed = aggressive and self.hcoTracking > 0
+			and self.hcoConfirmedIdentityToken == identity.token
+			and ((curTime or 0) - (self.hcoLastConfirmedAt or -100)) < 3
 		local attackOffset = centerOffset(self)
 		local attackReady = not transiting and self.hcoHitboxReady == true and flight.isSafeCombatPoint((self.x or 0) + attackOffset, (self.y or 0) + attackOffset, math.max(10, attackOffset * 0.8))
 		droneWeapons.update(self, player, visible, aimError, dt, confirmed and attackReady)
@@ -734,6 +844,7 @@ local function spawn(context, index)
 	if type(color) == "function" then
 		instance.lightColor = color(accent[1], accent[2], accent[3], 255) * 2
 		instance.lightColorInactive = color(255, 70, 50, 255) * 2
+		instance.lightColorSuspicious = color(255, 188, 62, 255) * 2
 	end
 	-- Atlas cells rotate independently from the axis-aligned carrier. These sizes
 	-- cover the visible diagonal (including rotors), not merely the unrotated

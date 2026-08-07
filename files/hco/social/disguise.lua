@@ -341,6 +341,7 @@ function disguise.applyFromBody(state, body, player)
 	end
 
 	state.disguise = candidate
+	state.disguiseRisk = candidate.compromised and 1 or disguise.getBehaviorRisk(state, player)
 	state.closeScrutiny = {}
 	state.lastLocalExposureFeedbackTime = nil
 	body._hcoDisguiseTaken = true
@@ -410,6 +411,7 @@ function disguise.restore(state)
 	local _, hasKeychain = util.call(player, "hasKey", record.disguiseKeychain)
 	if record.disguiseKeychain and not hasKeychain then util.call(player, "addKey", record.disguiseKeychain, nil) end
 	player._hcoDisguiseFactionVisual = state.disguise.factionVisual
+	state.disguiseRisk = state.disguise.compromised and 1 or disguise.getBehaviorRisk(state, player)
 
 	for _, body in ipairs(util.getNPCs(game.worldObject)) do
 		if state.usedDisguiseSources[util.getID(body)] then body._hcoDisguiseTaken = true end

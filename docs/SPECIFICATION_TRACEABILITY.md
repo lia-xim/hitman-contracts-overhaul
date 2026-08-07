@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.7-rc41`
+**Candidate:** `0.14.8-rc42`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -20,7 +20,7 @@ This document prevents future work from collapsing the product specification int
 | Social recognition | `social/disguise.lua` plus instantiated native Goon sight states | Implemented for the observer-local uniform-class model | Instant-bypass interception, 150-unit timed close scrutiny, 72-unit point-blank exposure, native hostile handoff, arbitrary held weapon, witnessed/unwitnessed fire, access, evidence and compromise cases | Prove distance bands and native response in a real mission |
 | Credentials and restricted areas | Native `playerActor:addKey` and off-limits queries, coordinated by `social/disguise.lua` | Implemented for keycard and keychain IDs | Acquisition/reload and adjusted trespass-query cases | Verify actual mission doors and STAFF/SECURITY/ELITE areas |
 | Existing cameras | `security/sensors.lua` | Implemented | Camera risk scaling and disruption/break evidence in runtime fixtures | Live camera cone, disguise and wall/EMP pass |
-| Physical drone system | `security/drones.lua` and drone modules | RC41 committed patrol, bounded inert barrier hop, outdoor fallback, stationary scan and shared map alarm candidate | Dedicated drone, roster and airframe suites | RC41 live patrol/barrier/network matrix remains mandatory |
+| Physical drone system | `security/drones.lua` and drone modules | RC42 appearance-scoped sensing, progress watchdog, stable wall following, bounded inert barrier hop, outdoor fallback and shared map alarm candidate | Dedicated drone, roster and airframe suites | RC42 live disguise-distance/patrol/barrier/network matrix remains mandatory |
 | Rewards and persistence | `contracts/rewards.lua`, `persistence.lua` | Implemented | Exactly-once reward, active reload, terminal reload and bundle cases | Campaign save/reload across mission transitions |
 | Authored map profiles | Contract archetypes provide visual/doctrine identity; per-map authored safe-area profiles remain partial | Partial | Profile selection and deterministic doctrine cases | Author and approve high-value mission profiles |
 | Expanded contract families | Eliminate/neutralize plus bonus conditions are present; theft, extraction and authored accidents are not | Partial expansion | Current contract-resolution cases | New families require their own engine proofs |
@@ -220,6 +220,15 @@ Second, a native yellow/red alert state or last-known hunch is not proof that an
 - One nearby unsuppressed shot writes only a location-level protection incident and cautious target threat. It cannot identify the shooter. Damage/casualties or confirmed evidence still produce full flight; a fresh local incident can invalidate a sheltered safe area.
 - Takeover is the first eligible native body action, restoration is the second HCO action, and a persistent world shimmer makes the active/compromised identity readable. Restoration returns the original player variant and clears campaign disguise fields while retaining copied credentials, consumed identities and previous compromise knowledge.
 - Automated coverage must prove bounded landing selection, transit sensing lockout, target routine recovery, first-shot caution, action order, removal and persistence cleanup. Live acceptance must prove geometry, native-AI movement and render behavior.
+
+## RC42 drone identity and navigation continuity
+
+- `AGGRESSIVE` is a location-search order only. It may change route and speed, but it may not supply player identity, cone-less tracking or weapon authority by itself.
+- Every confirmed guard/drone handoff records an appearance token: `original` or the active disguise group plus acquisition timestamp. A clothing change invalidates per-drone tracking, detection grace, recent confirmation and weapon authorization tied to the previous token.
+- A clean disguise outside 155 world units in patrol or 205 during an alarm can accumulate only 42% amber sensor suspicion. It cannot create `droneSighting`, tracking or fire. Inside the applicable band, sustained real cone/raycast contact builds progressive scrutiny before confirmation. Compromise, aiming and other overt risk still remove this protection.
+- Disguise acquisition/restoration publishes its semantic risk in the same transaction as the actor variant, so there is no one-frame unmasked sensor state.
+- Building avoidance keeps one deterministic handed tangent instead of changing side every frame. In addition to physical-idle recovery, a 0.6-second sampled watchdog rejects any route that fails to improve destination distance by seven units for 2.4 seconds, changes the search/flank approach and retains the existing no-sensing/no-fire barrier transition rules.
+- Automated coverage must prove amber long-range cover under alarm, delayed close scrutiny, current-token confirmation, atomic risk publication, stable wall-follow direction and recovery from non-progressing motion. Live acceptance must prove the distance colors, no instant attack and continuous map movement.
 
 ## Required live acceptance for this feature
 

@@ -454,12 +454,30 @@ end
 local function steerAroundBuilding(drone, centerX, centerY, intendedAngle, step)
 	local index = drone.hcoIndex or 1
 	local recovery = drone.hcoWallRecovery or 0
-	local preferLeft = util.stableHash(tostring(index) .. ":wall:" .. tostring(recovery)) % 2 == 0
-	local side = preferLeft and 1 or -1
-	for _, degrees in ipairs({48, -48, 82, -82, 118, -118, 160}) do
+	local side = drone.hcoWallSide
+	if not side then
+		local salt = tostring(index) .. ":wall:" .. tostring(math.floor((drone.hcoDestX or 0) / 32)) .. ":" .. tostring(math.floor((drone.hcoDestY or 0) / 32))
+		side = util.stableHash(salt) % 2 == 0 and 1 or -1
+		drone.hcoWallSide = side
+	end
+	-- Keep one handed wall-follow direction for the whole blocked episode. The
+	-- previous frame-by-frame side flip made a drone visibly shuffle in place
+	-- while still reporting movement to the idle watchdog.
+	for _, degrees in ipairs({42, 66, 92, 122, 154}) do
 		local angle = intendedAngle + math.rad(degrees * side)
 		local candidateX, candidateY = flight.clampToWorld(centerX + math.cos(angle) * step, centerY + math.sin(angle) * step)
 		if not blocksFlightSegment(centerX, centerY, candidateX, candidateY, math.max(10, centerOffset(drone) * 0.8)) then
+			drone.hcoWallRecovery = recovery + 1
+			return candidateX, candidateY, angle, true
+		end
+	end
+	-- A concave corner can block the preferred side completely. Switching once
+	-- to the verified opposite tangent is safe and remains stable next frame.
+	for _, degrees in ipairs({66, 92, 122, 154}) do
+		local angle = intendedAngle - math.rad(degrees * side)
+		local candidateX, candidateY = flight.clampToWorld(centerX + math.cos(angle) * step, centerY + math.sin(angle) * step)
+		if not blocksFlightSegment(centerX, centerY, candidateX, candidateY, math.max(10, centerOffset(drone) * 0.8)) then
+			drone.hcoWallSide = -side
 			drone.hcoWallRecovery = recovery + 1
 			return candidateX, candidateY, angle, true
 		end
@@ -563,6 +581,7 @@ function flight.move(drone, dt, speed)
 		else
 			drone.hcoWallRecovery = 0
 			drone.hcoBlockedTime = math.max(0, (drone.hcoBlockedTime or 0) - dt * 3)
+			if drone.hcoBlockedTime <= 0 then drone.hcoWallSide = nil end
 		end
 		drone:setPos(nextX - offset, nextY - offset)
 		movedDistance = math.sqrt((nextX - centerX)^2 + (nextY - centerY)^2)

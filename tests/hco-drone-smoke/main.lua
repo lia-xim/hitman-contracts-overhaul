@@ -194,6 +194,7 @@ for _=1,8 do
 end
 assertTrue(context.security.droneSighting~=nil,"sustained player presence in cone confirms a sighting")
 assertTrue(networkContext.security.droneMode=="AGGRESSIVE" and networkContext.security.droneSighting~=nil,"one confirmed drone sighting alarms every HCO security network on the map")
+assertTrue(context.security.confirmedIdentityToken=="original" and networkContext.security.confirmedIdentityToken=="original","network alarm records the actually observed appearance rather than treating every later disguise as known")
 assertTrue(networkDrone.hcoDestX==nil and networkDrone.hcoNextSearchAt==0,"networked drones immediately abandon stale patrol destinations for the reported contact")
 assertTrue(networkGuard.enemyInSight==true and networkGuard.combat==true,"networked response guards receive actionable player contact rather than a cosmetic alert")
 game.playerActor.x,game.playerActor.y=2000,2000
@@ -201,23 +202,45 @@ networkContext.security.droneMode="AGGRESSIVE"
 patrolProbe:update(0.1)
 assertTrue(patrolProbe.lightColorCurrent==patrolProbe.lightColorInactive,"an alarmed drone wing visibly retains its red search state without firing through geometry")
 
--- A calm, plausible disguise slows patrol identification but never grants
--- permanent invisibility; suspicious behavior restores full acquisition.
+-- Alarmed drones share a location, not magical identity knowledge. A clean
+-- disguise remains an amber long-range suspicion and requires close scrutiny;
+-- suspicious behavior still restores full acquisition.
 context.security.droneSighting=nil
-context.security.droneMode="PATROL"
-rootState.disguise={group="security"}
+context.security.confirmedIdentityToken=nil
+networkContext.security.confirmedIdentityToken=nil
+context.security.droneMode="AGGRESSIVE"
+rootState.disguise={group="security",acquiredTime=100}
 rootState.disguiseRisk=0
 detector.hcoDetect,detector.hcoSightGrace,detector.hcoTracking,detector.hcoLastConfirmedAt=0,0,0,-100
-for _=1,6 do
+detector.hcoObservedIdentityToken=nil
+for _=1,30 do
 	local cx,cy=detector:getAimPos()
-	game.playerActor.x,game.playerActor.y=cx+math.cos(detector.hcoSensorAngle or 0)*60,cy+math.sin(detector.hcoSensorAngle or 0)*60
+	game.playerActor.x,game.playerActor.y=cx+math.cos(detector.hcoSensorAngle or 0)*300,cy+math.sin(detector.hcoSensorAngle or 0)*300
 	detector:update(0.1)
 end
-assertTrue(context.security.droneSighting==nil and detector.hcoDetect>0,"valid calm disguise slows patrol-drone identity acquisition")
+assertTrue(context.security.droneSighting==nil and detector.hcoTracking==0 and detector.hcoDetect>0,"aggressive search cannot turn a clean long-range disguise into confirmed identity")
+assertTrue(detector.lightColorCurrent==detector.lightColorSuspicious,"clean disguised contact is communicated as amber suspicion instead of red attack authority")
+for _=1,5 do
+	local cx,cy=detector:getAimPos()
+	game.playerActor.x,game.playerActor.y=cx+math.cos(detector.hcoSensorAngle or 0)*100,cy+math.sin(detector.hcoSensorAngle or 0)*100
+	detector:update(0.1)
+end
+assertTrue(context.security.droneSighting==nil and detector.hcoTracking>0,"close disguised scrutiny tracks progressively without an instant attack")
+for _=1,12 do
+	local cx,cy=detector:getAimPos()
+	game.playerActor.x,game.playerActor.y=cx+math.cos(detector.hcoSensorAngle or 0)*100,cy+math.sin(detector.hcoSensorAngle or 0)*100
+	detector:update(0.1)
+end
+assertTrue(context.security.droneSighting~=nil and detector.hcoConfirmedIdentityToken=="disguise:security:100","sustained close scrutiny confirms only the currently observed disguise")
+context.security.droneSighting=nil
+context.security.confirmedIdentityToken=nil
+networkContext.security.confirmedIdentityToken=nil
+detector.hcoConfirmedIdentityToken=nil
 rootState.disguiseRisk=1
+detector.hcoDetect,detector.hcoSightGrace,detector.hcoTracking,detector.hcoLastConfirmedAt=0,0,0,-100
 for _=1,8 do
 	local cx,cy=detector:getAimPos()
-	game.playerActor.x,game.playerActor.y=cx+math.cos(detector.hcoSensorAngle or 0)*60,cy+math.sin(detector.hcoSensorAngle or 0)*60
+	game.playerActor.x,game.playerActor.y=cx+math.cos(detector.hcoSensorAngle or 0)*300,cy+math.sin(detector.hcoSensorAngle or 0)*300
 	detector:update(0.1)
 end
 assertTrue(context.security.droneSighting~=nil,"suspicious disguised behavior restores full drone acquisition")
@@ -243,6 +266,20 @@ worldNPCs={}
 detector.hcoIdleTime=config.DRONE_IDLE_RELOCATE_TIME+1
 detector:update(0.1)
 assertTrue((detector.hcoIdleRecoveries or 0)>=1,"idle watchdog immediately forces a new search or flank destination")
+local flight=require("hco/security/drone_flight")
+local originalFlightMove=flight.move
+game.playerActor.x,game.playerActor.y=2000,2000
+detector.hcoTracking=0
+detector.hcoDestX,detector.hcoDestY=detector.x+500,detector.y
+detector.hcoDestRefreshAt=999
+detector.hcoProgressRecoveries=0
+flight.move=function(drone)
+	drone:setPos(drone.x+1,drone.y)
+	return 500,0,1,false,false
+end
+for _=1,32 do detector:update(0.1) end
+flight.move=originalFlightMove
+assertTrue(detector.hcoProgressRecoveries>=1,"progress watchdog rejects wall shuffling that moves locally without approaching the destination")
 context.security.droneSighting=nil
 detector.disrupted=true
 for _=1,5 do detector:update(0.1) end
@@ -306,6 +343,7 @@ heavy:update(1)
 assertTrue(edgeBullet.inactive and heavy.hcoArmor==2,"fallback registers a shot across the visible heavy rotor edge")
 edgeBullet.stored,edgeBullet.inactive=false,false
 edgeBullet.shotNumber=99
+heavyX,heavyY=heavy:getAimPos()
 edgeBullet.shootX,edgeBullet.shootY=heavyX-90,heavyY-24
 edgeBullet.x,edgeBullet.y=heavyX+35,heavyY-24
 edgeBullet.travelX,edgeBullet.travelY=80,0

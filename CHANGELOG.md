@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.8-rc42 — 2026-08-07
+
+- Separated an aggressive search from confirmed player identity. An alarmed drone no longer receives cone-less tracking or a 72% minimum detection rate merely because security has a last-known position.
+- Added appearance-scoped identity handoff. Guard/drone confirmation records the exact original appearance or disguise acquisition token; changing clothes invalidates stale drone tracking, recent-fire authorization and old visual confirmation without erasing the location-level search.
+- Added drone social-stealth distance bands. A clean disguise at long range is capped at amber suspicion, while close cone/raycast scrutiny inside 155 units (205 during an active search) builds progressively before red confirmation. Compromised cover, aiming and overt behavior retain fast recognition.
+- Made disguise risk atomic with acquisition and checkpoint restoration, removing the single exposed update frame that could let a nearby drone instantly classify freshly changed clothing as hostile.
+- Replaced frame-flipping obstacle avoidance with stable handed wall following and a destination-progress watchdog. Drones now invalidate a route that shuffles without getting closer for 2.4 seconds, choose a new search/flank approach and keep the existing bounded, blind/disarmed barrier hop for legitimate narrow exterior separations.
+- Added regressions for long-range alarmed disguise concealment, amber suspicion, progressive close scrutiny, appearance-token handoff, atomic disguise risk, stable wall-follow direction and movement-without-progress recovery.
+
 ## 0.14.7-rc41 — 2026-08-07
 
 - Added bounded drone barrier overflight for narrow exterior walls, gates, fences and door separations. A drone first attempts ordinary steering, then crosses only when it finds a fully verified outdoor landing within 144 units and the obstructed span is no wider than 96 units; roofed buildings and map void remain forbidden.
