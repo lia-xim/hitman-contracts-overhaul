@@ -1,6 +1,7 @@
 local config = require("hco/config")
 local english = require("hco/localization/english")
 local feedback = require("hco/feedback")
+local identityFX = require("hco/social/identity_fx")
 local persistence = require("hco/contracts/persistence")
 local securityDirector = require("hco/security/director")
 local stateModule = require("hco/state")
@@ -26,8 +27,13 @@ local SUSPICIOUS_PLAYER_STATES = {
 	player_throwing_weapon = true,
 	player_throwing_item = true,
 	player_post_throw_cooldown = true,
-	player_taking_item_throwing = true
+	player_taking_item_throwing = true,
+	player_reloading = true,
+	player_reload = true,
+	player_reloading_weapon = true
 }
+
+local INTERACTION_SENTINEL = "hco_take_disguise_v1"
 
 local function getPlayerStateID(player)
 	local ok, stateObject = util.call(player, "getState")
@@ -45,17 +51,53 @@ local function getWeaponIdentity(weapon)
 	return weaponType, util.getID(weapon)
 end
 
-local function classifyBody(body)
-	local _, currentExperience = util.call(body, "getExperienceLevel")
-	local experience = body._hcoOriginalExperience or currentExperience
+local function cacheBodyIdentity(body)
+	if not body or body._hcoDisguiseIdentity then
+		return body and body._hcoDisguiseIdentity or nil
+	end
+
+	local _, experience = util.call(body, "getExperienceLevel")
 	local _, weapon = util.call(body, "getWeapon")
 	local _, keycard = util.call(body, "getKeycard")
+	local _, keychain = util.call(body, "getKeychain")
+	local _, group = util.call(body, "getAnimVariant")
+	local _, radio = util.call(body, "getRadio")
+	local _, blood = util.call(body, "getBlood")
+	local weaponType, weaponID = getWeaponIdentity(weapon)
+
+	body._hcoDisguiseIdentity = {
+		experience = body._hcoOriginalExperience or experience,
+		weaponType = weaponType,
+		weaponID = weaponID,
+		keycard = keycard,
+		keychain = keychain,
+		group = group and tostring(group) or nil,
+		armed = weapon ~= nil or body.startingWeapon ~= nil or body._hcoEscort == true,
+		hadRadio = radio ~= nil,
+		bloodied = tonumber(blood) ~= nil and tonumber(blood) < 30 or false
+	}
+
+	return body._hcoDisguiseIdentity
+end
+
+local function classifyBody(body)
+	local identity = cacheBodyIdentity(body) or {}
+	local _, currentExperience = util.call(body, "getExperienceLevel")
+	local experience = identity.experience or body._hcoOriginalExperience or currentExperience
+	local _, weapon = util.call(body, "getWeapon")
+	local _, keycard = util.call(body, "getKeycard")
+	local _, keychain = util.call(body, "getKeychain")
 	local weaponType, weaponID = getWeaponIdentity(weapon)
 	local goonClass = actor.getClassData and actor.getClassData("goon")
 	local elite = goonClass and goonClass.EXPERIENCE_LEVELS and goonClass.EXPERIENCE_LEVELS.ELITE
 	local tier, access
 
-	if not weapon then
+	weaponType = identity.weaponType or weaponType
+	weaponID = identity.weaponID or weaponID
+	keycard = identity.keycard or keycard
+	keychain = identity.keychain or keychain
+
+	if not weapon and not identity.armed and not identity.hadRadio and not keycard and not keychain then
 		tier, access = "staff", 1
 	elseif elite and tonumber(experience) and experience >= elite then
 		tier, access = "elite_security", 3
@@ -63,11 +105,11 @@ local function classifyBody(body)
 		tier, access = "regular_security", 2
 	end
 
-	if keycard then
+	if keycard or keychain then
 		access = math.max(access, tier == "elite_security" and 3 or 2)
 	end
 
-	return tier, access, weaponType, weaponID, keycard
+	return tier, access, weaponType, weaponID, keycard, keychain, identity.bloodied == true
 end
 
 local function observerLocallyCompromised(state, observer, group)
@@ -126,6 +168,10 @@ function disguise.getBehaviorRisk(state, player)
 		return 1
 	end
 
+	if state.disguise.illicitTime and (curTime or 0) - state.disguise.illicitTime <= config.DISGUISE_ILLICIT_ACTION_TIME then
+		return 1
+	end
+
 	local okAim, aiming = util.call(player, "getAiming")
 
 	if okAim and aiming then
@@ -142,7 +188,12 @@ function disguise.getBehaviorRisk(state, player)
 		return config.DISGUISE_SPRINT_DETECTION
 	end
 
-	return visibleWeaponRisk(state, player)
+	return math.max(
+		visibleWeaponRisk(state, player),
+		tonumber(state.disguise.lingerRisk) or 0,
+		tonumber(state.disguise.disturbanceRisk) or 0,
+		state.disguise.bloodied and config.DISGUISE_BLOODIED_DETECTION or 0
+	)
 end
 
 local function observerFactor(state, observer, player)
@@ -150,12 +201,11 @@ local function observerFactor(state, observer, player)
 		return 1
 	end
 
-	local risk = disguise.getBehaviorRisk(state, player)
-
-	if risk > 0 then
-		return risk
+	if npcAlertnessStates and npcAlertnessStates.getCombat and npcAlertnessStates:getCombat() then
+		return 1
 	end
 
+	local risk = disguise.getBehaviorRisk(state, player)
 	local _, observerGroup = util.call(observer, "getAnimVariant")
 	local factor = tostring(observerGroup) == state.disguise.group and config.DISGUISE_COLLEAGUE_DETECTION or config.DISGUISE_BASE_DETECTION
 	local _, experience = util.call(observer, "getExperienceLevel")
@@ -172,7 +222,7 @@ local function observerFactor(state, observer, player)
 		factor = factor * 1.6
 	end
 
-	return math.min(1, factor)
+	return math.min(1, math.max(risk, factor))
 end
 
 local function saveDisguise(state)
@@ -189,11 +239,19 @@ local function saveDisguise(state)
 			record.disguiseGroup = active and active.group or nil
 			record.disguiseSourceID = active and active.sourceID or nil
 			record.disguiseKeycard = active and active.keycard or nil
+			record.disguiseKeychain = active and active.keychain or nil
 			record.disguiseTier = active and active.tier or nil
 			record.disguiseAccess = active and active.accessReduction or nil
 			record.disguiseWeaponType = active and active.weaponType or nil
+			record.disguiseWeaponID = active and active.weaponID or nil
+			record.disguiseOriginalAnimVar = active and active.originalAnimVar or nil
+			record.disguiseAcquiredTime = active and active.acquiredTime or nil
+			record.disguiseSourceWasDead = active and active.sourceWasDead == true or false
+			record.disguiseBloodied = active and active.bloodied == true or false
+			record.disguiseFactionVisual = active and active.factionVisual or nil
+			record.usedDisguiseSources = state.usedDisguiseSources
 			record.compromisedDisguises = state.compromisedDisguises
-		persistence.save(record)
+			persistence.save(record)
 		end
 	end
 end
@@ -223,33 +281,56 @@ function disguise.applyFromBody(state, body, player)
 		return false
 	end
 
-	local tier, access, weaponType, weaponID, keycard = classifyBody(body)
+	local tier, access, weaponType, weaponID, keycard, keychain, bloodied = classifyBody(body)
+	local _, sourceWasDead = util.call(body, "isDead")
+	local switched = state.disguise ~= nil
+	local _, previousAnimVar = util.call(player, "getAnimVariant")
 	local originalAnimVar = state.disguise and state.disguise.originalAnimVar
 
 	if not originalAnimVar then
-		local _, currentAnimVar = util.call(player, "getAnimVariant")
-		originalAnimVar = currentAnimVar
+		originalAnimVar = previousAnimVar
 	end
 
-	state.disguise = {
+	local candidate = {
 		group = tostring(group),
 		sourceID = util.getID(body),
 		keycard = keycard,
+		keychain = keychain,
 		tier = tier,
 		accessReduction = access,
 		weaponType = weaponType,
 		weaponID = weaponID,
 		originalAnimVar = originalAnimVar,
 		acquiredTime = curTime or 0,
+		illicitTime = curTime or 0,
+		lingerTime = 0,
+		lingerRisk = 0,
+		sourceWasDead = sourceWasDead == true,
+		bloodied = bloodied,
+		factionVisual = tonumber(body._hcoFactionVisual),
 		compromised = state.compromisedDisguises[tostring(group)] == true
 	}
 
-	body._hcoDisguiseTaken = true
-	util.call(player, "setAnimVariant", group)
+	local changed = util.call(player, "setAnimVariant", group)
+	local _, appliedGroup = util.call(player, "getAnimVariant")
 
-	if keycard and type(player.addKey) == "function" and not player:hasKey(keycard) then
-		player:addKey(keycard, nil)
+	if not changed or tostring(appliedGroup) ~= tostring(group) then
+		if previousAnimVar then util.call(player, "setAnimVariant", previousAnimVar) end
+		feedback.show(english.DISGUISE_VISUAL_FAILED)
+		util.log(config, "disguise rejected because visual variant did not apply group=" .. tostring(group))
+		return false, "visual-variant-rejected"
 	end
+
+	state.disguise = candidate
+	body._hcoDisguiseTaken = true
+	player._hcoDisguiseFactionVisual = candidate.factionVisual
+	state.usedDisguiseSources = state.usedDisguiseSources or {}
+	if candidate.sourceID then state.usedDisguiseSources[candidate.sourceID] = true end
+
+	local _, hasKeycard = util.call(player, "hasKey", keycard)
+	if keycard and not hasKeycard then util.call(player, "addKey", keycard, nil) end
+	local _, hasKeychain = util.call(player, "hasKey", keychain)
+	if keychain and not hasKeychain then util.call(player, "addKey", keychain, nil) end
 
 	for _, context in ipairs(stateModule.getContexts(state)) do
 		context.contract.metrics = context.contract.metrics or {}
@@ -257,7 +338,8 @@ function disguise.applyFromBody(state, body, player)
 	end
 	clearLowDetection(player)
 	saveDisguise(state)
-	feedback.show(state.disguise.compromised and english.DISGUISE_COMPROMISED or english.DISGUISE_ACQUIRED)
+	feedback.show(state.disguise.compromised and english.DISGUISE_COMPROMISED or english.disguiseAcquired(tier, switched, keycard or keychain, bloodied))
+	identityFX.trigger(state, state.disguise.compromised and "compromised" or "acquired")
 	util.log(config, "disguise acquired tier=" .. tostring(tier) .. " group=" .. tostring(group) .. " source=" .. tostring(state.disguise.sourceID) .. " keycard=" .. tostring(keycard or "none"))
 
 	return true
@@ -273,23 +355,47 @@ function disguise.restore(state)
 
 	local _, originalAnimVar = util.call(player, "getAnimVariant")
 	state.compromisedDisguises = record.compromisedDisguises or {}
+	state.usedDisguiseSources = record.usedDisguiseSources or {}
 	state.disguise = {
 		group = record.disguiseGroup,
 		sourceID = record.disguiseSourceID,
 		keycard = record.disguiseKeycard,
+		keychain = record.disguiseKeychain,
 		tier = record.disguiseTier or "regular_security",
-		accessReduction = record.disguiseAccess or (record.disguiseKeycard and 2 or 1),
+		accessReduction = record.disguiseAccess or ((record.disguiseKeycard or record.disguiseKeychain) and 2 or 1),
 		weaponType = record.disguiseWeaponType,
-		originalAnimVar = originalAnimVar,
-		acquiredTime = curTime or 0,
+		weaponID = record.disguiseWeaponID,
+		originalAnimVar = record.disguiseOriginalAnimVar or originalAnimVar,
+		acquiredTime = record.disguiseAcquiredTime or curTime or 0,
+		illicitTime = nil,
+		lingerTime = 0,
+		lingerRisk = 0,
+		sourceWasDead = record.disguiseSourceWasDead == true,
+		bloodied = record.disguiseBloodied == true,
+		factionVisual = record.disguiseFactionVisual,
 		compromised = state.compromisedDisguises[record.disguiseGroup] == true
 	}
 
-	util.call(player, "setAnimVariant", record.disguiseGroup)
-
-	if record.disguiseKeycard and type(player.addKey) == "function" and not player:hasKey(record.disguiseKeycard) then
-		player:addKey(record.disguiseKeycard, nil)
+	local changed = util.call(player, "setAnimVariant", record.disguiseGroup)
+	local _, appliedGroup = util.call(player, "getAnimVariant")
+	if not changed or tostring(appliedGroup) ~= tostring(record.disguiseGroup) then
+		state.disguise = nil
+		feedback.show(english.DISGUISE_VISUAL_FAILED)
+		return false
 	end
+
+	local _, hasKeycard = util.call(player, "hasKey", record.disguiseKeycard)
+	if record.disguiseKeycard and not hasKeycard then util.call(player, "addKey", record.disguiseKeycard, nil) end
+	local _, hasKeychain = util.call(player, "hasKey", record.disguiseKeychain)
+	if record.disguiseKeychain and not hasKeychain then util.call(player, "addKey", record.disguiseKeychain, nil) end
+	player._hcoDisguiseFactionVisual = state.disguise.factionVisual
+
+	for _, body in ipairs(util.getNPCs(game.worldObject)) do
+		if state.usedDisguiseSources[util.getID(body)] then body._hcoDisguiseTaken = true end
+	end
+
+	feedback.show(english.disguiseRestored(state.disguise.tier, state.disguise.compromised))
+	identityFX.trigger(state, state.disguise.compromised and "compromised" or "restored")
 
 	return true
 end
@@ -300,12 +406,15 @@ function disguise.clear(state, restoreVisual)
 	if restoreVisual and player and state.disguise and state.disguise.originalAnimVar then
 		util.call(player, "setAnimVariant", state.disguise.originalAnimVar)
 	end
+	if player then player._hcoDisguiseFactionVisual = nil end
 
 	state.disguise = nil
 	state.disguiseRisk = 1
 	state.compromisedDisguises = {}
+	state.usedDisguiseSources = {}
 	state.localCompromisedDisguises = {}
 	state.pendingCompromises = {}
+	identityFX.clear(state)
 end
 
 local function markLocalCompromise(state, observer, group)
@@ -319,7 +428,7 @@ local function markLocalCompromise(state, observer, group)
 	state.localCompromisedDisguises[id][group] = true
 end
 
-local function queueRadioCompromise(state, observer, group)
+local function queueRadioCompromise(state, observer, group, kind)
 	local okRadio, radio = util.call(observer, "getRadio")
 
 	if not okRadio or not radio then
@@ -345,11 +454,17 @@ local function queueRadioCompromise(state, observer, group)
 		observer = observer,
 		radio = radio,
 		group = group,
-		remaining = config.RADIO_TRANSMISSION_TIME,
+		kind = kind or "evidence",
+		remaining = kind == "identity-check" and config.DISGUISE_IDENTITY_CHECK_TRANSMISSION or config.RADIO_TRANSMISSION_TIME,
 		waitRemaining = config.RADIO_WAIT_TIMEOUT,
 		openedByHCO = openedByHCO,
 		worldToken = state.worldToken
 	})
+
+	if kind == "identity-check" then
+		feedback.show(english.DISGUISE_IDENTITY_CHECK)
+		identityFX.trigger(state, "checking", config.DISGUISE_IDENTITY_CHECK_TRANSMISSION + 0.2)
+	end
 end
 
 local function globallyCompromise(state, group, source)
@@ -363,6 +478,7 @@ local function globallyCompromise(state, group, source)
 		state.disguise.compromised = true
 		state.disguiseRisk = 1
 		feedback.show(english.DISGUISE_COMPROMISED)
+		identityFX.trigger(state, "compromised")
 	end
 
 	saveDisguise(state)
@@ -435,6 +551,14 @@ local function processPendingCompromises(state, dt)
 		local radio = pending.radio
 
 		if not remove then
+			if pending.kind == "identity-check" then
+				local player = game and game.playerActor
+				remove = not player or not state.disguise or state.disguise.group ~= pending.group
+					or util.distance(observer, player) > config.DISGUISE_IDENTITY_CHECK_RANGE * 1.35
+			end
+		end
+
+		if not remove then
 			local _, currentRadio = util.call(observer, "getRadio")
 			radio = currentRadio or radio
 
@@ -450,7 +574,7 @@ local function processPendingCompromises(state, dt)
 					pending.remaining = pending.remaining - dt
 
 					if pending.remaining <= 0 then
-						globallyCompromise(state, pending.group, "completed-radio-call")
+						globallyCompromise(state, pending.group, pending.kind == "identity-check" and "failed-identity-check" or "completed-radio-call")
 						remove = true
 					end
 				else
@@ -499,10 +623,104 @@ local function compromiseDirectWitnesses(state)
 	end
 end
 
+local function updateTargetLingerRisk(state, player, dt)
+	local nearTarget = false
+
+	for _, context in ipairs(stateModule.getContexts(state)) do
+		if context.target and util.isAlive(context.target) and util.distance(context.target, player) <= config.DISGUISE_TARGET_LINGER_RANGE then
+			nearTarget = true
+			break
+		end
+	end
+
+	if nearTarget then
+		state.disguise.lingerTime = math.min(config.DISGUISE_TARGET_LINGER_DANGER + 4, (state.disguise.lingerTime or 0) + dt)
+	else
+		state.disguise.lingerTime = math.max(0, (state.disguise.lingerTime or 0) - dt * 1.5)
+	end
+
+	if state.disguise.lingerTime >= config.DISGUISE_TARGET_LINGER_DANGER then
+		state.disguise.lingerRisk = 0.65
+	elseif state.disguise.lingerTime >= config.DISGUISE_TARGET_LINGER_WARNING then
+		state.disguise.lingerRisk = 0.35
+	else
+		state.disguise.lingerRisk = 0
+	end
+end
+
+local function updateDisturbanceRisk(state, player)
+	local now = curTime or 0
+	local risk = 0
+
+	for _, context in ipairs(stateModule.getContexts(state)) do
+		for _, evidence in ipairs(context.security and context.security.evidencePositions or {}) do
+			local age = now - (tonumber(evidence.time) or now)
+			if age <= config.DISGUISE_DISTURBANCE_MAX_AGE and util.distanceToPoint(player, evidence.x, evidence.y) <= config.DISGUISE_DISTURBANCE_RANGE then
+				risk = config.DISGUISE_DISTURBANCE_DETECTION
+				break
+			end
+		end
+		if risk > 0 then break end
+	end
+
+	state.disguise.disturbanceRisk = risk
+end
+
+local function isEligibleBody(state, body, interactor)
+	local bodyID = util.getID(body)
+	if not state.contract or not interactor or not interactor.PLAYER or not body or body._hcoDisguiseTaken
+		or bodyID and state.usedDisguiseSources and state.usedDisguiseSources[bodyID] then
+		return false
+	end
+
+	local _, dead = util.call(body, "isDead")
+	local _, unconscious = util.call(body, "isUnconscious")
+	local _, group = util.call(body, "getAnimVariant")
+
+	return group ~= nil and (dead == true or unconscious == true)
+end
+
+local function refreshBodyInteraction(body, interactor)
+	if not body or not interactor then return false end
+
+	-- Existing bodies cache their native option list. Updating that list after
+	-- HCO's class-level action registration is what makes hot-loaded and
+	-- checkpoint-restored bodies expose the disguise action in the real menu.
+	if body._interactionList and type(body.updateInteractionList) == "function" then
+		local ok = util.call(body, "updateInteractionList", interactor)
+		return ok
+	end
+
+	return false
+end
+
+local function refreshNearbyBodies(state, player, dt)
+	state.disguiseInteractionRefreshTime = (state.disguiseInteractionRefreshTime or 0) - dt
+	if state.disguiseInteractionRefreshTime > 0 then return end
+	state.disguiseInteractionRefreshTime = config.DISGUISE_SWITCH_COOLDOWN
+
+	for _, body in ipairs(util.getNPCs(game.worldObject)) do
+		if isEligibleBody(state, body, player) then
+			refreshBodyInteraction(body, player)
+
+			if not state.disguiseBodyHintShown and util.distance(body, player) <= config.DISGUISE_BODY_HINT_RANGE then
+				state.disguiseBodyHintShown = true
+				feedback.show(english.DISGUISE_BODY_AVAILABLE)
+			end
+		end
+	end
+end
+
 function disguise.update(state, dt)
 	local player = game and game.playerActor
 
 	processPendingCompromises(state, dt)
+	identityFX.update(state, dt)
+	if player then refreshNearbyBodies(state, player, dt) end
+	if state.disguise and player then
+		updateTargetLingerRisk(state, player, dt)
+		updateDisturbanceRisk(state, player)
+	end
 	state.disguiseRisk = player and disguise.getBehaviorRisk(state, player) or 1
 
 	if not state.disguise or not player or isGloballyCompromised(state) then
@@ -523,7 +741,7 @@ function disguise.update(state, dt)
 			local _, group = util.call(npc, "getAnimVariant")
 			local distance = util.distance(npc, player)
 
-			if tostring(group) == state.disguise.group and distance <= 220 and (not closestDistance or distance < closestDistance) then
+			if tostring(group) == state.disguise.group and distance <= config.DISGUISE_IDENTITY_CHECK_RANGE and (not closestDistance or distance < closestDistance) then
 				closest = npc
 				closestDistance = distance
 			end
@@ -533,64 +751,88 @@ function disguise.update(state, dt)
 	if closest then
 		local _, current = util.call(closest, "getDetection", player)
 		local increase = closest._hcoEscort and 0.18 or 0.1
+		local nextDetection = math.min(1, (tonumber(current) or 0) + increase)
 
-		util.call(closest, "setDetection", player, math.min(1, (tonumber(current) or 0) + increase))
+		util.call(closest, "setDetection", player, nextDetection)
+		if nextDetection >= config.DISGUISE_IDENTITY_CHECK_THRESHOLD then
+			queueRadioCompromise(state, closest, state.disguise.group, "identity-check")
+		end
 		util.log(config, "identity check observer=" .. tostring(util.getID(closest)) .. " detection+=" .. tostring(increase))
 	end
 end
 
 local function installBodyInteraction(state, goonClass)
-	if state.hcoDisguiseInteraction then
-		return
+	local list = goonClass.interactionList
+	local option
+	local inList = false
+
+	for index = #list, 1, -1 do
+		local existing = list[index]
+		if existing._hcoInteraction == INTERACTION_SENTINEL or existing == state.hcoDisguiseInteraction then
+			if not option then
+				option = existing
+				inList = true
+			else
+				table.remove(list, index)
+			end
+		end
 	end
 
-	local option = {}
+	option = option or {}
+	option._hcoInteraction = INTERACTION_SENTINEL
 
 	function option.getText()
-		return "Search body / take disguise"
+		return english.disguiseInteraction(state.disguise ~= nil)
 	end
 
 	function option.actionCheck(body, interactor)
-		if not state.contract or not interactor or not interactor.PLAYER or body._hcoDisguiseTaken then
-			return false
-		end
-
-		local _, dead = util.call(body, "isDead")
-		local _, unconscious = util.call(body, "isUnconscious")
-		local _, group = util.call(body, "getAnimVariant")
-
-		return group ~= nil and (dead == true or unconscious == true)
+		return isEligibleBody(state, body, interactor)
 	end
 
 	function option.interact(body, interactor)
-		local ok, err = pcall(disguise.applyFromBody, state, body, interactor)
+		local ok, applied, reason = pcall(disguise.applyFromBody, state, body, interactor)
 
 		if not ok then
-			util.log(config, "disguise interaction failed: " .. tostring(err))
+			util.log(config, "disguise interaction failed: " .. tostring(applied))
+			feedback.show(english.DISGUISE_UNAVAILABLE)
+		elseif not applied then
+			util.log(config, "disguise interaction rejected: " .. tostring(reason or "unknown"))
+		else
+			util.call(body, "postInteract", interactor)
 		end
 	end
 
-	local used = {}
+	if not inList then
+		table.insert(list, option)
+	end
 
-	for _, existing in ipairs(goonClass.interactionList or {}) do
-		if existing.id then
-			used[existing.id] = true
+	if type(goonClass.enumerateActions) == "function" then
+		local ok, err = util.call(goonClass, "enumerateActions")
+		if not ok then error("failed to enumerate native disguise action: " .. tostring(err)) end
+	else
+		goonClass.actionTrackerID = 1
+		for _, entry in ipairs(list) do
+			entry.id = goonClass.actionTrackerID
+			goonClass.actionTrackerID = goonClass.actionTrackerID * 2
 		end
 	end
 
-	local id = 1
-
-	while used[id] or id <= #(goonClass.interactionList or {}) do
-		id = id * 2
-	end
-
-	option.id = id
-	table.insert(goonClass.interactionList, option)
 	state.hcoDisguiseInteraction = option
 end
 
 local function installHooks(state, goonClass)
 	state.hooks = state.hooks or {}
+
+	if not state.hooks.reset and type(goonClass.reset) == "function" then
+		state.hooks.reset = goonClass.reset
+		local original = goonClass.reset
+
+		function goonClass:reset(...)
+			self._hcoDisguiseIdentity = nil
+			self._hcoDisguiseTaken = nil
+			return original(self, ...)
+		end
+	end
 
 	if not state.hooks.increaseDetection and type(goonClass.increaseDetection) == "function" then
 		state.hooks.increaseDetection = goonClass.increaseDetection
@@ -602,6 +844,32 @@ local function installHooks(state, goonClass)
 			end
 
 			return original(self, target, amount, cutoff)
+		end
+	end
+
+	if not state.hooks.hcoDisguiseDie and type(goonClass._die) == "function" then
+		state.hooks.hcoDisguiseDie = goonClass._die
+		local original = goonClass._die
+
+		function goonClass:_die(...)
+			cacheBodyIdentity(self)
+			local result = original(self, ...)
+			local player = game and game.playerActor
+			if player then refreshBodyInteraction(self, player) end
+			return result
+		end
+	end
+
+	if not state.hooks.hcoDisguiseChoke and type(goonClass._choke) == "function" then
+		state.hooks.hcoDisguiseChoke = goonClass._choke
+		local original = goonClass._choke
+
+		function goonClass:_choke(...)
+			cacheBodyIdentity(self)
+			local result = original(self, ...)
+			local player = game and game.playerActor
+			if player then refreshBodyInteraction(self, player) end
+			return result
 		end
 	end
 
@@ -620,6 +888,31 @@ local function installHooks(state, goonClass)
 		end
 	end
 
+	if not state.hooks.makeFallen and type(goonClass.makeFallen) == "function" then
+		state.hooks.makeFallen = goonClass.makeFallen
+		local original = goonClass.makeFallen
+
+		function goonClass:makeFallen(...)
+			cacheBodyIdentity(self)
+			local result = original(self, ...)
+			local player = game and game.playerActor
+			if player then refreshBodyInteraction(self, player) end
+			return result
+		end
+	end
+
+	if not state.hooks.onBodyDropped and type(goonClass.onBodyDropped) == "function" then
+		state.hooks.onBodyDropped = goonClass.onBodyDropped
+		local original = goonClass.onBodyDropped
+
+		function goonClass:onBodyDropped(...)
+			local result = original(self, ...)
+			local player = game and game.playerActor
+			if player then refreshBodyInteraction(self, player) end
+			return result
+		end
+	end
+
 	if not state.hooks.getOfflimits and type(playerActor.getOfflimits) == "function" then
 		state.hooks.getOfflimits = playerActor.getOfflimits
 		local original = playerActor.getOfflimits
@@ -632,6 +925,22 @@ local function installHooks(state, goonClass)
 			end
 
 			return value
+		end
+	end
+
+	if not state.hooks.getOfflimitsActive and type(playerActor.getOfflimitsActive) == "function" then
+		state.hooks.getOfflimitsActive = playerActor.getOfflimitsActive
+		local original = playerActor.getOfflimitsActive
+
+		function playerActor:getOfflimitsActive(...)
+			if state.disguise and state.contract and disguise.getBehaviorRisk(state, self) < 0.5 then
+				local ok, value = pcall(self.getOfflimits, self)
+				if ok and type(value) == "number" then
+					return value > npcAlertnessStates.STATES.IDLE
+				end
+			end
+
+			return original(self, ...)
 		end
 	end
 end
@@ -665,6 +974,7 @@ function disguise.initialize(state)
 
 	installBodyInteraction(state, goonClass)
 	installHooks(state, goonClass)
+	identityFX.initialize(state)
 	installEventListener(state)
 	state.hcoDroneBodySeen = function(sensor, body)
 		return disguise.onSensorBodySeen(state, sensor, body)

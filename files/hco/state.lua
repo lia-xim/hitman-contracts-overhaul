@@ -62,6 +62,7 @@ function stateModule.acquire()
 	state.escorts = state.escorts or {}
 	state.contracts = state.contracts or {}
 	state.compromisedDisguises = state.compromisedDisguises or {}
+	state.usedDisguiseSources = state.usedDisguiseSources or {}
 	state.localCompromisedDisguises = state.localCompromisedDisguises or {}
 	state.pendingCompromises = state.pendingCompromises or {}
 
@@ -139,6 +140,7 @@ function stateModule.resetRuntime(state, reason)
 	state.disguise = nil
 	state.disguiseRisk = 1
 	state.compromisedDisguises = {}
+	state.usedDisguiseSources = {}
 	state.localCompromisedDisguises = {}
 	state.pendingCompromises = {}
 	state.targetKillerID = nil
@@ -151,6 +153,8 @@ function stateModule.resetRuntime(state, reason)
 	state.pendingRewardPayment = nil
 	state.escortUpdateTime = nil
 	state.identityCheckTime = nil
+	state.disguiseBodyHintShown = nil
+	state.disguiseInteractionRefreshTime = nil
 	state.subsystemErrors = {}
 end
 

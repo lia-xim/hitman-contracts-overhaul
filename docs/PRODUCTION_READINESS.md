@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.13.2-rc33`
+**Candidate:** `0.14.0-rc34`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 
@@ -28,6 +28,8 @@ Drones are pressure tools, not bullet sponges. Scout and Light airframes die in 
 - Release diagnostics are off by default. Player-facing notices are rate-limited and use the native feedback layer.
 - Moving fixtures self-repair, follow the visible aim center and retain a post-world-collision projectile fallback for runtime combinations that omit late fixtures. A persistently unhittable carrier is inert and automatically retired.
 - Destruction is a hard terminal boundary: every queued weapon state, detection accumulator, aim cue, rotor loop and native light-buffer allocation is cancelled before the family-specific wreck sequence begins.
+- Disguise transitions are world-space and temporary. The persistent state is the real player animation variant plus an optional matching HCO faction insignia; no separate menu, cursor or permanent status dashboard is introduced.
+- Social-stealth values and the exact native/live boundary are centralized in `SPECIFICATION_TRACEABILITY.md`.
 
 ## Automated release gate
 
@@ -53,7 +55,7 @@ Run with the Cheat Trainer reset unless compatibility itself is being tested.
 2. One-, two- and three-contract activation where actor population allows it.
 3. At least one Easy/Normal and one Hard/True mission; confirm visibly different pressure without changing the five-bodyguard core.
 4. Routine patrol, loud-fire escalation, direct HCO-guard contact, body evidence and protection-casualty deployment paths.
-5. Calm disguise, suspicious disguise, same-unit scrutiny, disrupted radio and a drone discovering the stolen uniform source.
+5. Complete the fourteen-step RC34 social-stealth matrix: real body selector, three tiers, visual transitions, keycard/keychain doors, behavior/equipment exposure, lingering/evidence, identity checks, local/global body compromise, drone source scan and clean/compromised reload.
 6. Scout plus every Light/Heavy Pistol, SMG and Laser row: silhouette, scale, heading, sound, attack cue, damage and cooldown.
 7. Player LOS loss, zero roofed/indoor spawns, wall/door/window steering, world-edge containment, wing separation, idle recovery and at least 30 seconds of aggressive search.
 8. EMP/disruption, Light one-hit destruction, Heavy two/three-hit destruction, outer-rotor hits, crash landing, wreck cleanup and crash-site response.

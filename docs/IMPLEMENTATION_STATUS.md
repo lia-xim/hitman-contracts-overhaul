@@ -1,6 +1,6 @@
 # Hitman Contracts Overhaul — Implementation Status
 
-**Current version:** `0.13.2-rc33`
+**Current version:** `0.14.0-rc34`
 **Status date:** 2026-08-07
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md` remains the product and technical source of truth.
@@ -25,8 +25,8 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Mobile target | Implemented | Prove routine, shelter, breached-cover reselection and physical escape across several maps |
 | Heavy protection detail | Five close guards plus difficulty-scaled 5/10/15/20 archetype response demand, bounded by safe actors | Guarantee mission-appropriate strong weapon upgrades and verify every response tier fights effectively |
 | Hunt and last-known-position search | Implemented | Tune pursuit pressure, containment and stand-down from real gameplay evidence |
-| Disguise and social stealth | Implemented in code | Full live pass for appearance, weapon plausibility, same-unit recognition, identity checks and compromised uniforms |
-| Credentials and radio propagation | Implemented in code | Full live pass for access, interruptible radio and checkpoint restoration |
+| Disguise and social stealth | RC34 complete candidate path: native cached-body action, three tiers, visible variants/insignia, behavior/equipment/evidence/lingering risk and identity switching | Full real-mission pass in `SPECIFICATION_TRACEABILITY.md` |
+| Credentials and radio propagation | RC34 keycard/keychain capture before native drop, consistent off-limits queries, interruptible identity/body reports and reload restoration | Verify real mission doors, radio audio/range and checkpoint matrix |
 | Multi-contract persistence and payout | Implemented | Live active/terminal reload matrix and multi-target exactly-once payout |
 | Drone presence and patrol | Seven-model RC22 roster implemented; previous native body seen live | Live-approve every new atlas row, scale, heading, rotor profile and varied deployment |
 | Drone detection and response relay | Stable slot pursuit, independent gimbal and strict native geometry authority implemented | Prove cone lock, LOS loss and response convergence without wall tracking |
@@ -40,7 +40,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Contract variety | Partial | Data theft, accidents, special weapon conditions, rescue/extraction and other systemic contract types |
 | Localization/audio callouts | Partial | English runtime text exists; translated strings and an authored localized radio-callout pack remain |
 
-## RC22 roster / RC23–RC33 live corrections
+## RC22 roster / RC23–RC34 live corrections
 
 - Airframe footprint reduced to roughly 27 world pixels and the generated art rotated by -90 degrees to match the native sensor/flight heading.
 - Hover bob, offset shadow, four-frame rotor animation, rotor pulse rings, state-colored sensor pulse and a short pixel wake make flight readable without adding a detached HUD layer.
@@ -53,13 +53,14 @@ Automated harnesses support these systems, but do not replace the remaining real
 - RC31 separates active and destroyed textures for every roster row, releases the intact batch slot on impact, and tears down the native searchlight atlas allocation so a stopped wreck cannot appear alive or continue a burst.
 - RC32 gives wrecks an independent registered renderer batch instead of relying on direct drawing from a decor-quadtree callback. Its projectile fallback starts at `shootX/shootY` on first observation, covering the engine's pre-list bullet advance and making free-fire rotor hits equivalent to assisted aim hits.
 - RC33 separates animation time from decor visibility: every contract tick advances its destroyed shells, writes the next wreck frame directly into the registered batch and reinserts the decor shell only during the bounded tumble/smoke window.
+- RC34 closes the hidden-action gap in social stealth: native action enumeration/cache refresh makes the body option reachable, death-time capture preserves credentials/equipment, three visible identity tiers persist through reload and world-space transitions make acquisition/check/compromise readable.
 - Routine drones now consume social-stealth risk instead of treating every player silhouette identically. Their real cone/raycast can detect each exposed body once and compromise the stolen identity when its source is found.
 
 The Scout deliberately does not shoot. Six armed variants join escalated wings: light/heavy Pistol, SMG and Laser. Ballistic models use native bullets; laser models display an uninterrupted charge cue. No model attacks without confirmed line of sight, range, gimbal alignment and cooldown readiness.
 
 ## Immediate acceptance gate
 
-1. Completely restart the game and confirm `0.13.2-rc33` loads without traceback and without an internal RC render diagnostic on the HUD.
+1. Completely restart the game and confirm `0.14.0-rc34` loads without traceback and without an internal RC render diagnostic on the HUD.
 2. Observe multiple deployments and identify Scout, light and heavy silhouettes; heavy variants must be larger but remain actor-scaled.
 3. Stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
@@ -76,6 +77,8 @@ The Scout deliberately does not shoot. Six armed variants join escalated wings: 
 15. Leave the stolen-uniform source body exposed to a patrol drone; the body must be reported once, show a compact evidence cue and compromise that identity. A disrupted drone must not scan it.
 16. On a multi-contract map, confirm no more than twelve active airframes globally and no contract fields more than two Heavy or two Laser models.
 
+The complete fourteen-step disguise/social-stealth live gate and its native engine boundaries are maintained in `SPECIFICATION_TRACEABILITY.md`.
+
 ## Release boundary
 
-HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC33 corrects the live-observed first-frame freeze on top of RC32's durable batch and projectile sweep, RC31's terminal destruction and RC30's outdoor/reciprocal-combat correction. Promotion requires the full live pass above; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.
+HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC34 rebuilds social stealth on native interaction and player-world presentation while retaining RC33's persistent wreck correction, RC32's durable batch/projectile sweep, RC31's terminal destruction and RC30's outdoor/reciprocal-combat correction. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.

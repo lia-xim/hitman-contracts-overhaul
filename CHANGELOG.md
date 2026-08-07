@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.0-rc34 — 2026-08-07
+
+- Rebuilt disguise acquisition on the engine's real interaction ownership path. HCO now re-enumerates Goon actions, advances the native bit tracker, refreshes interaction caches created before the mod, hooks death/choke/fallen/drop transitions and calls `postInteract` after a successful takeover.
+- Captures uniform, weapon family, keycard, keychain, blood condition and familiarity data before native death/choke code strips the source actor. Used bodies remain consumed across checkpoint reloads.
+- Added complete STAFF, SECURITY and ELITE SECURITY identity switching with visible player animation variants, matching HCO faction insignia, original-appearance rollback and atomic rejection of incompatible variants.
+- Expanded recognition with same-unit/elite/close-protection scrutiny, matching and mismatched weapons, reload states, post-body-interaction exposure, bloodied uniforms, fresh disturbances, target lingering and full vanilla detection during combat.
+- Added interruptible native-radio identity checks, locally scoped body knowledge, uniform-class propagation, keycard/keychain restoration, consistent off-limits/trespass queries and source-body drone compromise.
+- Added compact world-space cyan/teal/amber/red pixel transitions for acquisition, reload restoration, identity checks and compromise. They attach to the native player draw path and reuse existing game sounds instead of adding a detached HUD/menu.
+- Added specification traceability and live acceptance documentation. Automated coverage now exercises the real option-list path, pre-drop identity capture, three identity tiers, credentials, reload, identity checks, compromise and transition rendering.
+
 ## 0.13.2-rc33 — 2026-08-07
 
 - Fixed destroyed drones remaining permanently on the first wreck frame. Once the native sensor carrier leaves the dynamic list, its airframe now advances from the persistent per-contract update instead of waiting for another static decor draw.

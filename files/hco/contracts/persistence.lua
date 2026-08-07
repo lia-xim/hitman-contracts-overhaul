@@ -71,9 +71,17 @@ local function copyRecord(record)
 		disguiseGroup = record.disguiseGroup and tostring(record.disguiseGroup) or nil,
 		disguiseSourceID = record.disguiseSourceID and tostring(record.disguiseSourceID) or nil,
 		disguiseKeycard = record.disguiseKeycard,
+		disguiseKeychain = record.disguiseKeychain,
 		disguiseTier = record.disguiseTier and tostring(record.disguiseTier) or nil,
 		disguiseAccess = tonumber(record.disguiseAccess),
 		disguiseWeaponType = record.disguiseWeaponType,
+		disguiseWeaponID = record.disguiseWeaponID and tostring(record.disguiseWeaponID) or nil,
+		disguiseOriginalAnimVar = record.disguiseOriginalAnimVar and tostring(record.disguiseOriginalAnimVar) or nil,
+		disguiseAcquiredTime = tonumber(record.disguiseAcquiredTime),
+		disguiseSourceWasDead = record.disguiseSourceWasDead == true,
+		disguiseBloodied = record.disguiseBloodied == true,
+		disguiseFactionVisual = tonumber(record.disguiseFactionVisual),
+		usedDisguiseSources = util.copyStringMap(record.usedDisguiseSources),
 		compromisedDisguises = util.copyStringMap(record.compromisedDisguises)
 	}
 end

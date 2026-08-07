@@ -1,4 +1,13 @@
-# Automated Test Report — 0.13.2-rc33
+# Automated Test Report — 0.14.0-rc34
+
+## RC34 native identity and social-stealth rebuild
+
+- Engine tracing proved that appending a Lua table was insufficient: Goon actions are assigned power-of-two IDs by `entity:enumerateActions`, while each body can retain a cached `_interactionList` and action bitmask. The runtime now owns both boundaries and refreshes them after death, choke, falling and body drop.
+- Runtime coverage constructs a body interaction cache before HCO loads, then reaches the new identity action through `getInteractOptions(..., true)`. It proves ID `4`, tracker `8`, successful `postInteract`, source consumption and persistence across reload.
+- The death fixture strips its live weapon/keycard inside `_die`; the test still acquires the correct SECURITY identity and credential, proving HCO captured source data before the native drop path.
+- STAFF, SECURITY and ELITE SECURITY switching, keycards, keychains, original appearance, bloodied condition, reload/lock-breaking exposure, same-unit radio checks, local/global body knowledge and drone source compromise pass.
+- Visual coverage proves the player draw chain renders a persistent matching faction insignia and separate acquisition, identity-check and compromise world-space primitives without a detached HUD layer.
+- All seven LÖVE suites pass against `0.14.0-rc34`; live confirmation remains mandatory.
 
 ## RC33 first-frame freeze correction
 
@@ -136,8 +145,8 @@
 - Drone engine-contract harness: passed custom security-camera subclass registration, three physical world-object launches, dynamic flight update, and bullet-break destruction.
 - Remaining proof boundary: rendering, scanlight, and physical interaction must now be visually confirmed inside Intravenous 2 `1.4.12HF3`.
 
-**Date:** 2026-08-06  
-**Source modules:** 32 Lua files
+**Date:** 2026-08-07
+**Source modules:** 33 Lua files
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Real-game validation:** main-menu boot passed; mission validation in progress
 
@@ -193,17 +202,17 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 32 Lua modules parse, including the RC33 persistent crash clock, RC32 wreck/sweep correction and RC31 terminal-destruction gate.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including the RC34 native disguise interaction, persistent identity state and world-space transition effects.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test evidence collector: **PASS** — installed `0.13.2-rc33`, 32 source Lua files, 32 installed Lua files and 0 mismatches. The game was not running; the newest stored crash log predates this installation and the current debug log is empty.
-- Source/output/install relative-file parity: **PASS** — 42 payload files including 32 Lua modules and ten runtime media files.
+- Post-test installation audit: **PASS** — installed `0.14.0-rc34`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running during installation.
+- Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.13.2-rc33.zip` contains all 42 payload files below the required nested `files/` root and has SHA-256 `287C948F677A4EA7DECFF5142CBD275618277A8FFA772FEFF76862DAE9CF0D59`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.13.2-rc33 payload=42`.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.0-rc34.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `EF6FAFC4390FA4197EDA598D24FB54DA4C3F697DB7FB546837625E5DE306082A`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.0-rc34 payload=43`.
 
-The markers above were collected from RC33 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC34 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

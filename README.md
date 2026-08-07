@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.13.2-rc33`
+**Current build:** `0.14.0-rc34`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate release. RC33 advances destroyed-airframe frames from the persistent mission update instead of relying on another static decor draw, so the damage atlas completes its tumble and final-wreck sequence. It retains RC32's durable wreck batch and unaided Heavy-edge projectile correction. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC34 completes the native Disguise & Social Stealth implementation path: real body-menu registration, visible identity switching, three access tiers, credentials, behavior/same-unit scrutiny, interruptible identity checks, evidence compromise, persistence and world-space transition effects. It retains RC33's persistent drone wreck clock. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 
@@ -16,7 +16,7 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Stronger protected targets and elite guards with archetype-scaled health.
 - Mobile target phases, safe-area relocation, physical evacuation, and anti-stuck recovery without teleporting targets.
 - Field-intelligence dead drops that reveal exact moving target markers.
-- Body-search disguises, plausible weapons, restricted areas, credentials, colleague recognition, compromise, and interruptible radio checks.
+- Native body-menu identities with three tiers, visible actor variants, matching faction insignia, plausible weapons, restricted areas, keycards/keychains, colleague recognition, bloodied-uniform risk, compromise, and interruptible radio checks.
 - Seven physical, actor-scaled drone models: one unarmed Scout plus light/heavy Pistol, SMG and Laser airframes.
 - A global twelve-airframe ceiling plus per-contract Heavy/Laser limits prevents multi-contract missions from turning into an unreadable or expensive 21-drone pile-up.
 - Stable standoff pursuit replaces continuous player orbiting; bodies turn with flight while independent sensor gimbals retain the player inside their allowed arc.
@@ -39,7 +39,7 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 
 No menu or hotkey is required. Start a compatible mission from the beginning. HCO selects safe mission actors and adds optional contracts through the native objective system. Follow the intelligence marker, recover the dead drop, and then track the moving target.
 
-Approach a dead or unconscious guard and choose **Search body / take disguise**. Normal movement and plausible equipment reduce suspicion; running, aiming, firing, lockpicking, carrying a body, restricted access, or close colleagues can expose you.
+Approach a dead or unconscious guard and choose **Take disguise / search body** in the normal interaction selector. The player visibly adopts that actor variant; HCO identities retain their faction insignia. Normal walking and plausible equipment reduce suspicion. Running, aiming, reloading, firing, lockpicking, carrying a body, a bloodied uniform, fresh evidence, restricted access, target lingering, or close colleagues can expose you. A real radio identity check can be escaped or disrupted before it completes.
 
 Drones participate in that same social-stealth model. A calm valid identity buys time during routine patrols, not invisibility. Aggressive security uses faster sensor scrutiny, and a drone that finds the body from which the uniform was taken compromises the disguise over the security network.
 
@@ -66,6 +66,7 @@ Do not enable both a local and Workshop copy at the same time.
 - `docs/SPECIFICATION.md` — full product and systems specification.
 - `docs/ENGINE_EVIDENCE.md` — documented native interface research; no decompiled source is redistributed.
 - `docs/IMPLEMENTATION_STATUS.md` — honest requirement-by-requirement current state and remaining work.
+- `docs/SPECIFICATION_TRACEABILITY.md` — specification-to-runtime/test/live-proof matrix, including the full social-stealth contract.
 - `docs/TESTING.md` — reproducible automated and in-game acceptance boundary.
 - `docs/PRODUCTION_READINESS.md` — balance contract, performance limits and the exact `1.0` promotion gate.
 - `workshop/` — Steam Workshop copy and preview; excluded from release ZIPs.

@@ -4,6 +4,18 @@ local util = require("hco/util")
 local visuals = {}
 local sheet, quads
 
+local function drawInsignia(object, index, size, alpha, yOffset)
+	if not index or not sheet or not quads or not quads[index] or object._visible == false then return end
+	local okPos, x, y = util.call(object, "getDrawPosition")
+	if not okPos then x, y = util.getPos(object) end
+	if not x then return end
+	local _, angle = util.call(object, "getAngle")
+	local scale = size / 64
+	love.graphics.setColor(255, 255, 255, alpha)
+	love.graphics.draw(sheet, quads[index], x, y - yOffset, angle or 0, scale, scale, 32, 32)
+	love.graphics.setColor(255, 255, 255, 255)
+end
+
 local function loadSheet()
 	if sheet or not love or not love.graphics then return end
 	local candidates = {
@@ -25,7 +37,6 @@ end
 
 function visuals.initialize(state)
 	state.hooks = state.hooks or {}
-	if state.hooks.hcoFactionPostDraw then return true end
 	local goonClass = actor.getClassData and actor.getClassData("goon")
 	if not goonClass or type(goonClass.postDraw) ~= "function" then return false end
 	loadSheet()
@@ -36,13 +47,21 @@ function visuals.initialize(state)
 		function goonClass:postDraw(...)
 			original(self, ...)
 			local index = self._hcoFactionVisual
-			if not index or not sheet or not quads or self._visible == false then return end
-			local x, y = self:getDrawPosition()
 			local size = self._hcoContractTarget and 17 or 12
-			local scale = size / 64
-			love.graphics.setColor(255, 255, 255, self._hcoContractTarget and 235 or 190)
-			love.graphics.draw(sheet, quads[index], x, y - (self._hcoContractTarget and 3 or 1), self:getAngle(), scale, scale, 32, 32)
-			love.graphics.setColor(255, 255, 255, 255)
+			drawInsignia(self, index, size, self._hcoContractTarget and 235 or 190, self._hcoContractTarget and 3 or 1)
+		end
+	end
+
+	if not state.hooks.hcoFactionPlayerPostDraw and playerActor and type(playerActor.postDraw) == "function" then
+		local original = playerActor.postDraw
+		state.hooks.hcoFactionPlayerPostDraw = original
+
+		function playerActor:postDraw(...)
+			local result = original(self, ...)
+			if game and self == game.playerActor then
+				drawInsignia(self, self._hcoDisguiseFactionVisual, 11, 205, 1)
+			end
+			return result
 		end
 	end
 

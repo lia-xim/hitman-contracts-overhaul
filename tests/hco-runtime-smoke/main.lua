@@ -138,10 +138,19 @@ local goonClass = {
 		ELITE = 3
 	},
 	interactionList = {
-		{id = 1},
-		{id = 2}
+		{actionCheck = function() return false end},
+		{actionCheck = function() return false end}
 	}
 }
+
+function goonClass:enumerateActions()
+	self.actionTrackerID = 1
+	for _, option in ipairs(self.interactionList) do
+		option.id = self.actionTrackerID
+		self.actionTrackerID = self.actionTrackerID * 2
+	end
+end
+goonClass:enumerateActions()
 
 function goonClass:increaseDetection(target, amount)
 	self.detection[target] = math.min(1, (self.detection[target] or 0) + amount)
@@ -152,6 +161,28 @@ end
 
 function goonClass:setSeenBody(body, seen)
 	self.seenBodies[body] = seen
+end
+
+function goonClass:makeFallen()
+	self.unconscious = true
+end
+
+function goonClass:_die()
+	self.dead = true
+	self.weapon = nil
+	self.keycard = nil
+	self.keychain = nil
+end
+
+function goonClass:_choke()
+	self.unconscious = true
+	self.weapon = nil
+	self.keycard = nil
+	self.keychain = nil
+end
+
+function goonClass:onBodyDropped()
+	self.bodyDropped = true
 end
 
 
@@ -187,6 +218,10 @@ playerActor.EVENTS = {
 function playerActor:getOfflimits()
 	return self.offlimits or npcAlertnessStates.STATES.IDLE
 end
+function playerActor:getOfflimitsActive()
+	return self:getOfflimits() > npcAlertnessStates.STATES.IDLE
+end
+function playerActor:postDraw() return end
 
 local player = {
 	id = "player",
@@ -255,6 +290,7 @@ local function createNPC(data)
 		mapName = data.mapName or "",
 		weapon = data.weapon == false and nil or {id = "weapon-" .. data.id, weaponType = data.weaponType or 2},
 		keycard = data.keycard,
+		keychain = data.keychain,
 		animVar = data.animVar or "bandit1",
 		detection = {},
 		seenBodies = {},
@@ -264,7 +300,8 @@ local function createNPC(data)
 		health = 75,
 		maxHealth = 75,
 		states = {},
-		grid = {}
+		grid = {},
+		currentActionBitmask = 0
 	}
 	setmetatable(npc, {__index = goonClass})
 
@@ -297,6 +334,8 @@ local function createNPC(data)
 	function npc:getMaxHealth() return self.maxHealth end
 	function npc:setMaxHealth(value) self.maxHealth = value end
 	function npc:getKeycard() return self.keycard end
+	function npc:getKeychain() return self.keychain end
+	function npc:getBlood() return self.blood or 30 end
 	function npc:getWeapon() return self.weapon end
 	if npc.weapon then
 		function npc.weapon:getID() return self.id end
@@ -346,17 +385,47 @@ local function createNPC(data)
 	function npc:setFollower(value) self.follower = value end
 	function npc:getFollower() return self.follower end
 	function npc:receiveSightingData(source) self.receivedSightingFrom = source end
+	function npc:updateInteractionList(interactor)
+		local target = self._interactionList.options
+		for _, option in ipairs(self.interactionList) do
+			local available = not option.actionCheck or option.actionCheck(self, interactor)
+			local active = bit.band(self.currentActionBitmask, option.id) == option.id
+			if available and not active then
+				table.insert(target, option)
+				self.currentActionBitmask = self.currentActionBitmask + option.id
+			elseif not available and active then
+				for index = #target, 1, -1 do
+					if target[index] == option then table.remove(target, index) end
+				end
+				self.currentActionBitmask = self.currentActionBitmask - option.id
+			end
+		end
+	end
+	function npc:getInteractOptions(interactor, update)
+		if not self._interactionList then
+			self._interactionList = {object = self, options = {}}
+			self:updateInteractionList(interactor)
+		elseif update then
+			self:updateInteractionList(interactor)
+		end
+		return self._interactionList
+	end
+	function npc:postInteract(interactor)
+		self.postInteractCount = (self.postInteractCount or 0) + 1
+		self:updateInteractionList(interactor)
+	end
 
 	return npc
 end
 
 local namedStoryNPC = createNPC({id = "story-boss", patrol = true, experience = 3, mapName = "Story Boss", x = 200})
-local stationaryNPC = createNPC({id = "stationary", patrol = false, experience = 3, x = 250})
+local stationaryNPC = createNPC({id = "stationary", patrol = false, experience = 1, weapon = false, animVar = "ped1", x = 250})
 local validA = createNPC({id = "guard-a", patrol = true, experience = 2, keycard = "security-A", animVar = "bandit2", x = 130})
 local validB = createNPC({id = "guard-b", patrol = true, experience = 3, radio = true, x = 150})
 local validC = createNPC({id = "guard-c", patrol = true, experience = 2, radio = true, x = 170})
 local validD = createNPC({id = "guard-d", patrol = true, experience = 2, x = 190})
 local objectiveCritical = createNPC({id = "objective-critical", patrol = true, experience = 3, x = 210})
+stationaryNPC.weapon = nil
 
 local world = {
 	mapID = "smoke-map",
@@ -492,6 +561,10 @@ function objectiveHandler:createObjective(config)
 	return object
 end
 
+-- Reproduce the live checkpoint case: this body already owns a cached native
+-- option list before HCO appends and enumerates its disguise action.
+validA:getInteractOptions(player, false)
+
 require("hco/bootstrap").start()
 
 local state = playerActor._hitmanContractsOverhaulState
@@ -561,13 +634,41 @@ state.security.huntPhase = "STAND_DOWN"
 state.security.searchOrderTime = 0
 
 local disguiseOption = playerActor._hitmanContractsOverhaulState.hcoDisguiseInteraction
-validA.dead = true
+assertEqual(disguiseOption.id, 4, "disguise action receives the next native bit ID")
+assertEqual(goonClass.actionTrackerID, 8, "native action tracker advances past disguise option")
+validA:_die()
+assertEqual(validA.keycard, nil, "native death path drops live keycard before body interaction")
+assertEqual(validA.weapon, nil, "native death path drops live weapon before body interaction")
+local liveOptions = validA:getInteractOptions(player, true).options
+local liveDisguiseOption
+for _, option in ipairs(liveOptions) do
+	if option._hcoInteraction == "hco_take_disguise_v1" then liveDisguiseOption = option end
+end
+assertEqual(liveDisguiseOption, disguiseOption, "cached live body menu receives disguise interaction")
 assertTrue(disguiseOption.actionCheck(validA, player), "disguise interaction available on body")
 local acquiredFaction = validA.animVar
-disguiseOption.interact(validA, player)
+liveDisguiseOption.interact(validA, player)
 assertEqual(player.animVar, validA.animVar, "player inherits the contract faction disguise")
+assertEqual(state.identityFX.kind, "acquired", "identity takeover starts a native world-space transition effect")
+assertEqual(validA.postInteractCount, 1, "successful identity takeover refreshes native body menu")
+assertTrue(not disguiseOption.actionCheck(validA, player), "taken identity cannot be duplicated from the same body")
 assertTrue(player:hasKey("security-A"), "body keycard granted")
+curTime = curTime + 3.1
 assertEqual(player:getOfflimits(), npcAlertnessStates.STATES.IDLE, "keycard disguise grants access reduction")
+assertEqual(player:getOfflimitsActive(), false, "native trespass-active query agrees with disguise-adjusted access")
+
+validD:getInteractOptions(player, false)
+validD._hcoOriginalExperience = goonClass.EXPERIENCE_LEVELS.ELITE
+validD.keychain = "elite-chain"
+validD:makeFallen()
+local fallenOptions = validD:getInteractOptions(player, false).options
+local fallenHasDisguise = false
+for _, option in ipairs(fallenOptions) do
+	if option._hcoInteraction == "hco_take_disguise_v1" then fallenHasDisguise = true end
+end
+assertTrue(fallenHasDisguise, "native makeFallen hook refreshes an already-cached body menu")
+validD.unconscious = false
+validD:getInteractOptions(player, true)
 
 local selectedBeforeReload = state.targetID
 local objectiveCountBeforeReload = #objectiveHandler.objectives
@@ -578,6 +679,9 @@ events:fire(game.EVENTS.RESET_FINISHED)
 assertEqual(state.targetID, selectedBeforeReload, "active contract rebinds same target")
 assertEqual(state.disguise.group, acquiredFaction, "active disguise restored from campaign persistence")
 assertEqual(player.animVar, acquiredFaction, "restored disguise is visible")
+assertEqual(state.disguise.originalAnimVar, "sean", "reload preserves the real pre-disguise player appearance")
+assertEqual(state.identityFX.kind, "restored", "reload starts a restrained identity-restored effect")
+assertTrue(not disguiseOption.actionCheck(validA, player), "used identity source remains consumed after checkpoint reload")
 assertEqual(#objectiveHandler.objectives, objectiveCountBeforeReload, "active reload does not duplicate objective")
 require("hco/social/disguise").update(state, 0.1)
 assertTrue(state.disguiseRisk < 1, "calm restored disguise publishes reduced semantic risk for networked sensors")
@@ -591,15 +695,35 @@ player.state = {id = "player_breaking_lock"}
 validC:setDetection(player, 0)
 validC:increaseDetection(player, 1)
 assertEqual(validC:getDetection(player), 1, "native lock-breaking state immediately defeats social cover")
-player.state = normalPlayerState
-namedStoryNPC.x = 1000
-namedStoryNPC.animVar = acquiredFaction
-validC:setSeenBody(validA, true)
-assertTrue(not state.disguise.compromised, "body discovery is local before radio completes")
-assertEqual(validC.radio.open, true, "body investigator starts native radio report")
+player.state = {id = "player_reloading"}
 validC:setDetection(player, 0)
 validC:increaseDetection(player, 1)
-assertEqual(validC:getDetection(player), 1, "investigator recognizes locally compromised disguise")
+assertEqual(validC:getDetection(player), 1, "native reload state immediately defeats social cover")
+player.state = normalPlayerState
+
+validC:setDetection(player, 0.5)
+state.identityCheckTime = 0
+require("hco/social/disguise").update(state, 0.1)
+local identityCheck
+for _, pending in ipairs(state.pendingCompromises) do
+	if pending.kind == "identity-check" then identityCheck = pending end
+end
+assertTrue(identityCheck ~= nil and validC.radio.open, "same-unit scrutiny opens a real interruptible radio identity check")
+validC.radio.disrupted = true
+require("hco/social/disguise").update(state, 0.1)
+assertTrue(not state.disguise.compromised, "disrupting identity-check radio prevents compromise")
+validC.radio.disrupted = false
+validC.radio.open = false
+state.pendingCompromises = {}
+namedStoryNPC.x = 1000
+namedStoryNPC.animVar = acquiredFaction
+local evidenceObserver = createNPC({id = "evidence-observer", radio = true, animVar = acquiredFaction, x = 170})
+evidenceObserver:setSeenBody(validA, true)
+assertTrue(not state.disguise.compromised, "body discovery is local before radio completes")
+assertEqual(evidenceObserver.radio.open, true, "body investigator starts native radio report")
+evidenceObserver:setDetection(player, 0)
+evidenceObserver:increaseDetection(player, 1)
+assertEqual(evidenceObserver:getDetection(player), 1, "investigator recognizes locally compromised disguise")
 namedStoryNPC:setDetection(player, 0)
 namedStoryNPC:increaseDetection(player, 1)
 assertTrue(namedStoryNPC:getDetection(player) < 1, "distant uninformed guard still accepts disguise")
@@ -609,7 +733,7 @@ for step = 1, 3 do
 	for _, updateState in ipairs(gameStateService.states) do updateState:update(1) end
 end
 assertTrue(state.disguise.compromised, "completed radio call globally compromises disguise")
-assertEqual(validC.radio.open, false, "HCO closes its completed radio report")
+assertEqual(evidenceObserver.radio.open, false, "HCO closes its completed radio report")
 namedStoryNPC:setDetection(player, 0)
 namedStoryNPC:increaseDetection(player, 1)
 assertEqual(namedStoryNPC:getDetection(player), 1, "radio recipients reject compromised disguise")
@@ -617,6 +741,24 @@ state.disguise.compromised = false
 state.compromisedDisguises[acquiredFaction] = nil
 assertTrue(require("hco/social/disguise").onSensorBodySeen(state, {id="drone-sensor"}, validA), "drone body scan recognizes the stolen uniform source")
 assertTrue(state.disguise.compromised and state.compromisedDisguises[acquiredFaction], "networked drone evidence globally compromises the stolen identity")
+
+stationaryNPC.dead = true
+stationaryNPC.blood = 15
+local staffVariant = stationaryNPC.animVar
+assertTrue(disguiseOption.actionCheck(stationaryNPC, player), "staff body exposes identity switch")
+disguiseOption.interact(stationaryNPC, player)
+assertEqual(state.disguise.tier, "staff", "unarmed civilian body produces staff access tier")
+assertTrue(state.disguise.bloodied, "damaged source records a bloodied uniform condition")
+assertEqual(player.animVar, staffVariant, "switch identity changes the visible player variant again")
+assertTrue(state.compromisedDisguises[acquiredFaction], "changing identity preserves compromise knowledge for the old uniform")
+
+validD.unconscious = true
+local eliteVariant = validD.animVar
+assertTrue(disguiseOption.actionCheck(validD, player), "elite body exposes another identity switch")
+disguiseOption.interact(validD, player)
+assertEqual(state.disguise.tier, "elite_security", "elite source produces elite security access tier")
+assertEqual(player.animVar, eliteVariant, "elite identity is visibly applied")
+assertTrue(player:hasKey("elite-chain"), "native keychain credentials are copied")
 
 state.target.alertness = npcAlertnessStates.STATES.ALERT
 for _, updateState in ipairs(gameStateService.states) do updateState:update(0.6) end
