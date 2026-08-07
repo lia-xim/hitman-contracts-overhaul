@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.12-rc46 — 2026-08-07
+
+- Corrected the live screenshot diagnosis: the native selector was displaying object `1. HS2000`; the unconscious body was object `2`, so its actions were intentionally hidden until the player cycled with `Q`.
+- Raised only eligible unused-uniform bodies to a native interaction priority above dropped equipment. Walking up to a fresh body now selects the body and exposes takeover immediately; consumed/ineligible bodies retain vanilla priority.
+- Reconciled render-only body-menu reads against the active player even if the render path owns a separate or incomplete cache.
+- Added periodic recovery when another later-loaded mod replaces HCO's `getInteractOptions` or interaction-priority hook without replacing the Goon class/action registry.
+- Hardened the Windows test runner to terminate only newly spawned HCO smoke-test LÖVE processes, preventing an orphaned harness window from being mistaken for an Intravenous 2 crash.
+
 ## 0.14.11-rc45 — 2026-08-07
 
 - Fixed the live disguise-menu regression at the exact native selector handoff. Intravenous 2 validates body actions with the player interactor, then reads the cached list again with `interactor=nil` while constructing the visible description box. RC44 incorrectly treated that second render-only read as a failed eligibility check and removed takeover immediately before drawing it.

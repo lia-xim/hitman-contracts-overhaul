@@ -137,11 +137,16 @@ local goonClass = {
 		EXPERIENCED = 2,
 		ELITE = 3
 	},
+	interactPriority = 0,
 	interactionList = {
 		{actionCheck = function() return false end},
 		{actionCheck = function() return false end}
 	}
 }
+
+function goonClass:getInteractPriority()
+	return self.interactPriority
+end
 
 function goonClass:enumerateActions()
 	self.actionTrackerID = 1
@@ -635,6 +640,8 @@ local nativeBodyActionOne = goonClass.interactionList[1]
 local nativeBodyActionTwo = goonClass.interactionList[2]
 local nativeBodyActionOneID = nativeBodyActionOne.id
 local nativeBodyActionTwoID = nativeBodyActionTwo.id
+local nativeBodyGetInteractOptions = goonClass.getInteractOptions
+local nativeBodyGetInteractPriority = goonClass.getInteractPriority
 validA:getInteractOptions(player, false)
 
 require("hco/bootstrap").start()
@@ -749,8 +756,13 @@ for _, option in ipairs(liveOptions) do
 end
 assertEqual(liveDisguiseOption, disguiseOption, "cached live body menu receives disguise interaction")
 assertEqual(liveOptions[1], disguiseOption, "take-disguise renders before native body actions")
+assertEqual(validA:getInteractPriority(), 45, "eligible uniform outranks its dropped weapon in the native object selector")
 local selectorRenderOptions = validA:getInteractOptions(nil, false).options
 assertEqual(selectorRenderOptions[1], disguiseOption, "selector render handoff without an interactor preserves the validated disguise action")
+validA._interactionList.options = {nativeBodyActionOne}
+validA.currentActionBitmask = nativeBodyActionOne.id + disguiseOption.id
+local independentRenderOptions = validA:getInteractOptions(nil, false).options
+assertEqual(independentRenderOptions[1], disguiseOption, "render-only body menu self-heals even when its cache differs from the validation read")
 assertTrue(disguiseOption.actionCheck(validA, player), "disguise interaction available on body")
 local acquiredFaction = validA.animVar
 local instantSightState = validC:getStateObject("goon_suspicion")
@@ -763,6 +775,7 @@ liveDisguiseOption.interact(validA, player)
 -- option callback returns. HCO must not invoke it a second time internally.
 validA:postInteract(player)
 assertEqual(player.animVar, validA.animVar, "player inherits the contract faction disguise")
+assertEqual(validA:getInteractPriority(), 0, "consumed uniform returns to the body's native interaction priority")
 assertTrue(state.disguiseRisk < 1, "identity takeover publishes reduced sensor risk atomically without one exposed update frame")
 assertEqual(state.identityFX.kind, "acquired", "identity takeover starts a native world-space transition effect")
 assertEqual(validA.postInteractCount, 1, "successful identity takeover refreshes native body menu")
@@ -1297,6 +1310,21 @@ assertEqual(reboundCount, 2, "class/menu lifecycle repair restores exactly one H
 assertEqual(nativeBodyActionOne.id, nativeBodyActionOneID, "lifecycle repair never renumbers first native body action")
 assertEqual(nativeBodyActionTwo.id, nativeBodyActionTwoID, "lifecycle repair never renumbers second native body action")
 assertTrue(reboundTake and reboundRestore and reboundTake.id ~= reboundRestore.id, "rebound identity actions keep unique bit IDs")
+
+-- A later-loaded mod may replace a class method without replacing the class or
+-- action registry. The periodic binding verifier must recover both the menu and
+-- QoL priority hooks instead of trusting the stable class table forever.
+goonClass.getInteractOptions = nativeBodyGetInteractOptions
+goonClass.getInteractPriority = nativeBodyGetInteractPriority
+state.disguiseBindingRefreshTime = 0
+require("hco/social/disguise").update(state, 0.6)
+assertTrue(goonClass.getInteractOptions ~= nativeBodyGetInteractOptions, "externally replaced body-menu hook is rebound")
+assertTrue(goonClass.getInteractPriority ~= nativeBodyGetInteractPriority, "externally replaced body-priority hook is rebound")
+local recoveredBody = createNPC({id = "recovered-body", animVar = "bodyg", x = 125})
+recoveredBody.dead = true
+local recoveredOptions = recoveredBody:getInteractOptions(player, true).options
+assertTrue(recoveredOptions[1] and recoveredOptions[1]._hcoInteraction == "hco_take_disguise_v1", "rebound hook restores takeover in the rendered body menu")
+assertEqual(recoveredBody:getInteractPriority(), 45, "rebound priority keeps an eligible body ahead of dropped equipment")
 
 require("hco/bootstrap").start()
 assertEqual(#events.directReceivers[game.EVENTS.MAP_LOADED], 1, "duplicate lifecycle listener prevented")

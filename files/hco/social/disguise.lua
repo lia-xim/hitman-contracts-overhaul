@@ -43,7 +43,7 @@ local INTERACTION_SENTINEL = "hco_take_disguise_v1"
 local RESTORE_INTERACTION_SENTINEL = "hco_restore_identity_v1"
 local GOON_HOOK_KEYS = {
 	"reset", "increaseDetection", "setEnemyInSight", "getStateObject", "setState",
-	"getInteractOptions", "hcoDisguiseBodyPostDraw", "hcoDisguiseDie", "hcoDisguiseChoke", "setSeenBody", "makeFallen", "onBodyDropped"
+	"getInteractOptions", "getInteractPriority", "hcoDisguiseBodyPostDraw", "hcoDisguiseDie", "hcoDisguiseChoke", "setSeenBody", "makeFallen", "onBodyDropped"
 }
 
 local function getPlayerStateID(player)
@@ -1296,18 +1296,20 @@ local function installHooks(state, goonClass)
 		end
 	end
 
-	if not state.hooks.getInteractOptions and type(goonClass.getInteractOptions) == "function" then
-		state.hooks.getInteractOptions = goonClass.getInteractOptions
+	if type(goonClass.getInteractOptions) == "function"
+		and goonClass.getInteractOptions ~= state.hcoDisguiseGetInteractOptionsWrapper then
+		if not state.hooks.getInteractOptions then state.hooks.getInteractOptions = goonClass.getInteractOptions end
 		local original = goonClass.getInteractOptions
+		local previousWrapper = state.hcoDisguiseGetInteractOptionsWrapper
+		local wrapper
 
-		function goonClass:getInteractOptions(interactor, update)
-			-- objectSelector:setInteractionData deliberately re-reads the already
-			-- validated menu without passing an interactor. That nil call is a render
-			-- handoff, not a request to re-run action checks. Treating nil as an invalid
-			-- player removed the disguise action between selector filtering and drawing.
-			if interactor == nil then
-				return original(self, interactor, update)
-			end
+		wrapper = function(self, interactor, update)
+			-- The object selector and its description box may ask for the same menu
+			-- through different render paths. Reconcile every read against the active
+			-- player when the caller omits the interactor instead of trusting that both
+			-- paths share an already-populated cache.
+			local effectiveInteractor = interactor or (game and game.playerActor)
+			if not effectiveInteractor then return original(self, interactor, update) end
 
 			-- This is the authoritative selector boundary. The base implementation may
 			-- return a cached list without updating it at all when update=false. Repair
@@ -1317,9 +1319,32 @@ local function installHooks(state, goonClass)
 			-- If HCO cleared an old generation, force the native updater once even
 			-- when the selector requested update=false; otherwise unrelated carry,
 			-- inventory and finish-off entries would remain absent from that menu.
-			local interactionList = original(self, interactor, update or invalidated)
-			return reconcileVisibleBodyActions(state, self, interactor, interactionList)
+			local interactionList = original(self, effectiveInteractor, update or invalidated)
+			return reconcileVisibleBodyActions(state, self, effectiveInteractor, interactionList)
 		end
+
+		state.hcoDisguiseGetInteractOptionsWrapper = wrapper
+		goonClass.getInteractOptions = wrapper
+		if previousWrapper then util.log(config, "native disguise menu hook restored after external replacement") end
+	end
+
+	if type(goonClass.getInteractPriority) == "function"
+		and goonClass.getInteractPriority ~= state.hcoDisguiseGetInteractPriorityWrapper then
+		if not state.hooks.getInteractPriority then state.hooks.getInteractPriority = goonClass.getInteractPriority end
+		local original = goonClass.getInteractPriority
+		local wrapper
+
+		wrapper = function(self, ...)
+			local priority = original(self, ...)
+			local player = game and game.playerActor
+			if player and isEligibleBody(state, self, player) then
+				return math.max(tonumber(priority) or 0, config.DISGUISE_BODY_INTERACT_PRIORITY)
+			end
+			return priority
+		end
+
+		state.hcoDisguiseGetInteractPriorityWrapper = wrapper
+		goonClass.getInteractPriority = wrapper
 	end
 
 	if not state.hooks.hcoDisguiseBodyPostDraw and type(goonClass.postDraw) == "function" then
@@ -1454,9 +1479,13 @@ ensureRuntimeBindings = function(state, force, dt)
 	if state.hcoDisguiseBoundGoonClass ~= goonClass then
 		state.hooks = state.hooks or {}
 		for _, key in ipairs(GOON_HOOK_KEYS) do state.hooks[key] = nil end
+		state.hcoDisguiseGetInteractOptionsWrapper = nil
+		state.hcoDisguiseGetInteractPriorityWrapper = nil
 		state.hcoDisguiseBoundGoonClass = goonClass
-		installHooks(state, goonClass)
 	end
+	-- Re-verify critical native hooks even when the class table itself is stable.
+	-- Mods loaded later may replace a method without replacing the registry.
+	installHooks(state, goonClass)
 	if not hasInteractionBinding(state, goonClass) then
 		installBodyInteraction(state, goonClass)
 		util.log(config, "native disguise actions rebound after class/menu lifecycle reset")
