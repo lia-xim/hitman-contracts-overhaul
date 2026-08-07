@@ -1,6 +1,6 @@
 # Hitman Contracts Overhaul — Implementation Status
 
-**Current version:** `0.14.4-rc38`
+**Current version:** `0.14.5-rc39`
 **Status date:** 2026-08-07
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md` remains the product and technical source of truth.
@@ -25,7 +25,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Mobile target | Implemented | Prove routine, shelter, breached-cover reselection and physical escape across several maps |
 | Heavy protection detail | Five close guards plus difficulty-scaled 5/10/15/20 archetype response demand, bounded by safe actors | Guarantee mission-appropriate strong weapon upgrades and verify every response tier fights effectively |
 | Hunt and last-known-position search | Implemented | Tune pursuit pressure, containment and stand-down from real gameplay evidence |
-| Disguise and social stealth | RC38 candidate path: native identity switching plus weapon-neutral cover, observer-local hostility, clean identity rebinding, alert/hunch separation and interception of vanilla instant-detect/combat branches | Full real-mission pass in `SPECIFICATION_TRACEABILITY.md` |
+| Disguise and social stealth | RC39 candidate path: weapon-neutral distance cover plus raycast-gated close scrutiny, point-blank exposure, observer-local hostility, clean identity rebinding and alert/hunch separation | Full real-mission pass in `SPECIFICATION_TRACEABILITY.md` |
 | Credentials and radio propagation | RC34 keycard/keychain capture before native drop, consistent off-limits queries, interruptible identity/body reports and reload restoration | Verify real mission doors, radio audio/range and checkpoint matrix |
 | Multi-contract persistence and payout | Implemented | Live active/terminal reload matrix and multi-target exactly-once payout |
 | Drone presence and patrol | Seven-model RC22 roster implemented; previous native body seen live | Live-approve every new atlas row, scale, heading, rotor profile and varied deployment |
@@ -40,7 +40,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Contract variety | Partial | Data theft, accidents, special weapon conditions, rescue/extraction and other systemic contract types |
 | Localization/audio callouts | Partial | English runtime text exists; translated strings and an authored localized radio-callout pack remain |
 
-## RC22 roster / RC23–RC38 live corrections
+## RC22 roster / RC23–RC39 live corrections
 
 - Airframe footprint reduced to roughly 27 world pixels and the generated art rotated by -90 degrees to match the native sensor/flight heading.
 - Hover bob, offset shadow, four-frame rotor animation, rotor pulse rings, state-colored sensor pulse and a short pixel wake make flight readable without adding a detached HUD layer.
@@ -58,13 +58,14 @@ Automated harnesses support these systems, but do not replace the remaining real
 - RC36 adopts the final simple identity rule: every held weapon and reload is neutral. It removes the global post-shot exposure timer and global-combat recognition, while loud fire, wounded guards and casualties now send response units to a position without handing them the player's identity.
 - RC37 closes the remaining native AI bypass: suspicion, alert, body-investigation and combat states may no longer force `setEnemyInSight` or combat merely because a calm disguised player is close. A fresh identity clears stale actor-specific sight memory for uninformed guards; actual takeover witnesses retain local knowledge and can radio it.
 - RC38 closes the native close-protection follower crash when a follower changes to combat/fear and removes alert-state/hunch shortcuts that made an uninformed protected target flee from a valid disguise. Calm cover now stays below the native 40% suspicion-success threshold.
+- RC39 restores deliberate infiltration risk: FOV/raycast-confirmed point-blank contact exposes immediately, sustained 150-unit scrutiny exposes after a role/familiarity-scaled dwell, lost contact decays progress and successful recognition resumes the original Goon response instead of stopping at a red indicator.
 - Routine drones now consume social-stealth risk instead of treating every player silhouette identically. Their real cone/raycast can detect each exposed body once and compromise the stolen identity when its source is found.
 
 The Scout deliberately does not shoot. Six armed variants join escalated wings: light/heavy Pistol, SMG and Laser. Ballistic models use native bullets; laser models display an uninterrupted charge cue. No model attacks without confirmed line of sight, range, gimbal alignment and cooldown readiness.
 
 ## Immediate acceptance gate
 
-1. Completely restart the game and confirm `0.14.4-rc38` loads without traceback and without an internal RC render diagnostic on the HUD.
+1. Completely restart the game and confirm `0.14.5-rc39` loads without traceback and without an internal RC render diagnostic on the HUD.
 2. Observe multiple deployments and identify Scout, light and heavy silhouettes; heavy variants must be larger but remain actor-scaled.
 3. Stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
@@ -85,4 +86,4 @@ The complete fourteen-step disguise/social-stealth live gate and its native engi
 
 ## Release boundary
 
-HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC38 extends RC37's observer-local identity rule through target threat/hunch processing and makes HCO follower ownership safe across native state transitions. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.
+HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC39 preserves RC38's observer-local identity and follower safety while restoring real close-inspection failure states and native hostile response. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.

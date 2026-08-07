@@ -7,6 +7,7 @@ local COLORS = {
 	acquired = {72, 224, 224},
 	restored = {90, 205, 176},
 	checking = {255, 183, 58},
+	exposed = {255, 92, 48},
 	compromised = {245, 62, 67}
 }
 
@@ -14,6 +15,7 @@ local DURATIONS = {
 	acquired = 0.95,
 	restored = 0.65,
 	checking = 2.6,
+	exposed = 0.9,
 	compromised = 1.25
 }
 
@@ -24,7 +26,7 @@ local function playNativeCue(kind)
 		pcall(sound.play, sound, "weapon_pickup", game and game.playerActor)
 	elseif kind == "restored" then
 		pcall(sound.play, sound, "wep_select_confirm")
-	elseif kind == "compromised" then
+	elseif kind == "compromised" or kind == "exposed" then
 		pcall(sound.play, sound, "invalid_use")
 	end
 	-- An identity check already opens the NPC's real radio. A second synthetic
@@ -98,7 +100,9 @@ local function drawEffect(state, player)
 	local progress = math.min(1, active.time / math.max(0.01, active.duration))
 	local color = COLORS[active.kind]
 	local alpha = math.floor(220 * (1 - progress))
-	local radius = 14 + progress * (active.kind == "compromised" and 22 or 15)
+	local locallyExposed = active.kind == "exposed"
+	local brokenIdentity = active.kind == "compromised" or locallyExposed
+	local radius = 14 + progress * (brokenIdentity and 22 or 15)
 	local oldWidth = love.graphics.getLineWidth and love.graphics.getLineWidth() or 1
 	love.graphics.setColor(color[1], color[2], color[3], alpha)
 	love.graphics.setLineWidth(active.kind == "checking" and 2 or 1)
@@ -108,12 +112,16 @@ local function drawEffect(state, player)
 		segmentCircle(x, y, radius, -math.pi * 0.5, sweep, 18)
 		segmentCircle(x, y, radius + 4, math.pi * 0.5, math.pi * 0.55, 6)
 		drawBrackets(x, y, radius + 5, alpha, false)
-	elseif active.kind == "compromised" then
+	elseif brokenIdentity then
 		segmentCircle(x, y, radius, 0.2, math.pi * 0.7, 7)
 		segmentCircle(x, y, radius, math.pi * 1.15, math.pi * 0.58, 6)
 		drawBrackets(x, y, radius + 4, alpha, true)
-		love.graphics.line(x - 7 - progress * 5, y - 7, x + 7 + progress * 5, y + 7)
-		love.graphics.line(x + 7 + progress * 5, y - 7, x - 7 - progress * 5, y + 7)
+		if active.kind == "compromised" then
+			love.graphics.line(x - 7 - progress * 5, y - 7, x + 7 + progress * 5, y + 7)
+			love.graphics.line(x + 7 + progress * 5, y - 7, x - 7 - progress * 5, y + 7)
+		else
+			love.graphics.line(x - radius, y, x + radius, y)
+		end
 	else
 		segmentCircle(x, y, radius, -math.pi * 0.5, math.pi * 1.55, 15)
 		drawBrackets(x, y, radius + 3, alpha, false)

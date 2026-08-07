@@ -185,6 +185,14 @@ Sources: `engine/spritebatchcontroller.lua`, `game/bullet.lua`, `game/weapon.lua
 
 The live RC32 screenshot proved the wreck batch was durable but froze on its first frame. This separates persistence from animation ownership: `security_camera:setBroken(true)` removes the destroyed carrier through `game.removeDynamicObject(self)`, while the independent airframe remains in the decor quadtree. The moving carrier previously called `airframes.sync()` every dynamic update; after destruction that source of reinsertion and frame refresh no longer exists. RC33 advances crash time and batch transforms from the already persistent HCO contract update before deployment early-returns, while limiting decor reinsertion to the finite effects window.
 
+## RC39 native close-recognition handoff evidence
+
+RC38 correctly prevented an uninformed native alert state from manufacturing player identity, but the live result revealed the other side of that boundary: a red close-range reaction could remain only presentation because every patched `onSightHitPlayer` invocation was still suppressed while behavior risk stayed below one. The observer spoke an alert line but never received authoritative enemy knowledge, so combat waited for the player to attack first.
+
+RC39 makes proximity an explicit identity source rather than reopening the old arbitrary instant-detect path. The hard 72-unit boundary and timed 150-unit band both require current native `updateVisionData`, `isWithinView` and `runGenericRaycast` success. Historical `seenPlayer`, a wall, or an observer facing away cannot advance scrutiny. Progress is stored by observer and decays while contact is broken.
+
+After recognition, HCO marks only that observer's uniform group as locally compromised, sets its player detection to full and invokes the already-instantiated state object's sight callback. Because the local knowledge now exists, RC37's wrapper deliberately passes through to the saved original callback. Native suspicion/alert code therefore retains ownership of `attemptStartleDetection`, off-limits confrontation, surrender and `goToCombat`. A real radio on the recognizing actor may subsequently propagate global compromise.
+
 ## RC38 native follower-state and threat-knowledge evidence
 
 The live `getWatchBack` traceback resolves to the base game's alert-state `advanceFollowerInstructions(follower, dt)`. That method fetches `follower:getState()` and unconditionally calls `getWatchBack`, `setWatchBack`, `getWatchDistance` and `setWatchDistance`. These methods belong to following states; combat, fear and other ordinary Goon states do not implement that contract. `goon:setFollower` and `goon:getFollower` only write/read a raw actor reference, so a leader can retain a follower after that follower changes state.

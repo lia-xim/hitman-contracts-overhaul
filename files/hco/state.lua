@@ -65,6 +65,7 @@ function stateModule.acquire()
 	state.usedDisguiseSources = state.usedDisguiseSources or {}
 	state.localCompromisedDisguises = state.localCompromisedDisguises or {}
 	state.pendingCompromises = state.pendingCompromises or {}
+	state.closeScrutiny = state.closeScrutiny or {}
 
 	playerActor[PLAYER_KEY] = state
 
@@ -143,6 +144,8 @@ function stateModule.resetRuntime(state, reason)
 	state.usedDisguiseSources = {}
 	state.localCompromisedDisguises = {}
 	state.pendingCompromises = {}
+	state.closeScrutiny = {}
+	state.lastLocalExposureFeedbackTime = nil
 	state.targetKillerID = nil
 	state.lastResetReason = reason or "unspecified"
 	state.lastSelectionReport = nil

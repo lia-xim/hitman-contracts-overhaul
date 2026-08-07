@@ -1,4 +1,11 @@
-# Automated Test Report — 0.14.4-rc38
+# Automated Test Report — 0.14.5-rc39
+
+## RC39 consequential close-inspection correction
+
+- Runtime coverage keeps a calm armed disguise below native suspicion success at medium distance, then gives the same observer real FOV/raycast contact at 60 units. That point-blank sight establishes observer-local compromise, sets native enemy knowledge and executes the original sight/combat callback.
+- A separate 120-unit case proves 250 ms of proximity does not expose the player, while sustained visibility completes role-scaled scrutiny and hands control to native combat.
+- Local exposure uses a distinct `exposed` world effect and does not globally compromise the uniform by itself. Global propagation still requires the observer's real radio report to complete.
+- All seven LÖVE suites pass against `0.14.5-rc39`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
 
 ## RC38 follower-state and identity-knowledge correction
 
@@ -234,18 +241,18 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 33 Lua modules parse, including RC38's follower-state boundary and identity-aware target/security threat handling.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including RC39's observer-local scrutiny, point-blank recognition and native hostile handoff.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test installation audit: **PASS** — installed `0.14.4-rc38`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running during installation.
+- Post-test installation audit: **PASS** — installed `0.14.5-rc39`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
 - Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.4-rc38.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `ACDB865199823CDAEEA7CA5ABA5C0FE0CE9792839C7E28F23409E59BB7F732A4`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.4-rc38 payload=43`.
-- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates the RC38 installation at 12:15.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.5-rc39.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `8382E7E2B22791BF0325BCB4912AB1E574E2BF2820BFCB6BF8385FC5E03AF476`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.5-rc39 payload=43`.
+- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC39.
 
-The markers above were collected from RC38 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC39 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

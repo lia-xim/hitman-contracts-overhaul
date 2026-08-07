@@ -743,6 +743,57 @@ assertTrue(validC:getDetection(player) <= require("hco/config").DISGUISE_SOFT_DE
 assertTrue(validC:getDetection(player) < 0.4, "calm social cover remains below native suspicion success")
 validC:setEnemyInSight(true, player)
 assertEqual(validC:getEnemyInSight(player), false, "hard native enemy-sight boundary rejects uninformed hostility")
+
+validC.x = 60
+validC.currentlySees = true
+validC:setDetection(player, 0)
+validC.nativeSightCombat = false
+instantSightState:onSightHitPlayer(player)
+assertTrue(state.localCompromisedDisguises[validC.id] and state.localCompromisedDisguises[validC.id][acquiredFaction], "point-blank visual inspection exposes the identity to that observer")
+assertEqual(validC:getEnemyInSight(player), true, "point-blank recognition produces real native enemy knowledge")
+assertEqual(validC.nativeSightCombat, true, "point-blank red recognition continues into native threaten or combat behavior")
+assertEqual(state.identityFX.kind, "exposed", "local close-range exposure has its own readable world effect")
+validC.x = 170
+validC.currentlySees = false
+state.localCompromisedDisguises[validC.id] = nil
+state.pendingCompromises = {}
+validC:setEnemyInSight(false, player)
+validC:setDetection(player, 0)
+validC.seenPlayer = false
+validC.nativeSightCombat = false
+
+validD.x = 120
+validD.currentlySees = true
+validD:setState(validD:getStateObject("goon_suspicion"))
+require("hco/social/disguise").update(state, 0.25)
+assertTrue(not state.localCompromisedDisguises[validD.id], "brief non-point-blank proximity starts scrutiny without instant exposure")
+for step = 1, 12 do require("hco/social/disguise").update(state, 0.25) end
+assertTrue(state.localCompromisedDisguises[validD.id] and state.localCompromisedDisguises[validD.id][acquiredFaction], "sustained close inspection exposes even a calm armed disguise")
+assertEqual(validD:getEnemyInSight(player), true, "completed close inspection hands control back to native combat")
+validD.x = 190
+validD.currentlySees = false
+state.localCompromisedDisguises[validD.id] = nil
+state.pendingCompromises = {}
+state.closeScrutiny = {}
+validD:setEnemyInSight(false, player)
+validD:setDetection(player, 0)
+validD.seenPlayer = false
+validD.nativeSightCombat = false
+
+namedStoryNPC.x = 120
+namedStoryNPC.currentlySees = true
+require("hco/social/disguise").update(state, 0.5)
+assertTrue(state.closeScrutiny[namedStoryNPC.id] and state.closeScrutiny[namedStoryNPC.id].time > 0, "close visual contact accumulates observer-local scrutiny")
+namedStoryNPC.currentlySees = false
+require("hco/social/disguise").update(state, 0.4)
+assertEqual(state.closeScrutiny[namedStoryNPC.id], nil, "breaking visual contact drains partial scrutiny")
+namedStoryNPC.currentlySees = true
+require("hco/social/disguise").update(state, 1)
+assertTrue(not state.localCompromisedDisguises[namedStoryNPC.id], "re-entering after scrutiny decays does not inherit a completed check")
+namedStoryNPC.x = 200
+namedStoryNPC.currentlySees = false
+state.closeScrutiny = {}
+
 player.aiming = true
 instantSightState:onSightHitPlayer(player)
 assertEqual(validC:getEnemyInSight(player), true, "directly aiming at a guard permits native recognition")

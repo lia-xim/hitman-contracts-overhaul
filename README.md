@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.14.4-rc38`
+**Current build:** `0.14.5-rc39`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate test release. RC38 closes the native close-protection follower crash and separates native alert presentation from actual identity knowledge. Uninformed guards may scrutinize a valid disguise, but cannot make the principal flee or manufacture player-specific hostility from a warning state alone; real visual witnesses, overt behavior, cameras/drones, body evidence and completed radio reports remain authoritative. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC39 makes social stealth useful but unsafe: normal armed movement remains credible at distance, sustained close inspection becomes observer-local exposure and point-blank visual contact immediately returns control to the native threaten/combat AI. RC38's follower-crash fix and identity-aware target threat remain intact. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 
@@ -39,7 +39,7 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 
 No menu or hotkey is required. Start a compatible mission from the beginning. HCO selects safe mission actors and adds optional contracts through the native objective system. Follow the intelligence marker, recover the dead drop, and then track the moving target.
 
-Approach a dead or unconscious guard and choose **Take disguise / search body** in the normal interaction selector. The player visibly adopts that actor variant; HCO identities retain their faction insignia. The held weapon, weapon model and holster state do not affect the identity. Running, aiming at someone, witnessed firing, lockpicking, carrying a body, a bloodied uniform, fresh evidence, restricted access, target lingering, or close colleagues can expose you. An unseen shot creates investigation at its location without revealing who fired it. A real radio identity check can be escaped or disrupted before it completes.
+Approach a dead or unconscious guard and choose **Take disguise / search body** in the normal interaction selector. The player visibly adopts that actor variant; HCO identities retain their faction insignia. The held weapon, weapon model and holster state do not affect the identity. Keep a believable distance: sustained close eye contact builds observer-local scrutiny, same-unit/elite guards inspect faster, and point-blank visual contact blows the cover immediately. Running, aiming at someone, witnessed firing, lockpicking, carrying a body, a bloodied uniform, fresh evidence, restricted access or target lingering can also expose you. An unseen shot creates investigation at its location without revealing who fired it. A real radio report can be disrupted before local recognition becomes global compromise.
 
 Drones participate in that same social-stealth model. A calm valid identity buys time during routine patrols, not invisibility. Aggressive security uses faster sensor scrutiny, and a drone that finds the body from which the uniform was taken compromises the disguise over the security network.
 

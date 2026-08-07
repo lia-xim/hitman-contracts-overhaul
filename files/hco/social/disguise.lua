@@ -340,6 +340,8 @@ function disguise.applyFromBody(state, body, player)
 	end
 
 	state.disguise = candidate
+	state.closeScrutiny = {}
+	state.lastLocalExposureFeedbackTime = nil
 	body._hcoDisguiseTaken = true
 	player._hcoDisguiseFactionVisual = candidate.factionVisual
 	state.usedDisguiseSources = state.usedDisguiseSources or {}
@@ -435,6 +437,8 @@ function disguise.clear(state, restoreVisual)
 	state.usedDisguiseSources = {}
 	state.localCompromisedDisguises = {}
 	state.pendingCompromises = {}
+	state.closeScrutiny = {}
+	state.lastLocalExposureFeedbackTime = nil
 	identityFX.clear(state)
 end
 
@@ -663,6 +667,109 @@ hasCurrentVisualContact = function(observer, player)
 	return okFixture and playerFixture ~= nil and hit.fixture == playerFixture
 end
 
+local function closeScrutinyTime(state, observer)
+	local duration = config.DISGUISE_CLOSE_SCRUTINY_TIME
+	local _, observerGroup = util.call(observer, "getAnimVariant")
+
+	if state.disguise and tostring(observerGroup) == tostring(state.disguise.group) then
+		duration = duration * 0.55
+	end
+
+	local _, experience = util.call(observer, "getExperienceLevel")
+	local goonClass = actor.getClassData and actor.getClassData("goon")
+	local elite = goonClass and goonClass.EXPERIENCE_LEVELS and goonClass.EXPERIENCE_LEVELS.ELITE
+	if elite and tonumber(experience) and experience >= elite then duration = duration * 0.75 end
+
+	if observer._hcoSecurityRole == "close_protection" then
+		duration = duration * 0.75
+	elseif observer._hcoSecurityRole == "protected_target" then
+		duration = duration * 0.6
+	end
+
+	return math.max(0.55, duration)
+end
+
+local function exposeIdentityToObserver(state, observer, player, reason, activateNativeState)
+	if not state.disguise or not observer or not player
+		or observerLocallyCompromised(state, observer, state.disguise.group) then
+		return false
+	end
+
+	local observerID = util.getID(observer)
+	markLocalCompromise(state, observer, state.disguise.group)
+	queueRadioCompromise(state, observer, state.disguise.group, reason or "close-recognition")
+	if observerID and state.closeScrutiny then state.closeScrutiny[observerID] = nil end
+	local now = curTime or 0
+	if state.lastLocalExposureFeedbackTime == nil or now - state.lastLocalExposureFeedbackTime >= 0.75 then
+		state.lastLocalExposureFeedbackTime = now
+		feedback.show(english.DISGUISE_LOCALLY_EXPOSED)
+		identityFX.trigger(state, "exposed")
+	end
+	util.log(config, "disguise locally exposed observer=" .. tostring(observerID) .. " reason=" .. tostring(reason or "close-recognition"))
+
+	if not activateNativeState then
+		return true
+	end
+
+	util.call(observer, "setDetection", player, 1)
+	local okState, stateObject = util.call(observer, "getState")
+
+	if okState and stateObject and type(stateObject.onSightHitPlayer) == "function" then
+		pcall(stateObject.onSightHitPlayer, stateObject, player)
+	end
+
+	local _, enemyInSight = util.call(observer, "getEnemyInSight", player)
+	if enemyInSight == true then return true end
+
+	-- A future or unusual state may accept the callback without establishing
+	-- any actionable result. Never leave confirmed red recognition as dialogue
+	-- only: give that observer real enemy knowledge and enter its native combat
+	-- transition as the fail-closed fallback.
+	util.call(observer, "setEnemyInSight", true, player)
+	if okState and stateObject and type(stateObject.goToCombat) == "function" then
+		pcall(stateObject.goToCombat, stateObject, true)
+	end
+
+	return true
+end
+
+local function updateCloseScrutiny(state, player, dt)
+	state.closeScrutiny = state.closeScrutiny or {}
+	local observed = {}
+
+	for _, observer in ipairs(util.getNPCs(game.worldObject)) do
+		local observerID = util.getID(observer)
+		if observerID and util.isAlive(observer)
+			and not observerLocallyCompromised(state, observer, state.disguise.group) then
+			local distance = util.distance(observer, player)
+
+			if distance <= config.DISGUISE_CLOSE_SCRUTINY_RANGE and hasCurrentVisualContact(observer, player) then
+				observed[observerID] = true
+
+				if distance <= config.DISGUISE_POINT_BLANK_RECOGNITION_RANGE then
+					exposeIdentityToObserver(state, observer, player, "point-blank-recognition", true)
+				else
+					local entry = state.closeScrutiny[observerID] or {time = 0, observer = observer}
+					entry.time = entry.time + dt
+					entry.observer = observer
+					state.closeScrutiny[observerID] = entry
+
+					if entry.time >= closeScrutinyTime(state, observer) then
+						exposeIdentityToObserver(state, observer, player, "close-inspection", true)
+					end
+				end
+			end
+		end
+	end
+
+	for observerID, entry in pairs(state.closeScrutiny) do
+		if not observed[observerID] then
+			entry.time = math.max(0, (tonumber(entry.time) or 0) - dt * config.DISGUISE_CLOSE_SCRUTINY_DECAY)
+			if entry.time <= 0 or not util.isAlive(entry.observer) then state.closeScrutiny[observerID] = nil end
+		end
+	end
+end
+
 local function shouldSuppressNativeRecognition(state, observer, player)
 	if player ~= (game and game.playerActor) or not state.contract or not state.disguise then
 		return false
@@ -670,6 +777,16 @@ local function shouldSuppressNativeRecognition(state, observer, player)
 
 	if isGloballyCompromised(state)
 		or observerLocallyCompromised(state, observer, state.disguise.group) then
+		return false
+	end
+
+	-- Point-blank inspection is a deliberate hard failure state. The native
+	-- sight callback that asked this question continues immediately after the
+	-- observer gains local knowledge, preserving the game's own threaten,
+	-- startle, surrender and combat behavior.
+	if util.distance(observer, player) <= config.DISGUISE_POINT_BLANK_RECOGNITION_RANGE
+		and hasCurrentVisualContact(observer, player) then
+		exposeIdentityToObserver(state, observer, player, "point-blank-recognition", false)
 		return false
 	end
 
@@ -873,6 +990,7 @@ function disguise.update(state, dt)
 	if state.disguise and player then
 		updateTargetLingerRisk(state, player, dt)
 		updateDisturbanceRisk(state, player)
+		if not isGloballyCompromised(state) then updateCloseScrutiny(state, player, dt) end
 	end
 	state.disguiseRisk = player and disguise.getBehaviorRisk(state, player) or 1
 

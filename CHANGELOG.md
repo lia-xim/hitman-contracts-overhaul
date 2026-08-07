@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.5-rc39 — 2026-08-07
+
+- Rebalanced social stealth around meaningful proximity risk. A clean disguise remains credible at normal distance with any held or holstered weapon, but a guard with a real native FOV/raycast now performs observer-local close scrutiny inside 150 world units.
+- Added an intentional 72-unit point-blank failure boundary. A guard who can genuinely see the player at that distance immediately recognizes that this is not their colleague; red detection now hands control back to the original threaten/startle/surrender/combat path instead of becoming a harmless voice line.
+- Sustained close inspection exposes the disguise after a short dwell rather than instantly. Same-unit guards, elites, close protection and the protected target complete that check faster, while broken sight or backing away drains accumulated scrutiny.
+- Kept knowledge local at first. The recognizing guard becomes hostile and may open a real interruptible radio report; the uniform is compromised globally only if that report completes or other established network evidence exists.
+- Added a compact orange-red `COVER BLOWN` world transition distinct from the global `DISGUISE COMPROMISED` effect, with rate limiting when several nearby guards recognize the player together.
+- Added regressions proving that point-blank red recognition enters native hostility, brief close proximity is survivable, sustained close observation becomes hostile, and weapon-neutral medium-distance cover remains intact.
+
 ## 0.14.4-rc38 — 2026-08-07
 
 - Fixed the recurring native `advanceFollowerInstructions` / missing `getWatchBack` crash. Every HCO close-protection link now records both leader and follower ownership, and the native `getFollower` boundary atomically rejects that link when the follower has entered alert, combat, fear or another state without the four follower-instruction methods.
