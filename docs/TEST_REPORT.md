@@ -1,4 +1,11 @@
-# Automated Test Report — 0.14.9-rc43
+# Automated Test Report — 0.14.10-rc44
+
+## RC44 authoritative cached body-menu correction
+
+- The runtime fixture now inherits `getInteractOptions`, `updateInteractionList`, `addInteractionOption` and `postInteract` from the registered Goon class, matching the engine boundary wrapped by HCO instead of attaching simplified methods to each fake instance.
+- A regression first creates an eligible dead body, then deliberately removes HCO's visible takeover option while retaining the current registration generation and takeover action bit. It queries the native selector with `update=false` and requires takeover to be restored in that exact returned list.
+- Query-time reconciliation removes stale/duplicate HCO action objects, preserves native ID order and synchronizes only HCO's action bits. It does not replace the native body selector or its unrelated options.
+- All seven LÖVE suites pass against `0.14.10-rc44`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
 
 ## RC43 native patrol, combat-continuity and interaction-lifecycle correction
 
@@ -274,18 +281,18 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 33 Lua modules parse, including RC43's native patrol preservation, interaction lifecycle repair and drone combat-continuity changes.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including RC44's authoritative cached body-selector reconciliation.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test installation audit: **PASS** — installed `0.14.9-rc43`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
+- Post-test installation audit: **PASS** — installed `0.14.10-rc44`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
 - Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.9-rc43.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `9EB98DF4C7A11744CEF9A6061F069D919F6C607832117951F4F616E217A43248`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.9-rc43 payload=43`.
-- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 14:51:16; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC43.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.10-rc44.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `FB293337851BB6BA585D2CB4797216939361030AA4359FD299771682F508C412`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.10-rc44 payload=43`.
+- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 15:33:49; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC44.
 
-The markers above were collected from RC43 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC44 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

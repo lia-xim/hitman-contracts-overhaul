@@ -43,7 +43,7 @@ local INTERACTION_SENTINEL = "hco_take_disguise_v1"
 local RESTORE_INTERACTION_SENTINEL = "hco_restore_identity_v1"
 local GOON_HOOK_KEYS = {
 	"reset", "increaseDetection", "setEnemyInSight", "getStateObject", "setState",
-	"hcoDisguiseDie", "hcoDisguiseChoke", "setSeenBody", "makeFallen", "onBodyDropped"
+	"getInteractOptions", "hcoDisguiseDie", "hcoDisguiseChoke", "setSeenBody", "makeFallen", "onBodyDropped"
 }
 
 local function getPlayerStateID(player)
@@ -971,7 +971,7 @@ local function updateDisturbanceRisk(state, player)
 end
 
 local function isBodyInteractionTarget(body, interactor)
-	if not interactor or not interactor.PLAYER or not body then return false end
+	if not interactor or not body or (not interactor.PLAYER and interactor ~= (game and game.playerActor)) then return false end
 	local _, dead = util.call(body, "isDead")
 	local _, unconscious = util.call(body, "isUnconscious")
 	return dead == true or unconscious == true
@@ -989,25 +989,74 @@ local function isEligibleBody(state, body, interactor)
 	return group ~= nil
 end
 
+local function invalidateBodyInteractionCache(state, body)
+	if not body then return false end
+	local generation = state.hcoDisguiseInteractionGeneration or 0
+	if body._hcoDisguiseInteractionGeneration == generation then return false end
+
+	-- Native bodies cache both the visible option objects and a bitmask of the
+	-- class action IDs. HCO inserts its actions at slots 1/2, so a body cached
+	-- before registration or across a mission reset can otherwise claim those
+	-- bits while rendering neither action. Rebuild exactly once per registration
+	-- generation, then let the native updater own the other menu entries again.
+	body.currentActionBitmask = 0
+	if body._interactionList then body._interactionList.options = {} end
+	body._hcoDisguiseInteractionGeneration = generation
+	return true
+end
+
+local function isInteractionEntry(entry, option, sentinel)
+	return entry == option or entry and entry._hcoInteraction == sentinel
+end
+
+local function setActionBit(body, option, visible)
+	local mask, id = tonumber(body and body.currentActionBitmask), tonumber(option and option.id)
+	if not mask or not id or not bit or type(bit.band) ~= "function" then return end
+	local active = bit.band(mask, id) == id
+	if visible and not active then
+		body.currentActionBitmask = mask + id
+	elseif not visible and active then
+		body.currentActionBitmask = mask - id
+	end
+end
+
+local function reconcileVisibleAction(body, interactionList, option, sentinel, visible)
+	local options = interactionList and interactionList.options
+	if type(options) ~= "table" or not option then return end
+	for index = #options, 1, -1 do
+		if isInteractionEntry(options[index], option, sentinel) then table.remove(options, index) end
+	end
+	if visible then
+		local inserted = util.call(body, "addInteractionOption", options, option)
+		if not inserted then
+			local index = 1
+			while options[index] and tonumber(options[index].id) and tonumber(option.id)
+				and tonumber(options[index].id) < tonumber(option.id) do index = index + 1 end
+			table.insert(options, index, option)
+		end
+	end
+	setActionBit(body, option, visible)
+end
+
+local function reconcileVisibleBodyActions(state, body, interactor, interactionList)
+	if type(interactionList) ~= "table" or type(interactionList.options) ~= "table" then return interactionList end
+	reconcileVisibleAction(body, interactionList, state.hcoDisguiseInteraction, INTERACTION_SENTINEL,
+		isEligibleBody(state, body, interactor))
+	reconcileVisibleAction(body, interactionList, state.hcoDisguiseRestoreInteraction, RESTORE_INTERACTION_SENTINEL,
+		state.disguise ~= nil and isBodyInteractionTarget(body, interactor))
+	return interactionList
+end
+
 local function refreshBodyInteraction(state, body, interactor)
 	if not body or not interactor then return false end
-	local generation = state.hcoDisguiseInteractionGeneration or 0
-	if body._hcoDisguiseInteractionGeneration ~= generation then
-		-- Native bodies cache both the visible option objects and a bitmask of the
-		-- class action IDs. HCO inserts its actions at slots 1/2, so a body cached
-		-- before registration or across a mission reset can otherwise claim those
-		-- bits while rendering neither action. Rebuild exactly once per registration
-		-- generation, then let the native updater own the menu again.
-		body.currentActionBitmask = 0
-		if body._interactionList then body._interactionList.options = {} end
-		body._hcoDisguiseInteractionGeneration = generation
-	end
+	invalidateBodyInteractionCache(state, body)
 
 	-- Existing bodies cache their native option list. Updating that list after
 	-- HCO's class-level action registration is what makes hot-loaded and
 	-- checkpoint-restored bodies expose the disguise action in the real menu.
 	if body._interactionList and type(body.updateInteractionList) == "function" then
 		local ok = util.call(body, "updateInteractionList", interactor)
+		reconcileVisibleBodyActions(state, body, interactor, body._interactionList)
 		return ok
 	end
 
@@ -1239,6 +1288,24 @@ local function installHooks(state, goonClass)
 		function goonClass:setState(stateObject, ...)
 			patchSightStateObject(state, stateObject)
 			return original(self, stateObject, ...)
+		end
+	end
+
+	if not state.hooks.getInteractOptions and type(goonClass.getInteractOptions) == "function" then
+		state.hooks.getInteractOptions = goonClass.getInteractOptions
+		local original = goonClass.getInteractOptions
+
+		function goonClass:getInteractOptions(interactor, update)
+			-- This is the authoritative selector boundary. The base implementation may
+			-- return a cached list without updating it at all when update=false. Repair
+			-- the cache before that query, then reconcile the exact returned list after
+			-- native actions run so takeover cannot be absent while its bit is still set.
+			local invalidated = invalidateBodyInteractionCache(state, self)
+			-- If HCO cleared an old generation, force the native updater once even
+			-- when the selector requested update=false; otherwise unrelated carry,
+			-- inventory and finish-off entries would remain absent from that menu.
+			local interactionList = original(self, interactor, update or invalidated)
+			return reconcileVisibleBodyActions(state, self, interactor, interactionList)
 		end
 	end
 

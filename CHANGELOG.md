@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.10-rc44 — 2026-08-07
+
+- Fixed the remaining live case where the native body selector returned a cached `update=false` option list without the disguise action even though its action bit was already set.
+- Wrapped the real Goon `getInteractOptions` boundary. Before the native query, stale action generations are invalidated; after it, takeover and original-identity actions are reconciled directly into the exact list consumed by the selector.
+- Kept the native bitmask and visible options synchronized while removing duplicate/stale HCO action objects from prior lifecycle generations. Native carry, weapon, inventory and finish-off options remain engine-owned and retain ID order.
+- Accepts the actual active player object as the body interactor even if a runtime/mod combination does not expose the inherited `PLAYER` flag on that instance.
+- Reworked the runtime fixture so body interaction methods are inherited from the Goon class like the real engine, and added a regression that deliberately drops the visible action while retaining its bit and current generation before an `update=false` query.
+
 ## 0.14.9-rc43 — 2026-08-07
 
 - Restored real principal movement by preserving the path created by the native Goon patrol-state callback. Initial activation, routine restoration and the nine-second mobility watchdog now advance the original authored route without clearing its newly created destination.

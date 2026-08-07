@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.14.9-rc43`
+**Current build:** `0.14.10-rc44`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate test release. RC43 preserves the principal's native patrol path, keeps its entire close-protection chain attached, prevents armed drones from silently losing fire authority after HCO casualties and repairs native disguise actions after mission restarts. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC44 makes the real native body-selector query self-heal a missing takeover/restore option even when the engine returns an unchanged cached menu, while retaining RC43's principal-patrol and drone-combat continuity corrections. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 

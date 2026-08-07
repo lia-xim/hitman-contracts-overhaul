@@ -268,3 +268,11 @@ Source: `game/entity.lua`
 Source: `game/bullet.lua` and `game/weapon.lua`
 
 - Native ballistic creation requires an actor-shaped owner for hostility, sound and damage attribution. Runtime drones are camera carriers rather than Goon actors, so HCO selects one valid HCO world actor as a proxy. RC43 retains that valid object for the airframe lifetime even after it becomes a corpse; actor death no longer silently makes an intact drone weapon ownerless.
+
+## RC44 authoritative body-selector query evidence
+
+Source: `game/entity.lua`
+
+- `entity:getInteractOptions(interactor, update)` at lines 716–728 creates and evaluates a list only on the first query. Once `_interactionList` exists, an `update=false` call returns it unchanged.
+- The body selector can therefore consume a stale visible list even when `currentActionBitmask` says HCO's first action is active. A periodic `updateInteractionList` is not sufficient because it may run only after the player has opened that selector.
+- RC44 wraps the inherited method on the registered Goon class. It invalidates a stale registration generation before native evaluation and reconciles only HCO's takeover/restore objects in the returned `interactionList.options` afterward. Native carry, finish-off and inventory ownership are unchanged.

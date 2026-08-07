@@ -66,7 +66,7 @@ Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a l
 The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.14.9-rc43[/b] — production-candidate release. RC43 restores the principal's native patrol path and complete bodyguard chain, keeps intact armed drones firing after protection casualties and repairs missing outfit actions after mission restarts while retaining RC42's disguise-aware drone sensing and navigation recovery. Promotion to 1.0 follows the published crash-free live mission matrix.
+[b]0.14.10-rc44[/b] — production-candidate release. RC44 repairs the exact native body-selector result at menu-open time, including cached update=false menus whose action bit and visible options disagree. It retains RC43's principal patrol, bodyguard-chain and drone-combat continuity fixes. Promotion to 1.0 follows the published crash-free live mission matrix.
 
 [h2]OPEN SOURCE[/h2]
 Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.

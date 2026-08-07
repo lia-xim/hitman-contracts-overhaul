@@ -1,8 +1,8 @@
-# Completion Audit — 0.14.9-rc43
+# Completion Audit — 0.14.10-rc44
 
 **Audit date:** 2026-08-07
 **Goal status:** production-candidate code complete for the current feature surface; final live acceptance is not complete
-**Authority inspected:** RC43 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed `1.4.12HF3` interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces and user-supplied live screenshots/errors
+**Authority inspected:** RC44 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed `1.4.12HF3` interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -14,7 +14,7 @@
 | Safe campaign payout | Pass | Completion and reward observed after `studio` crash fix | Live pass |
 | Target/protection presence | RC43 native patrol callback/path and exact follower-chain regressions pass | Target and guards observed; stationary target/detail reported on RC42 | RC43 correction requires live pass |
 | Multi-contract isolation | Pass | Not yet proven across a full live mission | Live test required |
-| Disguise/social stealth | RC43 first-action takeover, runtime rebind, stale-bitmask/cache recovery, explicit restore, persistent shimmer, three tiers, weapon-neutral distance cover, close scrutiny, point-blank exposure, radio and persistence pass | User reports close-risk behavior works but takeover disappeared after mission restart on RC42 | RC43 restart correction requires live pass |
+| Disguise/social stealth | RC44 first-action takeover, authoritative cached-query reconciliation, runtime rebind, stale-bitmask/cache recovery, explicit restore, persistent shimmer, three tiers, weapon-neutral distance cover, close scrutiny, point-blank exposure, radio and persistence pass | RC43 periodic repair still left the live opened selector without takeover | RC44 menu-open correction requires live pass |
 | Save/reload semantics | Pass | Individual mission behavior observed, full matrix incomplete | Live test required |
 | Drone deployment/searchlight | RC41 committed patrol, invalid-sector fallback, bounded inert barrier hop, 360-degree scan and shared map alarm pass | Live pass exposed stalls at separated exterior areas | RC41 correction requires live pass |
 | Native drone body | Seven-row atlas pass | Earlier native body visible in screenshot | RC22 row/scale/orientation pass pending |
@@ -39,6 +39,6 @@ The core optional-contract product exists and works far enough to be played. HCO
 7. Live-test and tune the implemented Pistol/SMG/Laser attacks. Every attack must remain telegraphed and counterable.
 8. Complete the live map, reload and compatibility matrix; localization/audio callouts remain post-candidate content work.
 
-## RC43 acceptance
+## RC44 acceptance
 
-RC43 is approved for local production-candidate testing, not yet as final `1.0`. The RC42 live pass showed three remaining continuity faults: native patrol activation was followed by path deletion, branched close guards overwrote the target's single follower slot, armed drones could lose both reacquisition and a living projectile-attribution actor, and a restarted body could retain HCO action bits without visible options. RC43 repairs those engine-boundary faults. The next pass must prove moving target/detail continuity, post-LOS/post-casualty drone fire and outfit availability after mission restart while retaining RC42's distance bands and navigation behavior.
+RC44 is approved for local production-candidate testing, not yet as final `1.0`. RC43 repaired lifecycle registration and periodic cache refresh, but the live selector could still request an already-cached body with `update=false` and consume the inconsistent list immediately. RC44 wraps that authoritative query, invalidates stale generations before native evaluation and reconciles takeover/restore in the exact returned list. The next pass must prove the outfit entry appears on a fresh dead or unconscious body after restart, alongside RC43's moving-target and drone-fire continuity corrections.

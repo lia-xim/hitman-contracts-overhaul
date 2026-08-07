@@ -152,6 +152,44 @@ function goonClass:enumerateActions()
 end
 goonClass:enumerateActions()
 
+function goonClass:addInteractionOption(target, option)
+	local index = 1
+	while target[index] and target[index].id < option.id do index = index + 1 end
+	table.insert(target, index, option)
+end
+
+function goonClass:updateInteractionList(interactor)
+	local target = self._interactionList.options
+	for _, option in ipairs(self.interactionList) do
+		local available = not option.actionCheck or option.actionCheck(self, interactor)
+		local active = bit.band(self.currentActionBitmask, option.id) == option.id
+		if available and not active then
+			self:addInteractionOption(target, option)
+			self.currentActionBitmask = self.currentActionBitmask + option.id
+		elseif not available and active then
+			for index = #target, 1, -1 do
+				if target[index] == option then table.remove(target, index) end
+			end
+			self.currentActionBitmask = self.currentActionBitmask - option.id
+		end
+	end
+end
+
+function goonClass:getInteractOptions(interactor, update)
+	if not self._interactionList then
+		self._interactionList = {object = self, options = {}}
+		self:updateInteractionList(interactor)
+	elseif update then
+		self:updateInteractionList(interactor)
+	end
+	return self._interactionList
+end
+
+function goonClass:postInteract(interactor)
+	self.postInteractCount = (self.postInteractCount or 0) + 1
+	self:updateInteractionList(interactor)
+end
+
 function goonClass:increaseDetection(target, amount)
 	self.detection[target] = math.min(1, (self.detection[target] or 0) + amount)
 
@@ -445,36 +483,6 @@ local function createNPC(data)
 	end
 	function npc:setState(value) self.state = value end
 	function npc:receiveSightingData(source) self.receivedSightingFrom = source end
-	function npc:updateInteractionList(interactor)
-		local target = self._interactionList.options
-		for _, option in ipairs(self.interactionList) do
-			local available = not option.actionCheck or option.actionCheck(self, interactor)
-			local active = bit.band(self.currentActionBitmask, option.id) == option.id
-			if available and not active then
-				table.insert(target, option)
-				self.currentActionBitmask = self.currentActionBitmask + option.id
-			elseif not available and active then
-				for index = #target, 1, -1 do
-					if target[index] == option then table.remove(target, index) end
-				end
-				self.currentActionBitmask = self.currentActionBitmask - option.id
-			end
-		end
-	end
-	function npc:getInteractOptions(interactor, update)
-		if not self._interactionList then
-			self._interactionList = {object = self, options = {}}
-			self:updateInteractionList(interactor)
-		elseif update then
-			self:updateInteractionList(interactor)
-		end
-		return self._interactionList
-	end
-	function npc:postInteract(interactor)
-		self.postInteractCount = (self.postInteractCount or 0) + 1
-		self:updateInteractionList(interactor)
-	end
-
 	return npc
 end
 
@@ -898,6 +906,21 @@ for _, option in ipairs(restartBody:getInteractOptions(player, false).options) d
 	if option._hcoInteraction == "hco_take_disguise_v1" then restartHasDisguise = true end
 end
 assertTrue(restartHasDisguise, "mission restart rebuilds stale body interaction masks and restores take-disguise")
+
+-- The real selector may query an already-cached body with update=false. Model a
+-- foreign/native cache refresh that drops HCO's visible option while retaining
+-- both the current generation and the action bit. The query boundary itself
+-- must repair the returned menu; waiting for a later periodic update is too late
+-- for the selector the player has already opened.
+restartBody._hcoDisguiseInteractionGeneration = state.hcoDisguiseInteractionGeneration
+restartBody.currentActionBitmask = disguiseOption.id
+restartBody._interactionList.options = {goonClass.interactionList[3]}
+local directRestartMenu = restartBody:getInteractOptions(player, false).options
+local directRestartHasDisguise = false
+for _, option in ipairs(directRestartMenu) do
+	if option._hcoInteraction == "hco_take_disguise_v1" then directRestartHasDisguise = true end
+end
+assertTrue(directRestartHasDisguise, "native cached update=false body menu self-heals the visible disguise action at query time")
 for index = #world.npcs, 1, -1 do
 	if world.npcs[index] == restartBody then table.remove(world.npcs, index) end
 end
