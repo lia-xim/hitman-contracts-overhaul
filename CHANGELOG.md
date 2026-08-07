@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.14-rc48 — 2026-08-07
+
+- Fixed a save-lifecycle regression that could make the entire mod appear absent. A persisted `failed_escaped` or `failed_invalid` contract was terminal forever, so loading that mission created no contract context, objective, target marker, drones, or disguise interactions.
+- Failed, unpaid contracts now become a deterministic new attempt when that mission is loaded again. The new attempt receives its own contract ID and seed; the failed attempt never pays a reward.
+- Successfully completed and paid contracts remain terminal, preventing reward farming. Their loaded save now emits one compact native feedback message explaining why HCO did not create another contract.
+- Added regression coverage for legacy records without an attempt counter, failed-contract replay, distinct attempt identity, zero retry payout, completed-save terminal visibility, and exactly-once successful payout.
+
 ## 0.14.13-rc47 — 2026-08-07
 
 - Fixed the actual native-selection failure behind the missing disguise action. Some direct death/state paths left a visible eligible body outside the world's interaction quadtree, so `Q` could only discover its dropped weapon, ammunition or keycard regardless of body priority or cached actions.

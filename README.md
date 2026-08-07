@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.14.13-rc47`
+**Current build:** `0.14.14-rc48`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate test release. RC47 restores eligible dead/unconscious actors to the current world's native interaction quadtree before applying body priority and menu repair, so `Q` can discover the body instead of only its dropped equipment. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC48 repairs persisted failed-contract replay: loading a save in which the HCO target previously escaped now creates a fresh unpaid attempt instead of suppressing the contract, target, drones, and disguise runtime. Completed paid contracts remain terminal and visibly explain that state. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 

@@ -1154,6 +1154,16 @@ events:fire(game.EVENTS.RESET_STARTED)
 events:fire(game.EVENTS.RESET_FINISHED)
 assertEqual(state.target, nil, "completed contract does not respawn after reload")
 assertEqual(#objectiveHandler.objectives, 1, "no duplicate objective inserted")
+assertEqual(state.lastContractSkipReason, "contract-terminal", "completed save reports its terminal contract state")
+assertTrue(state.contractSkipNoticeShown, "completed save produces one visible terminal-state notice")
+local terminalNoticeFound = false
+for _, entry in ipairs(require("hco/feedback").queue) do
+	if string.find(entry.text or "", "already complete", 1, true) then
+		terminalNoticeFound = true
+		break
+	end
+end
+assertTrue(terminalNoticeFound, "completed save explains why no contract runtime was created")
 
 world.mapID = "iv2_hideout"
 events:fire(game.EVENTS.RESET_STARTED)
@@ -1240,10 +1250,21 @@ state.target.x, state.target.y = state.targetAI.safePoint.x, state.targetAI.safe
 for _, updateState in ipairs(gameStateService.states) do updateState:update(0.2) end
 assertEqual(state.contract.status, "failed_escaped", "reaching evacuation fails optional contract")
 assertEqual(game.playthrough.money, moneyBeforeEscape, "escaped target grants no reward")
+assertTrue(require("hco/contracts/persistence").isReplayableFailure(state.contract), "escaped contract is classified as replayable")
+local failedContractID = state.contract.contractID
+local failedAttempt = state.contract.attempt
 
 events:fire(game.EVENTS.RESET_STARTED)
+resetNPC(validA, 130)
+resetNPC(validB, 150)
+resetNPC(validC, 170)
+resetNPC(validD, 190)
 events:fire(game.EVENTS.RESET_FINISHED)
-assertEqual(state.target, nil, "escaped contract remains terminal after reload")
+assertTrue(state.target, "reloading a failed mission creates a fresh optional-contract attempt")
+assertEqual(state.contract.status, "active", "failed contract replay starts active instead of suppressing HCO runtime")
+assertEqual(state.contract.attempt, failedAttempt + 1, "failed contract replay advances the persisted attempt number")
+assertTrue(state.contract.contractID ~= failedContractID, "failed contract replay receives a distinct contract identity")
+assertEqual(game.playthrough.money, moneyBeforeEscape, "retrying a failed contract never grants a payout")
 
 local function runDirectDeathScenario(mapID, attacker, label)
 	resetNPC(validA, 130)

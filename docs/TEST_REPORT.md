@@ -1,4 +1,11 @@
-# Automated Test Report — 0.14.13-rc47
+# Automated Test Report — 0.14.14-rc48
+
+## RC48 failed-save replay and terminal visibility
+
+- A legacy persisted `failed_escaped` record without an attempt counter is loaded, classified as replayable, and replaced by attempt 2 on the next mission reset.
+- The replay must have a distinct contract ID, return to `active`, recreate its target/runtime context, and leave campaign money unchanged.
+- A completed paid contract remains terminal across reset, cannot pay twice, creates no duplicate objective, and queues one compact explanation instead of silently looking unloaded.
+- These assertions cover the exact saved-state failure that hid the user's objective, marked target, drones, and disguise interactions together.
 
 ## RC47 native interaction-quadtree recovery
 
@@ -6,7 +13,7 @@
 - HCO must restore that fallen body to the current world's native interaction tree before cached action reconciliation or object priority can matter.
 - The regression requires the body to become interaction-enabled, exist in the selector tree, expose takeover first and retain exactly one tree insertion after periodic refresh.
 - Current-world ownership is verified through `interactQuadTree`; a stale checkpoint flag pointing at a replaced tree no longer counts as a selectable body.
-- All seven LÖVE suites must pass against `0.14.13-rc47`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
+- All seven LÖVE suites must pass against `0.14.14-rc48`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
 
 ## RC46 native object-priority and hook-recovery correction
 
@@ -306,18 +313,18 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 33 Lua modules parse, including RC47's native body-quadtree recovery and RC46's priority/cache/hook paths.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including RC48's failed-save replay, RC47's native body-quadtree recovery and RC46's priority/cache/hook paths.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test installation audit: **PASS** — installed `0.14.13-rc47`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
+- Post-test installation audit: **PASS** — installed `0.14.14-rc48`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
 - Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.13-rc47.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `68A8F7842E3373DD58AE7015728D2F9787EB02092C66C01C1CC279376BAC4A63`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.13-rc47 payload=43`.
-- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 21:59:21; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC47.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.14-rc48.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `9E13A6C4BF02E7B9F5E74F8AEDCCA9A3C1ACF9654B79BE3B1DB18F549B7E1538`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.14-rc48 payload=43`.
+- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 22:16:33; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC48.
 
-The markers above were collected from RC47 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC48 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

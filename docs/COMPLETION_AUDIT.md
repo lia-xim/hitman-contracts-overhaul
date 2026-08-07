@@ -1,8 +1,8 @@
-# Completion Audit — 0.14.13-rc47
+# Completion Audit — 0.14.14-rc48
 
 **Audit date:** 2026-08-07
 **Goal status:** production-candidate code complete for the current feature surface; final live acceptance is not complete
-**Authority inspected:** RC47 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed `1.4.12HF3` interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces and user-supplied live screenshots/errors
+**Authority inspected:** RC48 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed `1.4.12HF3` interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces, persisted HCO save records and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -15,7 +15,7 @@
 | Target/protection presence | RC43 native patrol callback/path and exact follower-chain regressions pass | Target and guards observed; stationary target/detail reported on RC42 | RC43 correction requires live pass |
 | Multi-contract isolation | Pass | Not yet proven across a full live mission | Live test required |
 | Disguise/social stealth | RC47 current-quadtree recovery plus eligible-body priority, first-visible takeover, independent render-cache recovery, stable native IDs, replaced-hook/runtime rebind, explicit restore, nearby-body marker, persistent shimmer, three tiers, weapon-neutral distance cover, close scrutiny, point-blank exposure, radio and persistence pass | Live report proved the eligible marked body itself was missing from `Q`; only dropped equipment was discoverable | RC47 quadtree correction requires live pass |
-| Save/reload semantics | Pass | Individual mission behavior observed, full matrix incomplete | Live test required |
+| Save/reload semantics | RC48 proves failed unpaid records rotate to a distinct new attempt while successful paid records remain terminal and explain their state | User's current save exposed permanent failed-record suppression | RC48 same-save live test required |
 | Drone deployment/searchlight | RC41 committed patrol, invalid-sector fallback, bounded inert barrier hop, 360-degree scan and shared map alarm pass | Live pass exposed stalls at separated exterior areas | RC41 correction requires live pass |
 | Native drone body | Seven-row atlas pass | Earlier native body visible in screenshot | RC22 row/scale/orientation pass pending |
 | Drone detection relay | Strict-raycast plus RC41 all-contract propagation and transition lockout pass | One-way detection/fire during inaccessible transitions would be unfair | RC41 red-network search, barrier lockout and local-fire authority require live proof |

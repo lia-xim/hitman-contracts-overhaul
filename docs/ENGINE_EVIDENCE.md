@@ -303,3 +303,11 @@ Source: `game/object_selector.lua`, `game/entity.lua` and `game/actors/goon.lua`
 - `entity:_enableInteraction` inserts the actor, then records both `withinInteraction=true` and the owning `interactQuadTree`. `goon:updateBodyInteractionState(true)` is therefore the native repair boundary for a fallen actor.
 - Some direct state/death paths can reach a dead body without the normal `makeFallen()` interaction update. RC47 restores that native state only for an eligible HCO body that is not already registered in the current tree.
 - A checkpoint may retain `withinInteraction=true` while `worldObject` owns a replacement tree. RC47 validates the recorded owner, not only the boolean, before deciding the body is selectable.
+
+## RC48 persisted-contract lifecycle evidence
+
+Source: the user's current `iv2_map6` save record plus `contracts/persistence.lua`, `contracts/core.lua`, `lifecycle.lua` and the runtime fixture
+
+- The current mission save contained an unpaid HCO record with target phase `ESCAPED` and status `failed_escaped`. `core.startMap` previously treated that record as permanently terminal, so it created no contract context; objective, target marker, drones and disguise eligibility all depend on that context and therefore disappeared together.
+- Failed unpaid records are now replay sources, not successful completions. The next mission start increments a migrated attempt counter, derives a distinct deterministic seed/contract ID and replaces the old record without paying it.
+- A record with `rewardPaid=true` remains terminal. Runtime coverage requires zero respawn, zero duplicate objective, no second payout and one native feedback explanation.

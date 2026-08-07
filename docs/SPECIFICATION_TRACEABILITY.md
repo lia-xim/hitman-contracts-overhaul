@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.13-rc47`
+**Candidate:** `0.14.14-rc48`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -12,7 +12,7 @@ This document prevents future work from collapsing the product specification int
 | Specification area | Runtime owner | Candidate state | Automated evidence | Live gate |
 | --- | --- | --- | --- | --- |
 | Native-first presentation | `contracts/objective.lua`, `feedback.lua`, native interaction lists, actor/world draw hooks | Implemented for the current feature surface | Boot, runtime, feedback and visual suites | Confirm no detached menu, overlapping banners or cursor capture |
-| Deterministic optional contracts | `contracts/core.lua`, `selector.lua`, `persistence.lua` | Implemented | Runtime lifecycle, reload, rollback and multi-contract cases | Test compatible campaign maps and one unsupported map |
+| Deterministic optional contracts | `contracts/core.lua`, `selector.lua`, `persistence.lua` | RC48 failed-attempt replay with successful-payout terminal protection | Runtime lifecycle, legacy migration, failed replay, completed terminal visibility, rollback and multi-contract cases | Reload the user's failed campaign save and test compatible campaign maps plus one unsupported map |
 | Mobile target and secure movement | `targets/controller.lua` | RC43 native patrol-path preservation and routine/incident watchdog candidate | Native `onPatrolRouteSet` path creation/preservation, routine recovery, first-shot caution, threatened, sheltered, incident reselection, escape and stuck-route cases | Long live route/reload/incident pass on several maps |
 | Protection and response roles | `security/escort.lua`, `security/director.lua` | RC43 complete single-follower chain for close protection and autonomous response | Exact five-guard ownership chain, reconstruction, search and follower safety cases | Verify moving detail, weapons, combat pressure and difficulty balance in game |
 | Knowledge and hunt phases | `security/director.lua` | Implemented | Local evidence, pressure, decay and stand-down cases | Verify no wall omniscience and readable convergence |

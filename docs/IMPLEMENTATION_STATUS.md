@@ -1,6 +1,6 @@
 # Hitman Contracts Overhaul — Implementation Status
 
-**Current version:** `0.14.13-rc47`
+**Current version:** `0.14.14-rc48`
 **Status date:** 2026-08-07
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md` remains the product and technical source of truth.
@@ -27,7 +27,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Hunt and last-known-position search | Implemented | Tune pursuit pressure, containment and stand-down from real gameplay evidence |
 | Disguise and social stealth | RC47 candidate path: weapon-neutral distance cover, close scrutiny, point-blank exposure, current-world quadtree recovery, eligible-body-first native selection, independent render-cache recovery, stable native action IDs, replaced-hook repair, explicit rollback, body-availability stitches and persistent identity shimmer | Full real-mission pass in `SPECIFICATION_TRACEABILITY.md` |
 | Credentials and radio propagation | RC34 keycard/keychain capture before native drop, consistent off-limits queries, interruptible identity/body reports and reload restoration | Verify real mission doors, radio audio/range and checkpoint matrix |
-| Multi-contract persistence and payout | Implemented | Live active/terminal reload matrix and multi-target exactly-once payout |
+| Multi-contract persistence and payout | RC48 replays failed unpaid attempts with a distinct persisted identity while keeping completed paid attempts terminal | Live failed-save restart plus active/terminal reload matrix and multi-target exactly-once payout |
 | Drone presence and patrol | Seven-model roster plus RC41 committed patrol, bounded barrier hop, invalid-sector fallback and stationary 360-degree scan implemented | Live-approve sustained movement, exterior transitions and boxed-in fallback |
 | Drone detection and response relay | Stable pursuit, independent gimbal, strict geometry authority, map-wide alarm, transition lockout and RC43 post-LOS/post-casualty combat continuity implemented | Prove red network search, LOS loss/reacquisition, no overflight fire and response convergence |
 | Drone disruption and destruction | Implemented across all seven models; RC33 mission-ticked wreck animation, durable native wreck batch, full first-shot sweep and terminal weapon/light cleanup | Live-test frame 1→2→3→4 progression, free fire without right-click, EMP lockout and crash-site response |
@@ -40,7 +40,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Contract variety | Partial | Data theft, accidents, special weapon conditions, rescue/extraction and other systemic contract types |
 | Localization/audio callouts | Partial | English runtime text exists; translated strings and an authored localized radio-callout pack remain |
 
-## RC22 roster / RC23–RC47 live corrections
+## RC22 roster / RC23–RC48 live corrections
 
 - Airframe footprint reduced to roughly 27 world pixels and the generated art rotated by -90 degrees to match the native sensor/flight heading.
 - Hover bob, offset shadow, four-frame rotor animation, rotor pulse rings, state-colored sensor pulse and a short pixel wake make flight readable without adding a detached HUD layer.
@@ -67,13 +67,14 @@ Automated harnesses support these systems, but do not replace the remaining real
 - RC45 corrects RC44's missing-interactor mistake: the selector's second no-interactor read is a render-only handoff and may not remove a validated action. HCO also preserves every existing class action ID, owns only the visible ordering of its per-body entries, leaves the selector's single `postInteract` refresh native-owned and adds a subtle world marker to unused nearby uniforms.
 - RC46 follows the actual multi-object UI shown in the live screenshot: an overlapping dropped weapon was active object one and the body was inactive object two, so body options were hidden by design. Eligible unused uniforms now receive priority 45 above native `VHIGH=40`, render reads self-heal against the player context, and periodic binding checks recover critical methods replaced after HCO loads.
 - RC47 fixes the deeper spatial failure exposed by the next live pass: priority and menu actions are irrelevant when the fallen actor was never inserted into `worldObject`'s interaction quadtree. Eligible bodies are now restored once through the native fallen-body state and stale checkpoint membership is rebound to the current tree.
+- RC48 fixes a persisted failure state that made every HCO system disappear together. Failed unpaid attempts now rotate to a deterministic new contract identity on mission reload; successful paid attempts remain terminal and display one native explanatory notice.
 - Routine drones now consume social-stealth risk instead of treating every player silhouette identically. Their real cone/raycast can detect each exposed body once and compromise the stolen identity when its source is found.
 
 The Scout deliberately does not shoot. Six armed variants join escalated wings: light/heavy Pistol, SMG and Laser. Ballistic models use native bullets; laser models display an uninterrupted charge cue. No model attacks without confirmed line of sight, range, gimbal alignment and cooldown readiness.
 
 ## Immediate acceptance gate
 
-1. Completely restart the game and confirm `0.14.13-rc47` loads without traceback and without an internal RC render diagnostic on the HUD.
+1. Completely restart the game and confirm `0.14.14-rc48` loads without traceback and without an internal RC render diagnostic on the HUD.
 2. Observe multiple deployments and identify Scout, light and heavy silhouettes; heavy variants must be larger but remain actor-scaled.
 3. With the original/exposed identity, stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position. Repeat with clean cover beyond 205 units: the cone must remain amber and must not track, confirm or fire. Move inside 155 units during patrol or 205 during an alarm and verify progressive close scrutiny before red contact.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
@@ -95,4 +96,4 @@ The complete fourteen-step disguise/social-stealth live gate and its native engi
 
 ## Release boundary
 
-HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC47 repairs the missing native body registration that prevented `Q` from discovering fallen actors, then retains RC46's priority/cache/hook corrections and RC43's principal/drone-combat continuity work. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.
+HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC48 repairs the save-lifecycle state that suppressed all runtime systems after a failed escaped contract, while retaining RC47's body registration, RC46's priority/cache/hook corrections and RC43's principal/drone-combat continuity work. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.

@@ -13,6 +13,11 @@ local terminalStatuses = {
 	failed_invalid = true
 }
 
+local replayableFailureStatuses = {
+	failed_escaped = true,
+	failed_invalid = true
+}
+
 local function getKey(prefix, mapID)
 	return prefix .. tostring(mapID)
 end
@@ -47,6 +52,7 @@ local function copyRecord(record)
 
 	return {
 		version = 3,
+		attempt = math.max(1, tonumber(record.attempt) or 1),
 		slot = tonumber(record.slot) or 1,
 		contractID = record.contractID and tostring(record.contractID) or "hco:" .. tostring(record.mapID) .. ":" .. tostring(record.targetID),
 		mapID = tostring(record.mapID),
@@ -86,9 +92,11 @@ local function copyRecord(record)
 	}
 end
 
-function persistence.create(mapID, targetID, seed, reward, archetype, profileID, slot)
+function persistence.create(mapID, targetID, seed, reward, archetype, profileID, slot, attempt)
+	attempt = math.max(1, tonumber(attempt) or 1)
 	return copyRecord({
-		contractID = "hco:" .. tostring(mapID) .. ":" .. tostring(slot or 1) .. ":" .. tostring(targetID) .. ":" .. tostring(seed),
+		contractID = "hco:" .. tostring(mapID) .. ":" .. tostring(slot or 1) .. ":a" .. tostring(attempt) .. ":" .. tostring(targetID) .. ":" .. tostring(seed),
+		attempt = attempt,
 		slot = slot or 1,
 		mapID = tostring(mapID),
 		targetID = tostring(targetID),
@@ -200,6 +208,10 @@ end
 
 function persistence.isTerminal(record)
 	return record and (record.rewardPaid or terminalStatuses[record.status] == true)
+end
+
+function persistence.isReplayableFailure(record)
+	return record and record.rewardPaid ~= true and replayableFailureStatuses[record.status] == true
 end
 
 return persistence

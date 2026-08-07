@@ -15,6 +15,11 @@ local NON_RETRYABLE = {
 	["saved-target-unavailable"] = true
 }
 
+local IMMEDIATE_SKIP_MESSAGES = {
+	["contract-terminal"] = "HCO: This mission's contract is already complete in the loaded save.",
+	["saved-target-unavailable"] = "HCO: The saved contract target is unavailable. Start or reload the mission to generate a new attempt."
+}
+
 local function scheduleRetry(state, reason, selectionError)
 	state.lastContractSkipReason = selectionError
 
@@ -44,6 +49,11 @@ local function assignTarget(state, reason)
 
 	if not state.target then
 		util.log(config, "map=" .. tostring(report.mapID) .. " contract skipped: " .. tostring(selectionError))
+		local message = IMMEDIATE_SKIP_MESSAGES[selectionError]
+		if message and not state.contractSkipNoticeShown then
+			state.contractSkipNoticeShown = true
+			feedback.show(message)
+		end
 		scheduleRetry(state, reason, selectionError)
 
 		return false

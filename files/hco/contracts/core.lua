@@ -112,6 +112,11 @@ function core.startMap(state, worldObject, reason)
 
 	for slot = 1, wanted do
 		local record = records[slot]
+		local replaySource
+		if persistence.isReplayableFailure(record) then
+			replaySource = record
+			record = nil
+		end
 		local selected = record and findEntry(report, record.targetID) or report.selectedEntries[slot]
 
 		if record and objective.wasFinished(report.mapID, record.slot or slot) and not record.rewardPaid then
@@ -128,13 +133,19 @@ function core.startMap(state, worldObject, reason)
 			persistence.save(record)
 		elseif selected and (not record or not persistence.isTerminal(record)) then
 			if not record then
-				local seed = util.stableHash(tostring(report.mapID) .. ":" .. tostring(slot) .. ":" .. selected.data.id)
+				local attempt = replaySource and math.max(1, tonumber(replaySource.attempt) or 1) + 1 or 1
+				local seedInput = tostring(report.mapID) .. ":" .. tostring(slot) .. ":" .. selected.data.id
+				if replaySource then seedInput = seedInput .. ":retry:" .. tostring(attempt) end
+				local seed = util.stableHash(seedInput)
 				local archetype = mapRegistry.chooseArchetype(report.profile, seed)
 				local profile = profiles.resolve(seed, archetype)
 				local reward = calculateReward(report, profile)
-				record = persistence.create(report.mapID, selected.data.id, seed, reward, profile.id, report.profile.id, slot)
+				record = persistence.create(report.mapID, selected.data.id, seed, reward, profile.id, report.profile.id, slot, attempt)
 				record.threatRating = balance.snapshot(profile).threatRating
 				record.condition = conditions.create(seed, reward)
+				if replaySource then
+					util.log(config, "failed contract restarted map=" .. tostring(report.mapID) .. " slot=" .. tostring(slot) .. " attempt=" .. tostring(attempt))
+				end
 			end
 
 			record.slot = slot
