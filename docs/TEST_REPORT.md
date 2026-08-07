@@ -1,4 +1,12 @@
-# Automated Test Report — 0.14.5-rc39
+# Automated Test Report — 0.14.6-rc40
+
+## RC40 patrol continuity and shared-alarm correction
+
+- Drone coverage forces an authored patrol sector to collapse onto the current airframe position and proves the selector creates a distinct deterministic fallback destination instead of remaining still.
+- A second update proves the distant patrol destination remains identical until arrival instead of being replaced by the former 1.1-second timer.
+- A simulated second contract context proves one confirmed sighting changes every wing to `AGGRESSIVE`, clears stale drone routes, writes shared sighting knowledge and sends a native response guard into actionable combat.
+- Presentation coverage proves an alarmed wing retains its red search color even when a particular drone does not currently have an unobstructed shot. Existing strict-geometry assertions continue to prove that color/network state alone grants no weapon authority.
+- All seven LÖVE suites pass against `0.14.6-rc40`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
 
 ## RC39 consequential close-inspection correction
 
@@ -241,18 +249,18 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 33 Lua modules parse, including RC39's observer-local scrutiny, point-blank recognition and native hostile handoff.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including RC40's committed patrol, deterministic outdoor fallback, rotating stationary scan and shared map alarm.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test installation audit: **PASS** — installed `0.14.5-rc39`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
+- Post-test installation audit: **PASS** — installed `0.14.6-rc40`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
 - Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.5-rc39.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `8382E7E2B22791BF0325BCB4912AB1E574E2BF2820BFCB6BF8385FC5E03AF476`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.5-rc39 payload=43`.
-- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC39.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.6-rc40.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `CA62B612917ACAE3CADE28106EC8A80077431206558731EE9AEA2822CA12C1C3`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.6-rc40 payload=43`.
+- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 13:22:35; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC40.
 
-The markers above were collected from RC39 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC40 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

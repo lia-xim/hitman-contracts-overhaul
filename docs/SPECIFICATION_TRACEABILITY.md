@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.5-rc39`
+**Candidate:** `0.14.6-rc40`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -20,7 +20,7 @@ This document prevents future work from collapsing the product specification int
 | Social recognition | `social/disguise.lua` plus instantiated native Goon sight states | Implemented for the observer-local uniform-class model | Instant-bypass interception, 150-unit timed close scrutiny, 72-unit point-blank exposure, native hostile handoff, arbitrary held weapon, witnessed/unwitnessed fire, access, evidence and compromise cases | Prove distance bands and native response in a real mission |
 | Credentials and restricted areas | Native `playerActor:addKey` and off-limits queries, coordinated by `social/disguise.lua` | Implemented for keycard and keychain IDs | Acquisition/reload and adjusted trespass-query cases | Verify actual mission doors and STAFF/SECURITY/ELITE areas |
 | Existing cameras | `security/sensors.lua` | Implemented | Camera risk scaling and disruption/break evidence in runtime fixtures | Live camera cone, disguise and wall/EMP pass |
-| Physical drone system | `security/drones.lua` and drone modules | Implemented candidate surface | Dedicated drone, roster and airframe suites | Existing RC33 live matrix remains mandatory |
+| Physical drone system | `security/drones.lua` and drone modules | RC40 committed patrol, outdoor fallback, stationary scan and shared map alarm candidate | Dedicated drone, roster and airframe suites | RC40 live patrol/network matrix remains mandatory |
 | Rewards and persistence | `contracts/rewards.lua`, `persistence.lua` | Implemented | Exactly-once reward, active reload, terminal reload and bundle cases | Campaign save/reload across mission transitions |
 | Authored map profiles | Contract archetypes provide visual/doctrine identity; per-map authored safe-area profiles remain partial | Partial | Profile selection and deterministic doctrine cases | Author and approve high-value mission profiles |
 | Expanded contract families | Eliminate/neutralize plus bonus conditions are present; theft, extraction and authored accidents are not | Partial expansion | Current contract-resolution cases | New families require their own engine proofs |
@@ -199,6 +199,16 @@ Second, a native yellow/red alert state or last-known hunch is not proof that an
 - Recognition sets only that observer's detection to full and calls its patched state sight method after local knowledge is recorded; the wrapper then reaches the original native threaten/startle/surrender/combat implementation.
 - The observer may transmit a non-cancellable-by-distance recognition report through its real radio. Death, unconsciousness or disruption still cancels that report before global compromise.
 - The orange-red local exposure transition is rate-limited and visually distinct from global uniform compromise.
+
+## RC40 patrol continuity and shared drone alarm
+
+- A patrol/search destination is stable until the airframe reaches it, direct player tracking needs a refresh, tactics request a flank/search relocation, or the existing idle watchdog invalidates it. A timer alone may not replace a distant waypoint.
+- A candidate must be a safe outdoor point and move the airframe at least 96 world units. The selector tries every authored sector in a deterministic per-drone order, then up to twelve deterministic outdoor ring candidates; current-position and roofed/invalid results are rejected.
+- If no valid travel destination exists, the drone remains a functioning sensor and rotates its body/gimbal through a continuous 360-degree sweep. Hovering is allowed only as this geometry fallback, not as an inert state.
+- A confirmed sighting is shared across every active HCO contract context on the current map. All living wings drop stale destinations, enter `AGGRESSIVE`, retain red searchlights and search the reported last-known position; all response details receive actionable native contact.
+- Network alarm never bypasses local weapon geometry. An armed drone still needs its own current raycast, range, aim tolerance, valid outdoor footprint and physical hitbox before firing. The Scout remains deliberately unarmed and contributes detection/relay only.
+- A weapon carrier may use a living response actor from any active HCO context for native projectile attribution, so a surviving armed wing does not become inert after its own principal/detail dies while another network detail remains alive.
+- Automated coverage must prove fallback travel, destination commitment, cross-context wing/guard propagation and red network-search presentation. Live acceptance must hold for at least 30 seconds on a multi-contract map.
 
 ## Required live acceptance for this feature
 

@@ -146,6 +146,7 @@ function stateModule.resetRuntime(state, reason)
 	state.pendingCompromises = {}
 	state.closeScrutiny = {}
 	state.lastLocalExposureFeedbackTime = nil
+	state.hcoDroneRaidAnnounced = nil
 	state.targetKillerID = nil
 	state.lastResetReason = reason or "unspecified"
 	state.lastSelectionReport = nil

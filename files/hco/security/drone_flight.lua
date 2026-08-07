@@ -371,25 +371,49 @@ local function sectorDestination(drone, anchorX, anchorY)
 	local security = drone.hcoContext and drone.hcoContext.security
 	local points = security and security.sectorPoints or {}
 	drone.hcoSearchStep = (drone.hcoSearchStep or 0) + 1
+	local centerX, centerY = (drone.x or 0) + centerOffset(drone), (drone.y or 0) + centerOffset(drone)
+	local minimumTravel = config.DRONE_PATROL_MIN_TRAVEL or 96
+	local function acceptCandidate(candidateX, candidateY, referenceX, referenceY)
+		local playableX, playableY = flight.snapToPlayable(candidateX, candidateY, referenceX, referenceY)
+		if playableX and farEnough(playableX, playableY, centerX, centerY, minimumTravel) then
+			local separatedX, separatedY = separateFromWing(drone.hcoContext, playableX, playableY, drone.hcoIndex)
+			local finalX, finalY = flight.snapToPlayable(separatedX, separatedY, referenceX, referenceY)
+			if finalX and farEnough(finalX, finalY, centerX, centerY, minimumTravel * 0.7) then return finalX, finalY end
+		end
+		return nil, nil
+	end
 	if security and security.droneMode == "AGGRESSIVE" and security.lastKnown then
 		local phase = drone.hcoSearchPhase or drone.hcoSearchStep
-		local salt = "search-ring:" .. tostring(phase)
-		local angle = deterministicAngle(drone.hcoContext, (drone.hcoIndex or 1) + phase * 7, salt)
-		local radius = seededRange(drone.hcoContext, drone.hcoIndex, salt .. ":radius", config.DRONE_SEARCH_RING_MIN, config.DRONE_SEARCH_RING_MAX)
-		local ringX, ringY = flight.snapToPlayable(anchorX + math.cos(angle) * radius, anchorY + math.sin(angle) * radius, anchorX, anchorY)
-		if ringX then
-			local separatedX, separatedY = separateFromWing(drone.hcoContext, ringX, ringY, drone.hcoIndex)
-			return flight.snapToPlayable(separatedX, separatedY, anchorX, anchorY)
+		for attempt = 1, 6 do
+			local salt = "search-ring:" .. tostring(phase) .. ":" .. tostring(attempt)
+			local angle = deterministicAngle(drone.hcoContext, (drone.hcoIndex or 1) + phase * 7 + attempt * 13, salt)
+			local radius = seededRange(drone.hcoContext, drone.hcoIndex, salt .. ":radius", config.DRONE_SEARCH_RING_MIN, config.DRONE_SEARCH_RING_MAX)
+			local ringX, ringY = acceptCandidate(anchorX + math.cos(angle) * radius, anchorY + math.sin(angle) * radius, anchorX, anchorY)
+			if ringX then return ringX, ringY end
 		end
 	end
 	if #points > 0 then
-		local stride = 1 + (util.stableHash(tostring(drone.hcoIndex or 1) .. ":stride") % math.max(1, #points - 1))
-		local point = points[((drone.hcoSearchStep * stride + (drone.hcoIndex or 1) * 3) - 2) % #points + 1]
-		return flight.snapToPlayable(point.x, point.y, anchorX, anchorY)
+		local start = util.stableHash(tostring(drone.hcoIndex or 1) .. ":sector:" .. tostring(drone.hcoSearchStep)) % #points
+		local direction = util.stableHash(tostring(drone.hcoIndex or 1) .. ":sector-direction") % 2 == 0 and 1 or -1
+		for offset = 0, #points - 1 do
+			local point = points[(start + offset * direction) % #points + 1]
+			if tonumber(point.x) and tonumber(point.y) then
+				local sectorX, sectorY = acceptCandidate(point.x, point.y, anchorX, anchorY)
+				if sectorX then return sectorX, sectorY end
+			end
+		end
 	end
-	local angle = deterministicAngle(drone.hcoContext, (drone.hcoIndex or 1) + drone.hcoSearchStep, "search")
-	local radius = 170 + ((drone.hcoIndex or 1) % 4) * 45
-	return flight.snapToPlayable(anchorX + math.cos(angle) * radius, anchorY + math.sin(angle) * radius, anchorX, anchorY)
+	-- Authored NPC patrol points can all be indoors or collapse back onto the
+	-- current airframe cell. Search a deterministic outdoor ring instead of
+	-- returning nil/current position forever.
+	for attempt = 1, 12 do
+		local salt = "patrol-fallback:" .. tostring(drone.hcoSearchStep) .. ":" .. tostring(attempt)
+		local angle = deterministicAngle(drone.hcoContext, (drone.hcoIndex or 1) + drone.hcoSearchStep * 11 + attempt * 19, salt)
+		local radius = seededRange(drone.hcoContext, drone.hcoIndex, salt .. ":radius", 150, 430)
+		local fallbackX, fallbackY = acceptCandidate(anchorX + math.cos(angle) * radius, anchorY + math.sin(angle) * radius, anchorX, anchorY)
+		if fallbackX then return fallbackX, fallbackY end
+	end
+	return nil, nil
 end
 
 function flight.destination(drone, player, aggressive)
@@ -457,6 +481,12 @@ function flight.updateAim(drone, dt, player, hasVisual, velocityAngle)
 			focusAngle = math.atan2(focus.y - cy, focus.x - cx)
 		elseif drone.hcoDestX and drone.hcoDestY then
 			focusAngle = math.atan2(drone.hcoDestY - cy, drone.hcoDestX - cx)
+		else
+			-- A geometrically boxed-in drone is still an active patrol sensor. Rotate
+			-- the whole airframe through a continuous 360-degree search instead of
+			-- leaving its gimbal trapped in one narrow arc.
+			drone.hcoPatrolSweepAngle = normalize((drone.hcoPatrolSweepAngle or body) + (config.DRONE_PATROL_SWEEP_RATE or 0.52) * dt)
+			focusAngle = drone.hcoPatrolSweepAngle
 		end
 		local sweep = math.sin((curTime or 0) * 0.9 + (drone.hcoIndex or 1) * 1.37) * math.rad((definition.gimbal or 40) * 0.5)
 		desiredSensor = normalize((focusAngle or body) + sweep)

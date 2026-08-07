@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.14.5-rc39`
+**Current build:** `0.14.6-rc40`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate test release. RC39 makes social stealth useful but unsafe: normal armed movement remains credible at distance, sustained close inspection becomes observer-local exposure and point-blank visual contact immediately returns control to the native threaten/combat AI. RC38's follower-crash fix and identity-aware target threat remain intact. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC40 preserves RC39's consequential close recognition and fixes passive drone wings: patrol destinations remain stable until reached, invalid sectors fall back to real outdoor search points, stationary sensors sweep through 360 degrees, and one confirmed drone sighting alarms every HCO wing and response team on the map. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 
@@ -25,7 +25,7 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Light/heavy rotor profiles and laser one-shots are adapted from creator-supplied audio, while ballistic drones retain native weapon sounds.
 - Native-airframe flight presentation with hover motion, rotor/sensor pulses, a short pixel wake, family-colored effects, real laser-charge progress, damage smoke and a readable sensor heading.
 - Four-stage damaged sprites for all seven airframes replace the intact body during the tumble and end in a persistent asymmetric wreck; destroyed drones have no cone, aim cue, weapon state or rotor loop.
-- One to three archetype-scaled drones patrol around each protected target from contract start, then switch to a faster and more exact aggressive search after escalation.
+- One to three archetype-scaled drones patrol around each protected target from contract start. They commit to reachable outdoor waypoints instead of constantly re-rolling them; a geometrically boxed-in sensor performs a continuous 360-degree sweep. Confirmed contact turns every HCO wing's searchlights red and shares the reported position across the map security network.
 - Immediate protection mobilization and drone request on confirmed contact, guard damage, or protection casualties.
 - Three loud player shots within eight seconds trigger aggressive drone support independently of visual-contact hand-off; NPC fire and suppressed player fire do not.
 - Engine-owned security-camera carriers provide physics, searchlights, obstruction and bullet interaction. A registered `hco_drone_airframe` world entity supplies the visible body through the same quadtree and sprite-batch lifecycle used by normal world actors.

@@ -285,31 +285,50 @@ end
 local function notifyConfirmedSighting(self, player)
 	local context = self.hcoContext
 	if not context or not context.security then return end
-	context.security.knowledge = context.security.knowledge or {}
 	local x, y = util.getPos(player)
-	context.security.droneSighting = {x = x, y = y, time = curTime or 0, drone = self}
-	context.security.lastKnown = {x = x, y = y, confidence = 1, source = "search-drone", time = curTime or 0, actor = self}
-	context.security.targetThreatLevel = 1
-	context.security.huntPhase = "PRESSURE"
-	context.security.droneMode = "AGGRESSIVE"
-	for _, guard in ipairs(context.security.guards or {}) do
-		if guard.role ~= "close_protection" and util.isAlive(guard.actor) then
-			context.security.knowledge[util.getID(guard.actor)] = {x=x,y=y,confidence=1,source="search-drone",time=curTime or 0,actor=guard.actor}
-			util.call(guard.actor, "setSightPos", x, y, true)
-			util.call(guard.actor, "setSightTime", 0)
-			util.call(guard.actor, "setEnemyInSight", true, player)
-			local okState, guardState = util.call(guard.actor, "getState")
-			if okState and guardState and type(guardState.goToCombat) == "function" then
-				pcall(guardState.goToCombat, guardState, true)
-			elseif okState and guardState and type(guardState.goToAlert) == "function" then
-				pcall(guardState.goToAlert, guardState)
+	if not x then return end
+	local now = curTime or 0
+	local root = context.root or context
+	local contexts = type(root.contracts) == "table" and #root.contracts > 0 and root.contracts or {context}
+	for _, networkContext in ipairs(contexts) do
+		local security = networkContext.security
+		if security then
+			security.knowledge = security.knowledge or {}
+			security.droneSighting = {x=x,y=y,time=now,drone=self}
+			security.lastKnown = {x=x,y=y,confidence=1,source="search-drone-network",time=now,actor=self}
+			security.targetThreatLevel = 1
+			security.huntPhase = "PRESSURE"
+			security.droneMode = "AGGRESSIVE"
+			security.droneRaidAnnounced = true
+			for _, networkDrone in ipairs(security.drones or {}) do
+				if networkDrone and not networkDrone.broken then
+					networkDrone.hcoDestX, networkDrone.hcoDestY = nil, nil
+					networkDrone.hcoDestRefreshAt = 0
+					networkDrone.hcoNextSearchAt = 0
+					networkDrone.hcoNetworkAlertAt = now
+				end
 			end
+			for _, guard in ipairs(security.guards or {}) do
+				if guard.role ~= "close_protection" and util.isAlive(guard.actor) then
+					local guardID = util.getID(guard.actor)
+					if guardID then security.knowledge[guardID] = {x=x,y=y,confidence=1,source="search-drone-network",time=now,actor=guard.actor} end
+					util.call(guard.actor, "setSightPos", x, y, true)
+					util.call(guard.actor, "setSightTime", 0)
+					util.call(guard.actor, "setEnemyInSight", true, player)
+					local okState, guardState = util.call(guard.actor, "getState")
+					if okState and guardState and type(guardState.goToCombat) == "function" then
+						pcall(guardState.goToCombat, guardState, true)
+					elseif okState and guardState and type(guardState.goToAlert) == "function" then
+						pcall(guardState.goToAlert, guardState)
+					end
+				end
+			end
+			local targetID = networkContext.target and util.getID(networkContext.target)
+			if targetID then security.knowledge[targetID] = {x=x,y=y,confidence=1,source="search-drone-network",time=now,actor=networkContext.target} end
 		end
 	end
-	local targetID = context.target and util.getID(context.target)
-	if targetID then context.security.knowledge[targetID] = {x=x,y=y,confidence=1,source="search-drone",time=curTime or 0,actor=context.target} end
-	if not context.security.droneRaidAnnounced then
-		context.security.droneRaidAnnounced = true
+	if not root.hcoDroneRaidAnnounced then
+		root.hcoDroneRaidAnnounced = true
 		if sound and type(sound.play) == "function" then pcall(sound.play, sound, "nvg_on") end
 		feedback.show("DRONE CONTACT — RESPONSE TEAMS ARE MOVING ON YOUR POSITION")
 	end
@@ -459,9 +478,13 @@ function drones.initialize()
 		centerX, centerY = (self.x or 0) + offset, (self.y or 0) + offset
 		local destDistance = math.sqrt(((self.hcoDestX or centerX) - centerX)^2 + ((self.hcoDestY or centerY) - centerY)^2)
 		local now = curTime or 0
-		if not self.hcoDestX or destDistance < 36 or now >= (self.hcoDestRefreshAt or 0) then
+		local trackingRefresh = self.hcoTracking > 0 and now >= (self.hcoDestRefreshAt or 0)
+		if not self.hcoDestX or destDistance < 36 or trackingRefresh then
 			self.hcoDestX, self.hcoDestY = chooseDestination(self)
-			self.hcoDestRefreshAt = now + (self.hcoTracking > 0 and 0.3 or 1.1)
+			-- Patrol/search destinations remain stable until reached. Re-rolling
+			-- every second made distant goals cancel each other out and looked like
+			-- a permanently hovering drone. Only live target tracking refreshes fast.
+			self.hcoDestRefreshAt = now + (self.hcoTracking > 0 and 0.3 or 60)
 		end
 		local requestedSpeed = config.DRONE_SPEED * (self.hcoSpeed or 1) * modeSpeed
 		local maximumSpeed = aggressive and config.DRONE_MAX_AGGRESSIVE_SPEED or config.DRONE_MAX_PATROL_SPEED
@@ -504,7 +527,10 @@ function drones.initialize()
 		else
 			self.hcoDetect = math.max(0, self.hcoDetect - dt * 0.65)
 			self.hcoIdentityFactor = 1
-			self.lightColorCurrent = self.lightColor self:updateCastColor()
+			-- Once any drone confirms the player, the complete network enters a
+			-- visibly red search state. An individual armed drone still needs its own
+			-- unobstructed view before weapon authority is granted.
+			self.lightColorCurrent = aggressive and self.lightColorInactive or self.lightColor self:updateCastColor()
 		end
 		local px, py = util.getPos(player)
 		local aimError = math.pi

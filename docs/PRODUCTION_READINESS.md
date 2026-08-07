@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.14.5-rc39`
+**Candidate:** `0.14.6-rc40`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 
@@ -28,6 +28,8 @@ Drones are pressure tools, not bullet sponges. Scout and Light airframes die in 
 - Release diagnostics are off by default. Player-facing notices are rate-limited and use the native feedback layer.
 - Moving fixtures self-repair, follow the visible aim center and retain a post-world-collision projectile fallback for runtime combinations that omit late fixtures. A persistently unhittable carrier is inert and automatically retired.
 - Destruction is a hard terminal boundary: every queued weapon state, detection accumulator, aim cue, rotor loop and native light-buffer allocation is cancelled before the family-specific wreck sequence begins.
+- Patrol/search destinations remain committed until arrival or an explicit tactical/idle transition. Invalid/current-position authored sectors are exhausted before deterministic outdoor fallbacks; if the map offers no route, the sensor performs a continuous 360-degree scan instead of becoming inert.
+- Confirmed drone contact is map-network evidence: all active HCO wings enter a visible red aggressive search and all contract response teams receive the reported position. Weapons remain local and fail closed behind geometry.
 - Disguise transitions are world-space and temporary. The persistent state is the real player animation variant plus an optional matching HCO faction insignia; no separate menu, cursor or permanent status dashboard is introduced.
 - Weapon choice, drawn/holstered state and reload are identity-neutral. Sound-only incidents mobilize a position search; player-specific pursuit requires observer-local evidence or completed communication. Native short-range detection may raise suspicion but cannot bypass that identity boundary.
 - Social-stealth values and the exact native/live boundary are centralized in `SPECIFICATION_TRACEABILITY.md`.
@@ -58,9 +60,10 @@ Run with the Cheat Trainer reset unless compatibility itself is being tested.
 4. Routine patrol, loud-fire escalation, direct HCO-guard contact, body evidence and protection-casualty deployment paths.
 5. Complete the RC39 social-stealth matrix: real body selector, three tiers, visual transitions, arbitrary armed distance cover, survivable brief close pass, sustained close exposure, immediate point-blank hostile handoff, unobserved-shot isolation, direct-witness recognition, credentials, behavior exposure, local/global radio compromise, drone source scan and reload.
 6. Scout plus every Light/Heavy Pistol, SMG and Laser row: silhouette, scale, heading, sound, attack cue, damage and cooldown.
-7. Player LOS loss, zero roofed/indoor spawns, wall/door/window steering, world-edge containment, wing separation, idle recovery and at least 30 seconds of aggressive search.
-8. EMP/disruption, Light one-hit destruction, Heavy two/three-hit destruction, outer-rotor hits, crash landing, wreck cleanup and crash-site response.
-9. Target routine, shelter, reselection, evacuation and resolution; exactly-one payout after reload.
-10. No HCO traceback, stuck update, duplicate local/Workshop copy, broken vanilla objective, blocked player input or lingering audio after returning to menu.
+7. Player LOS loss, zero roofed/indoor spawns, wall/door/window steering, world-edge containment, wing separation, committed patrol travel, invalid-sector fallback, rotating boxed-in scan and at least 30 seconds of aggressive search.
+8. On a multi-contract map, let one Scout or armed drone confirm the player: every wing must turn red and leave stale patrol routes, every response detail must receive the reported position, and only drones with their own unobstructed aim may fire.
+9. EMP/disruption, Light one-hit destruction, Heavy two/three-hit destruction, outer-rotor hits, crash landing, wreck cleanup and crash-site response.
+10. Target routine, shelter, reselection, evacuation and resolution; exactly-one payout after reload.
+11. No HCO traceback, stuck update, duplicate local/Workshop copy, broken vanilla objective, blocked player input or lingering audio after returning to menu.
 
 Any failure keeps the build at RC status. Automated proof is necessary but cannot establish live renderer, map geometry, native AI or mod-combination behavior on its own.

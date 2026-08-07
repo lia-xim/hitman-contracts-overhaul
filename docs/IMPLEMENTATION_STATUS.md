@@ -1,6 +1,6 @@
 # Hitman Contracts Overhaul — Implementation Status
 
-**Current version:** `0.14.5-rc39`
+**Current version:** `0.14.6-rc40`
 **Status date:** 2026-08-07
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md` remains the product and technical source of truth.
@@ -28,8 +28,8 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Disguise and social stealth | RC39 candidate path: weapon-neutral distance cover plus raycast-gated close scrutiny, point-blank exposure, observer-local hostility, clean identity rebinding and alert/hunch separation | Full real-mission pass in `SPECIFICATION_TRACEABILITY.md` |
 | Credentials and radio propagation | RC34 keycard/keychain capture before native drop, consistent off-limits queries, interruptible identity/body reports and reload restoration | Verify real mission doors, radio audio/range and checkpoint matrix |
 | Multi-contract persistence and payout | Implemented | Live active/terminal reload matrix and multi-target exactly-once payout |
-| Drone presence and patrol | Seven-model RC22 roster implemented; previous native body seen live | Live-approve every new atlas row, scale, heading, rotor profile and varied deployment |
-| Drone detection and response relay | Stable slot pursuit, independent gimbal and strict native geometry authority implemented | Prove cone lock, LOS loss and response convergence without wall tracking |
+| Drone presence and patrol | Seven-model roster plus RC40 committed-waypoint patrol, invalid-sector fallback and stationary 360-degree scan implemented | Live-approve sustained movement across several map sectors and the boxed-in scan fallback |
+| Drone detection and response relay | Stable slot pursuit, independent gimbal, strict native geometry authority and RC40 all-contract map alarm implemented | Prove red network search, LOS loss and response convergence without wall tracking |
 | Drone disruption and destruction | Implemented across all seven models; RC33 mission-ticked wreck animation, durable native wreck batch, full first-shot sweep and terminal weapon/light cleanup | Live-test frame 1→2→3→4 progression, free fire without right-click, EMP lockout and crash-site response |
 | Drone perception semantics | Implemented for observer-local behavior risk, compromised identity and body/source-uniform evidence; held weapons are neutral | Live-test routine versus aggressive identity timing, body concealment and source-uniform compromise |
 | Drone navigation | Native roof-map outdoor footprints, floor-grid steering, search rings, flanks, separation and safety recovery implemented | Live-approve zero indoor spawns, exterior boundaries and long aggressive-search behavior |
@@ -40,7 +40,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Contract variety | Partial | Data theft, accidents, special weapon conditions, rescue/extraction and other systemic contract types |
 | Localization/audio callouts | Partial | English runtime text exists; translated strings and an authored localized radio-callout pack remain |
 
-## RC22 roster / RC23–RC39 live corrections
+## RC22 roster / RC23–RC40 live corrections
 
 - Airframe footprint reduced to roughly 27 world pixels and the generated art rotated by -90 degrees to match the native sensor/flight heading.
 - Hover bob, offset shadow, four-frame rotor animation, rotor pulse rings, state-colored sensor pulse and a short pixel wake make flight readable without adding a detached HUD layer.
@@ -59,13 +59,14 @@ Automated harnesses support these systems, but do not replace the remaining real
 - RC37 closes the remaining native AI bypass: suspicion, alert, body-investigation and combat states may no longer force `setEnemyInSight` or combat merely because a calm disguised player is close. A fresh identity clears stale actor-specific sight memory for uninformed guards; actual takeover witnesses retain local knowledge and can radio it.
 - RC38 closes the native close-protection follower crash when a follower changes to combat/fear and removes alert-state/hunch shortcuts that made an uninformed protected target flee from a valid disguise. Calm cover now stays below the native 40% suspicion-success threshold.
 - RC39 restores deliberate infiltration risk: FOV/raycast-confirmed point-blank contact exposes immediately, sustained 150-unit scrutiny exposes after a role/familiarity-scaled dwell, lost contact decays progress and successful recognition resumes the original Goon response instead of stopping at a red indicator.
+- RC40 stops patrol destinations from being replaced before arrival, tries every authored sector before deterministic outdoor fallbacks, gives truly boxed-in sensors a continuous 360-degree scan and propagates confirmed drone contact to every active HCO wing and response team on the map. Alarmed wings remain visibly red, but each weapon still requires its own unobstructed shot.
 - Routine drones now consume social-stealth risk instead of treating every player silhouette identically. Their real cone/raycast can detect each exposed body once and compromise the stolen identity when its source is found.
 
 The Scout deliberately does not shoot. Six armed variants join escalated wings: light/heavy Pistol, SMG and Laser. Ballistic models use native bullets; laser models display an uninterrupted charge cue. No model attacks without confirmed line of sight, range, gimbal alignment and cooldown readiness.
 
 ## Immediate acceptance gate
 
-1. Completely restart the game and confirm `0.14.5-rc39` loads without traceback and without an internal RC render diagnostic on the HUD.
+1. Completely restart the game and confirm `0.14.6-rc40` loads without traceback and without an internal RC render diagnostic on the HUD.
 2. Observe multiple deployments and identify Scout, light and heavy silhouettes; heavy variants must be larger but remain actor-scaled.
 3. Stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
@@ -74,7 +75,7 @@ The Scout deliberately does not shoot. Six armed variants join escalated wings: 
 7. Watch one light and one heavy destruction: firing, aim cue, rotor loop and light cone must stop immediately; the airframe must visibly change into damaged frames, tumble for roughly 0.78/0.95 seconds, trail smoke/sparks, produce a landing ring/debris burst and remain as an asymmetric inert wreck. Response actors should investigate that landing point.
 8. Trigger an armed wing: verify a Pistol/SMG native projectile and a Laser that holds its aim line for 0.9/1.4 seconds before firing.
 9. Circle a tracking drone: the gimbal should follow first, then the body should yaw; the drone must hold a standoff slot instead of flying through or endlessly orbiting the player.
-10. Observe an aggressive wing for at least 20 seconds: no drone should remain unexpectedly still for more than roughly half a second, and blocked drones should choose a new heading.
+10. Observe patrol and aggressive wings for at least 30 seconds: drones must keep their route long enough to visibly travel, choose alternate outdoor sectors when an authored point is invalid, and only hover when genuinely boxed in; a boxed-in drone must continue a full rotating scan.
 11. Observe initial deployment and draw a drone toward a building exterior: no armed drone may spawn or route beneath a native roof, and it must steer around walls, closed doors and windows instead of crossing the boundary; low outdoor cover may be overflown.
 12. Keep response units in combat/search long enough for follower instruction timers to advance; no `getWatchBack` traceback may occur.
 13. Confirm normal weapon fire, vanilla objectives, mission completion, checkpoint reload and return to menu still work.
@@ -86,4 +87,4 @@ The complete fourteen-step disguise/social-stealth live gate and its native engi
 
 ## Release boundary
 
-HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC39 preserves RC38's observer-local identity and follower safety while restoring real close-inspection failure states and native hostile response. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.
+HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC40 preserves RC39's social-stealth risk while correcting the newly observed stationary-wing and slot-local alarm failures. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.

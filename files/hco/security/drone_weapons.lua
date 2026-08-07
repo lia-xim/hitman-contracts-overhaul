@@ -9,10 +9,14 @@ end
 
 local function sourceActor(drone)
 	local context = drone.hcoContext
-	for _, guard in ipairs(context and context.security and context.security.guards or {}) do
-		if guard.role ~= "close_protection" and util.isAlive(guard.actor) then return guard.actor end
+	local root = context and context.root
+	local contexts = root and type(root.contracts) == "table" and #root.contracts > 0 and root.contracts or {context}
+	for _, networkContext in ipairs(contexts) do
+		for _, guard in ipairs(networkContext and networkContext.security and networkContext.security.guards or {}) do
+			if guard.role ~= "close_protection" and util.isAlive(guard.actor) then return guard.actor end
+		end
+		if networkContext and util.isAlive(networkContext.target) then return networkContext.target end
 	end
-	if context and util.isAlive(context.target) then return context.target end
 	return nil
 end
 

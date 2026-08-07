@@ -138,6 +138,15 @@ assertTrue(repairProbe.body~=staleBody and repairProbe.hcoHitboxReady and repair
 assertTrue(outlineDraws==3,"aim outline delegates to each visual airframe without native quad offsets")
 assertTrue(drones.drawAll(),"world render pass sees active drones")
 assertTrue(#shells==3,"every physical sensor receives a native visual airframe")
+local patrolProbe=context.security.drones[3]
+game.playerActor.x,game.playerActor.y=2000,2000
+patrolProbe.hcoTracking=0
+patrolProbe.hcoDestX,patrolProbe.hcoDestY=nil,nil
+patrolProbe:update(0.1)
+local committedPatrolX,committedPatrolY=patrolProbe.hcoDestX,patrolProbe.hcoDestY
+assertTrue(committedPatrolX~=nil,"patrol resolves a distinct fallback destination when its authored sector collapses onto the current position")
+patrolProbe:update(0.1)
+assertTrue(patrolProbe.hcoDestX==committedPatrolX and patrolProbe.hcoDestY==committedPatrolY,"patrol keeps a distant destination instead of re-rolling it before arrival")
 local armorProbe=context.security.drones[2]
 armorProbe.hcoArmor,armorProbe.hcoArmorMax=3,3
 local normalBullet={damage=20,armorPenetration=2,firer=game.playerActor}
@@ -157,13 +166,30 @@ assertTrue(armorProbe.hcoArmor==1 and not armorProbe.broken,"high-damage high-pe
 armorProbe:onHitBullet(rifleBullet,{x=armorProbe.x+13,y=armorProbe.y+13})
 assertTrue(armorProbe.broken,"second high-caliber hit destroys the heavy drone")
 local detector=context.security.drones[1]
+local networkGuard=actorObject(900,900,"network-response")
+function networkGuard:setSightPos(x,y) self.sightX,self.sightY=x,y end
+function networkGuard:setSightTime(value) self.sightTime=value end
+function networkGuard:setEnemyInSight(value,target) self.enemyInSight,self.enemyTarget=value,target end
+function networkGuard:getState() return {goToCombat=function() networkGuard.combat=true end} end
+local networkDrone={broken=false,hcoDestX=999,hcoDestY=999,hcoDestRefreshAt=99,hcoNextSearchAt=99}
+local networkContext={root=rootState,slot=2,target=actorObject(850,850,"network-target"),security={sectorPoints={{x=700,y=700}},guards={{role="response",actor=networkGuard}},drones={networkDrone},droneCooldown=0,knowledge={},droneMode="PATROL"}}
+rootState.contracts={context,networkContext}
 context.security.droneMode="AGGRESSIVE"
+context.security.droneSighting=nil
+detector.hcoDetect,detector.hcoLastConfirmedAt=0,-100
 for _=1,8 do
 	game.playerActor.x,game.playerActor.y=detector.x+60,detector.y
 	detector.hcoDestX,detector.hcoDestY=detector.x+500,detector.y
 	detector:update(0.1)
 end
 assertTrue(context.security.droneSighting~=nil,"sustained player presence in cone confirms a sighting")
+assertTrue(networkContext.security.droneMode=="AGGRESSIVE" and networkContext.security.droneSighting~=nil,"one confirmed drone sighting alarms every HCO security network on the map")
+assertTrue(networkDrone.hcoDestX==nil and networkDrone.hcoNextSearchAt==0,"networked drones immediately abandon stale patrol destinations for the reported contact")
+assertTrue(networkGuard.enemyInSight==true and networkGuard.combat==true,"networked response guards receive actionable player contact rather than a cosmetic alert")
+game.playerActor.x,game.playerActor.y=2000,2000
+networkContext.security.droneMode="AGGRESSIVE"
+patrolProbe:update(0.1)
+assertTrue(patrolProbe.lightColorCurrent==patrolProbe.lightColorInactive,"an alarmed drone wing visibly retains its red search state without firing through geometry")
 
 -- A calm, plausible disguise slows patrol identification but never grants
 -- permanent invisibility; suspicious behavior restores full acquisition.

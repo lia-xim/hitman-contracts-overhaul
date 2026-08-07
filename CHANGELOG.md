@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.6-rc40 — 2026-08-07
+
+- Fixed live drones appearing permanently stationary because patrol/search destinations were replaced every 1.1 seconds before distant waypoints could be reached. Non-tracking destinations are now committed until arrival, a tactical relocation or the idle watchdog invalidates them.
+- Replaced the one-shot authored-sector choice with a complete valid-sector search plus twelve deterministic outdoor fallback candidates. A roofed, duplicate or current-position sector can no longer leave an active wing with no patrol route.
+- Added a continuous 360-degree body/sensor sweep when geometry genuinely offers no movement destination, so a boxed-in but valid drone remains an active observer rather than staring into one narrow arc.
+- Promoted confirmed drone contact from a per-contract slot to the shared map security network. Every HCO wing enters aggressive search, drops stale routes and receives the reported position; response teams receive actionable native contact.
+- Alarmed wings retain red searchlights. Individual weapons still require that drone's own completed world raycast, range and gimbal alignment, preserving wall-safe combat.
+- Extended native ballistic/laser attribution across all live contract contexts, preventing an armed drone from becoming harmless merely because its own target/detail died while another HCO security team remained active.
+- Added regressions for fallback patrol travel, destination commitment, all-contract drone/guard alarm propagation and persistent red network-search presentation.
+
 ## 0.14.5-rc39 — 2026-08-07
 
 - Rebalanced social stealth around meaningful proximity risk. A clean disguise remains credible at normal distance with any held or holstered weapon, but a guard with a real native FOV/raycast now performs observer-local close scrutiny inside 150 world units.
