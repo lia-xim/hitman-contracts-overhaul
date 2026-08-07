@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.14.14-rc48`
+**Candidate:** `0.14.15-rc49`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 
@@ -35,6 +35,7 @@ Drones are pressure tools, not bullet sponges. Scout and Light airframes die in 
 - Native patrol activation owns the target destination/path. HCO never clears that path after `setActivePatrolRoute`; a target stationary in routine for nine seconds advances through the same authored route. All five close guards form one verified follower chain instead of competing for the target's single follower slot.
 - A nearby unsuppressed shot creates location-only caution; confirmed protection incidents escalate flight and can invalidate an occupied shelter without granting magical player identity.
 - An intact armed drone keeps a stable valid native attribution proxy for its lifetime and may reacquire an already confirmed current appearance through fresh unobstructed LOS. Death of the principal/guards or expiry of an old location report may not silently disable its weapon.
+- Native Pistol/SMG projectiles originate beyond the complete carrier fixture and are considered fired only when `createBullet` returns the engine projectile. Laser discharge retains immutable world-space endpoints for its glow/core/pixel beam and impact, independent of the next AI tick or God Mode.
 - Native takeover/restore actions are revalidated during mission runtime. A replaced Goon class/list is rebound, stale per-body action bitmasks/options are rebuilt once per interaction generation, and the exact `getInteractOptions` result is reconciled whenever the player opens a cached body selector.
 - Weapon choice, drawn/holstered state and reload are identity-neutral. Sound-only incidents mobilize a position search; player-specific pursuit requires observer-local evidence or completed communication. Native short-range detection may raise suspicion but cannot bypass that identity boundary.
 - Social-stealth values and the exact native/live boundary are centralized in `SPECIFICATION_TRACEABILITY.md`.

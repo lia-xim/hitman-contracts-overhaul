@@ -66,7 +66,7 @@ Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a l
 The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.14.14-rc48[/b] — production-candidate release. RC48 fixes saved failed contracts suppressing the whole mod: loading that mission now creates a fresh unpaid attempt with its objective, target, drones and disguise runtime. Completed paid contracts remain terminal and show a compact explanation. It retains RC47's native body recovery, action/cache repair, markers and drone/target continuity fixes. Promotion to 1.0 follows the published crash-free live mission matrix.
+[b]0.14.15-rc49[/b] — production-candidate release. RC49 fixes armed drone attacks: pistol/SMG bullets now begin outside the physical airframe and only count when a real native projectile exists; Laser drones retain a visible glow/core/pixel beam and impact independently of the next AI tick or God Mode. RC48's failed-save replay and all prior social-stealth, target and drone fixes remain. Promotion to 1.0 follows the published crash-free live mission matrix.
 
 [h2]OPEN SOURCE[/h2]
 Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.

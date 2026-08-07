@@ -11,13 +11,14 @@ local function assertTrue(value, message) if not value then error(message) end e
 
 local imageDraws, batchUpdates, treeInserts = 0, 0, 0
 local lastSpriteUpdate, lastWreckUpdate, flightEffectRectangles = nil, nil, 0
+local lineCalls = {}
 love = {graphics={}}
 love.errorhandler = function(message) io.stderr:write("HCO_AIRFRAME_SMOKE_ERROR: " .. tostring(message) .. "\n" .. debug.traceback() .. "\n") os.exit(1) end
 function love.graphics.newImage(path) return {path=path,setFilter=function() end} end
 function love.graphics.newQuad(x,y,w,h) return {x=x,y=y,w=w,h=h} end
 function love.graphics.setColor() end
 function love.graphics.circle() end
-function love.graphics.line() end
+function love.graphics.line(...) table.insert(lineCalls,{...}) end
 function love.graphics.rectangle() flightEffectRectangles=flightEffectRectangles+1 end
 function love.graphics.push() end
 function love.graphics.pop() end
@@ -139,6 +140,21 @@ local rectanglesBeforeImpact=flightEffectRectangles
 shell:draw()
 assertTrue(flightEffectRectangles>=rectanglesBeforeImpact+12,"heavy impact renders nine sparks plus three readable armor pips")
 assertTrue(shell.hcoArmor==2 and shell.hcoArmorMax==3,"airframe receives bounded heavy armor state")
+owner.hcoAimTargetX,owner.hcoAimTargetY=nil,nil
+owner.hcoLaserPulse,owner.hcoLaserPulseMax=0.32,0.36
+owner.hcoLaserFromX,owner.hcoLaserFromY=170,270
+owner.hcoLaserTargetX,owner.hcoLaserTargetY=360,410
+airframes.sync(shell,owner)
+local linesBeforeLaser=#lineCalls
+local rectanglesBeforeLaser=flightEffectRectangles
+shell:draw()
+local foundLaserEndpoint=false
+for index=linesBeforeLaser+1,#lineCalls do
+	local call=lineCalls[index]
+	if call[1]==170 and call[2]==270 and call[3]==360 and call[4]==410 then foundLaserEndpoint=true break end
+end
+assertTrue(foundLaserEndpoint and #lineCalls>=linesBeforeLaser+3,"fired laser renders glow and core from its snapshotted endpoints without a live aim target")
+assertTrue(flightEffectRectangles>=rectanglesBeforeLaser+5,"fired laser adds a readable pixel-energy trail")
 local crashStartX,crashStartY=shell.x,shell.y
 local landX,landY=airframes.crash(shell,owner,crashStartX,crashStartY)
 assertTrue(landX~=crashStartX or landY~=crashStartY,"destroyed airframe receives a real tumble destination")

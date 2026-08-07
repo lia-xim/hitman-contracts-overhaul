@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.14-rc48`
+**Candidate:** `0.14.15-rc49`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -209,6 +209,7 @@ Second, a native yellow/red alert state or last-known hunch is not proof that an
 - If no valid travel destination exists, the drone remains a functioning sensor and rotates its body/gimbal through a continuous 360-degree sweep. Hovering is allowed only as this geometry fallback, not as an inert state.
 - A confirmed sighting is shared across every active HCO contract context on the current map. All living wings drop stale destinations, enter `AGGRESSIVE`, retain red searchlights and search the reported last-known position; all response details receive actionable native contact.
 - Network alarm never bypasses local weapon geometry. An armed drone still needs its own current raycast, range, aim tolerance, valid outdoor footprint and physical hitbox before firing. The Scout remains deliberately unarmed and contributes detection/relay only.
+- RC49 moves each native ballistic muzzle beyond the full light/heavy carrier fixture and requires a returned engine projectile before advancing a burst. A fired Laser snapshots its muzzle/impact endpoints and retains a short independent render lifetime, so cooldown, lost authorization or God Mode cannot erase the visible discharge.
 - A weapon carrier may use a living response actor from any active HCO context for native projectile attribution, so a surviving armed wing does not become inert after its own principal/detail dies while another network detail remains alive.
 - Automated coverage must prove fallback travel, destination commitment, cross-context wing/guard propagation and red network-search presentation. Live acceptance must hold for at least 30 seconds on a multi-contract map.
 

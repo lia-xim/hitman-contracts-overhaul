@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.14.14-rc48`
+**Current build:** `0.14.15-rc49`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate test release. RC48 repairs persisted failed-contract replay: loading a save in which the HCO target previously escaped now creates a fresh unpaid attempt instead of suppressing the contract, target, drones, and disguise runtime. Completed paid contracts remain terminal and visibly explain that state. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC49 repairs the complete armed-drone discharge path: ballistic muzzle points clear the physical carrier, Light/Heavy SMG bursts require real native projectiles, and Laser models retain an independently rendered beam/impact after their damage call. RC48's failed-contract replay and paid-terminal protection remain intact. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 

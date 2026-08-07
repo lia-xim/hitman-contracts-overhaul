@@ -293,11 +293,38 @@ function airframes.initialize()
 				graphics.setColor(255, 240, 225, 90 + math.floor(chargeProgress * 165))
 				graphics.circle("fill", drawX, drawY, 2 + chargeProgress * 3)
 			end
-			if self.hcoLaserPulse and self.hcoLaserPulse > 0 then
-				graphics.setLineWidth(self.hcoHeavy and 5 or 3)
-				graphics.setColor(255, 235, 210, 235)
-				graphics.line(drawX, drawY, self.hcoAimTargetX, self.hcoAimTargetY)
+		end
+		-- The fired beam owns immutable world-space endpoints for its short visual
+		-- lifetime. It must not disappear merely because cooldown, God Mode or the
+		-- next AI tick clears the live aiming target.
+		if (self.hcoLaserPulse or 0) > 0 and self.hcoLaserTargetX and self.hcoLaserTargetY then
+			local fromX, fromY = self.hcoLaserFromX or drawX, self.hcoLaserFromY or drawY
+			local toX, toY = self.hcoLaserTargetX, self.hcoLaserTargetY
+			local life = util.clamp(self.hcoLaserPulse / math.max(0.01, self.hcoLaserPulseMax or self.hcoLaserPulse), 0, 1)
+			local beamAlpha = math.floor(90 + life * 145)
+			graphics.setLineWidth(self.hcoHeavy and 8 or 6)
+			graphics.setColor(accentR, accentG, accentB, math.floor(45 + life * 85))
+			graphics.line(fromX, fromY, toX, toY)
+			graphics.setLineWidth(self.hcoHeavy and 4 or 3)
+			graphics.setColor(255, 220, 245, beamAlpha)
+			graphics.line(fromX, fromY, toX, toY)
+			graphics.setLineWidth(1)
+			graphics.setColor(255, 255, 255, math.floor(175 + life * 80))
+			graphics.line(fromX, fromY, toX, toY)
+			local dx, dy = toX - fromX, toY - fromY
+			local length = math.max(1, math.sqrt(dx * dx + dy * dy))
+			local sideX, sideY = -dy / length, dx / length
+			if type(graphics.rectangle) == "function" then
+				for index = 1, 5 do
+					local fraction = index / 6
+					local jitter = math.sin(time * 37 + self.hcoPhase + index * 2.1) * (self.hcoHeavy and 3 or 2)
+					graphics.setColor(accentR, accentG, accentB, math.floor(70 + life * 120))
+					graphics.rectangle("fill", math.floor(fromX + dx * fraction + sideX * jitter), math.floor(fromY + dy * fraction + sideY * jitter), self.hcoHeavy and 3 or 2, 2)
+				end
 			end
+			graphics.setColor(255, 235, 245, beamAlpha)
+			graphics.circle("line", toX, toY, (self.hcoHeavy and 9 or 6) + (1 - life) * 7)
+			graphics.circle("fill", toX, toY, self.hcoHeavy and 3 or 2)
 		end
 		if self.hcoEvidencePulse and self.hcoEvidencePulse > 0 then
 			local life = util.clamp(self.hcoEvidencePulse / 1.2, 0, 1)
@@ -566,6 +593,9 @@ function airframes.sync(shell, owner)
 		shell.hcoAimTargetX, shell.hcoAimTargetY = owner.hcoAimTargetX, owner.hcoAimTargetY
 		shell.hcoLaserPulse, shell.hcoMuzzleFlash = owner.hcoLaserPulse, owner.hcoMuzzleFlash
 		shell.hcoLaserCharge, shell.hcoWeaponChargeMax = owner.hcoLaserCharge, owner.hcoWeaponChargeMax
+		shell.hcoLaserFromX, shell.hcoLaserFromY = owner.hcoLaserFromX, owner.hcoLaserFromY
+		shell.hcoLaserTargetX, shell.hcoLaserTargetY = owner.hcoLaserTargetX, owner.hcoLaserTargetY
+		shell.hcoLaserPulseMax = owner.hcoLaserPulseMax
 		shell.hcoHitFlash = owner.hcoHitFlash
 		shell.hcoEvidencePulse = owner.hcoEvidencePulse
 		shell.hcoImpactPulse = owner.hcoImpactPulse

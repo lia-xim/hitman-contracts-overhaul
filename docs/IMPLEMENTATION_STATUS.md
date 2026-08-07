@@ -1,6 +1,6 @@
 # Hitman Contracts Overhaul — Implementation Status
 
-**Current version:** `0.14.14-rc48`
+**Current version:** `0.14.15-rc49`
 **Status date:** 2026-08-07
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md` remains the product and technical source of truth.
@@ -35,12 +35,12 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Drone navigation | Native outdoor footprints, steering, search rings, flanks, separation, safety recovery and bounded unarmed narrow-barrier overflight implemented | Live-approve zero indoor spawns, wall/gate hops, rejected roof crossings and long aggressive-search behavior |
 | Drone command infrastructure | Missing | Add meaningful drone operators, radio dependency and sabotage/power counterplay |
 | Thermal surveillance | Missing | Build readable thermal-camera subtype with LOS, disruption and power/operator counters |
-| Armed drone variants | RC22 implemented: Pistol/SMG native bullets and charged Laser | Live-test damage, friendly obstruction, telegraphs, cooldowns, God Mode compatibility and counterplay |
+| Armed drone variants | RC49 carrier-clear native Pistol/SMG projectiles plus persistent charged-Laser beam/impact presentation | Live-test damage, friendly obstruction, full bursts, telegraphs, cooldowns, God Mode compatibility and counterplay |
 | Custom archetype identity | Partial | Native full animation variants plus original insignia exist; complete custom character atlases are deliberately deferred until animation coverage is safe |
 | Contract variety | Partial | Data theft, accidents, special weapon conditions, rescue/extraction and other systemic contract types |
 | Localization/audio callouts | Partial | English runtime text exists; translated strings and an authored localized radio-callout pack remain |
 
-## RC22 roster / RC23–RC48 live corrections
+## RC22 roster / RC23–RC49 live corrections
 
 - Airframe footprint reduced to roughly 27 world pixels and the generated art rotated by -90 degrees to match the native sensor/flight heading.
 - Hover bob, offset shadow, four-frame rotor animation, rotor pulse rings, state-colored sensor pulse and a short pixel wake make flight readable without adding a detached HUD layer.
@@ -68,13 +68,14 @@ Automated harnesses support these systems, but do not replace the remaining real
 - RC46 follows the actual multi-object UI shown in the live screenshot: an overlapping dropped weapon was active object one and the body was inactive object two, so body options were hidden by design. Eligible unused uniforms now receive priority 45 above native `VHIGH=40`, render reads self-heal against the player context, and periodic binding checks recover critical methods replaced after HCO loads.
 - RC47 fixes the deeper spatial failure exposed by the next live pass: priority and menu actions are irrelevant when the fallen actor was never inserted into `worldObject`'s interaction quadtree. Eligible bodies are now restored once through the native fallen-body state and stale checkpoint membership is rebound to the current tree.
 - RC48 fixes a persisted failure state that made every HCO system disappear together. Failed unpaid attempts now rotate to a deterministic new contract identity on mission reload; successful paid attempts remain terminal and display one native explanatory notice.
+- RC49 fixes the armed discharge boundary. Native bullets now spawn beyond the complete 48/54-pixel carrier fixture and count only when the engine returns a projectile; both SMG weights must finish their configured bursts. Lasers retain immutable muzzle/impact endpoints for a readable glow/core/pixel beam and impact after cooldown or God Mode clears live aim/damage state.
 - Routine drones now consume social-stealth risk instead of treating every player silhouette identically. Their real cone/raycast can detect each exposed body once and compromise the stolen identity when its source is found.
 
 The Scout deliberately does not shoot. Six armed variants join escalated wings: light/heavy Pistol, SMG and Laser. Ballistic models use native bullets; laser models display an uninterrupted charge cue. No model attacks without confirmed line of sight, range, gimbal alignment and cooldown readiness.
 
 ## Immediate acceptance gate
 
-1. Completely restart the game and confirm `0.14.14-rc48` loads without traceback and without an internal RC render diagnostic on the HUD.
+1. Completely restart the game and confirm `0.14.15-rc49` loads without traceback and without an internal RC render diagnostic on the HUD.
 2. Observe multiple deployments and identify Scout, light and heavy silhouettes; heavy variants must be larger but remain actor-scaled.
 3. With the original/exposed identity, stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position. Repeat with clean cover beyond 205 units: the cone must remain amber and must not track, confirm or fire. Move inside 155 units during patrol or 205 during an alarm and verify progressive close scrutiny before red contact.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
@@ -96,4 +97,4 @@ The complete fourteen-step disguise/social-stealth live gate and its native engi
 
 ## Release boundary
 
-HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC48 repairs the save-lifecycle state that suppressed all runtime systems after a failed escaped contract, while retaining RC47's body registration, RC46's priority/cache/hook corrections and RC43's principal/drone-combat continuity work. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.
+HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC49 repairs the armed ballistic/Laser discharge and presentation path, while retaining RC48's save-lifecycle replay, RC47's body registration, RC46's priority/cache/hook corrections and RC43's principal/drone-combat continuity. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.

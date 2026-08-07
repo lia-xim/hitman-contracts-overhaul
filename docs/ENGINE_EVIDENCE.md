@@ -89,6 +89,8 @@ Source: `game/actor.lua`
 
 RC22 ballistic drones use instantiated `p320`/`mp5` native bullets with a living response actor as attacker. Lasers use `takeDamage` only after their visible, uninterrupted charge and verified raycast. This preserves normal God Mode/damage hooks and avoids unattributed magical kills.
 
+RC49 corrects the physical muzzle contract. Live carriers use 48-pixel light and 54-pixel heavy axis-aligned bullet fixtures, while RC48 created every ballistic projectile only 14 pixels from the center. That point is inside either fixture. RC49 places the muzzle at half the complete carrier width plus seven pixels along the verified player ray and accepts the action only when `createBullet` returns its real engine projectile. Laser damage remains a verified hitscan call, but its fired presentation now snapshots independent muzzle/impact endpoints for 0.28/0.36 seconds instead of depending on the next mutable aim target.
+
 ### Runtime camera outline contract
 
 `genericObject:drawOutline()` unpacks five values from `getDrawPosition()` and performs arithmetic on the returned `xOff`/`yOff`. A runtime-created camera has no map-finalized sprite `quadStruct`, while HCO intentionally renders its body through a separate decor airframe. The RC22 carrier returned only `x,y`, producing the live `xOff=nil` traceback when the player aimed at it. RC23 overrides `drawOutline` and `rawDraw` on each carrier and draws the airframe's current atlas frame directly in the native outline pass.

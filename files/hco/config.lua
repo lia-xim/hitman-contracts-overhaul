@@ -1,5 +1,5 @@
 local config = {
-	VERSION = "0.14.14-rc48",
+	VERSION = "0.14.15-rc49",
 	LOG_PREFIX = "[HCO]",
 	DIAGNOSTICS_ENABLED = false,
 	ALLOW_GENERIC_MAPS = true,

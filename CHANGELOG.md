@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.15-rc49 — 2026-08-07
+
+- Fixed armed ballistic drones spawning native bullets inside their own 48/54-pixel carrier hitboxes. Pistol and Light/Heavy SMG projectiles now originate beyond the complete physical fixture instead of being consumed by the firing drone.
+- A ballistic shot is accepted only when `weapon:createBullet` returns a real native projectile. Missing registrations, attribution actors, instantiation failures and nil projectiles now fail closed with a one-time model-specific diagnostic instead of playing a false gunshot.
+- Rebuilt the laser discharge presentation around immutable shot endpoints. Light and Heavy laser beams now survive later AI/cooldown updates, render a readable accent glow, bright core, pixel-energy trail and impact flare, and remain visible even when God Mode prevents health loss.
+- Added exact native-ID coverage for `p320`, `mp5` and `disruptor`, complete Light/Heavy SMG burst tests, carrier-clear muzzle assertions, persistent laser endpoint/lifetime tests and an airframe render regression that draws the fired beam without a live aim target.
+
 ## 0.14.14-rc48 — 2026-08-07
 
 - Fixed a save-lifecycle regression that could make the entire mod appear absent. A persisted `failed_escaped` or `failed_invalid` contract was terminal forever, so loading that mission created no contract context, objective, target marker, drones, or disguise interactions.

@@ -1,8 +1,8 @@
-# Completion Audit — 0.14.14-rc48
+# Completion Audit — 0.14.15-rc49
 
 **Audit date:** 2026-08-07
 **Goal status:** production-candidate code complete for the current feature surface; final live acceptance is not complete
-**Authority inspected:** RC48 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed `1.4.12HF3` interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces, persisted HCO save records and user-supplied live screenshots/errors
+**Authority inspected:** RC49 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed/decompiled `1.4.12HF3` interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces, persisted HCO save records and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -20,7 +20,7 @@
 | Native drone body | Seven-row atlas pass | Earlier native body visible in screenshot | RC22 row/scale/orientation pass pending |
 | Drone detection relay | Strict-raycast plus RC41 all-contract propagation and transition lockout pass | One-way detection/fire during inaccessible transitions would be unfair | RC41 red-network search, barrier lockout and local-fire authority require live proof |
 | Drone tracking/gimbal | RC22 pass in harness | Earlier cone swept away from player | Live fix confirmation required |
-| Armed drone attacks | Native bullet/charged-laser plus RC43 stale-location reacquisition and post-casualty attribution continuity pass | User observed initial fire followed by silent cessation on RC42 | RC43 correction requires live pass |
+| Armed drone attacks | RC49 proves carrier-clear Pistol/Light-SMG/Heavy-SMG native projectiles, complete bursts and persistent Light/Heavy Laser beam endpoints/presentation; RC43 reacquisition/attribution continuity remains | User heard Laser discharge without seeing a beam and suspected SMG fire was ineffective | RC49 correction requires live pass |
 | Drone EMP/destruction | RC34 retains RC33 terminal cleanup, durable wreck batch, projectile sweep and mission-ticked animation | Latest live pass proved the previous build's wrecks remained visible but froze on their first damage frame | RC34 regression pass required |
 | Difficulty/fleet balance | Native preset/custom assertions and roster/global caps pass | Not yet compared live | Live comparison required |
 | Drone semantic sensing | Disguise-risk, body-evidence and source-compromise assertions pass | Not yet observed | Live test required |

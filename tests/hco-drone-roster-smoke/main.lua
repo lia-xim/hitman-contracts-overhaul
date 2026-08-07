@@ -12,6 +12,7 @@ math.atan2 = math.atan2 or function(y, x) return math.atan(y, x) end
 curTime = 0
 
 local laserSounds, worldSounds, bullets, damage = 0, 0, 0, 0
+local projectileRecords, instantiatedWeaponIDs = {}, {}
 love = {audio={}}
 love.errorhandler = function(message) io.stderr:write("HCO_DRONE_ROSTER_SMOKE_ERROR: " .. tostring(message) .. "\n" .. debug.traceback() .. "\n") os.exit(1) end
 function love.audio.newSource()
@@ -22,8 +23,14 @@ sound = {playWorld=function() worldSounds=worldSounds+1 end}
 local sourceActor = {id="guard",dead=false,isValid=function() return true end,isDead=function(self) return self.dead end,isUnconscious=function() return false end,getID=function(self) return self.id end}
 local player = {x=500,y=500,id="player",isValid=function() return true end,isDead=function() return false end,isUnconscious=function() return false end,getPos=function(self) return self.x,self.y end,getID=function(self) return self.id end,getWeaponBulletHeight=function() return 90 end,takeDamage=function(self,amount) damage=damage+amount end}
 game = {playerActor=player,worldObject={getSize=function() return 1000,800 end}}
-weapons = {instantiate=function(self,id)
-	return {id=id,createBullet=function() bullets=bullets+1 end,getBulletSpeed=function() return 1000 end,getFireSound=function() return "native_fire" end,remove=function(self) self.removed=true end}
+weapons = {registeredByID={p320=true,mp5=true,disruptor=true},instantiate=function(self,id)
+	table.insert(instantiatedWeaponIDs,id)
+	return {id=id,createBullet=function(self,x,y,angle,height)
+		bullets=bullets+1
+		local projectile={weaponID=self.id,x=x,y=y,angle=angle,height=height}
+		table.insert(projectileRecords,projectile)
+		return projectile
+	end,getBulletSpeed=function() return 1000 end,getFireSound=function() return "native_fire" end,remove=function(self) self.removed=true end}
 end}
 
 local types = require("hco/security/drone_types")
@@ -60,10 +67,13 @@ context.security.drones={}
 local spawnX,spawnY=flight.spawnPoint(context,1)
 assertTrue(spawnX>=48 and spawnX<=952 and spawnY>=48 and spawnY<=752,"spawn points are clamped inside world bounds")
 
-local drone={x=300,y=300,hcoIndex=2,hcoContext=context,hcoType=types.get("pistol_light"),hcoSensorAngle=math.atan2(player.y-313,player.x-313),setPos=function(self,x,y) self.x,self.y=x,y end,setLightAngle=function() end}
+local drone={x=300,y=300,hcoIndex=2,hcoHitboxSize=48,hcoCenterOffset=24,hcoContext=context,hcoType=types.get("pistol_light"),hcoSensorAngle=math.atan2(player.y-324,player.x-324),setPos=function(self,x,y) self.x,self.y=x,y end,setLightAngle=function() end}
 droneWeapons.update(drone,player,true,0,0.1,true)
 droneWeapons.update(drone,player,true,0,0.1,true)
 assertTrue(bullets==1 and worldSounds==1,"pistol drone emits a native bullet and native gunshot")
+local firstProjectile=projectileRecords[1]
+assertTrue(firstProjectile.weaponID=="p320","pistol drone instantiates the registered native P320")
+assertTrue(math.abs(firstProjectile.x-324)>24 or math.abs(firstProjectile.y-324)>24,"native pistol projectile starts outside the drone's complete square fixture")
 
 sourceActor.dead=true
 targetActor.dead=true
@@ -72,11 +82,34 @@ droneWeapons.update(drone,player,true,0,0.1,true)
 droneWeapons.update(drone,player,true,0,0.1,true)
 assertTrue(bullets==2,"intact drone keeps firing through its stable native attribution proxy after the guard and principal die")
 
+sourceActor.dead=false
+targetActor.dead=false
+local function exerciseSMGBurst(typeID,expectedShots)
+	local startCount=bullets
+	local smgDrone={x=260,y=250,hcoIndex=4,hcoHitboxSize=typeID=="smg_heavy" and 54 or 48,hcoCenterOffset=typeID=="smg_heavy" and 27 or 24,hcoContext=context,hcoType=types.get(typeID)}
+	for _=1,expectedShots+2 do droneWeapons.update(smgDrone,player,true,0,0.1,true) end
+	assertTrue(bullets-startCount==expectedShots,typeID.." completes its configured native burst")
+	for index=startCount+1,bullets do
+		local projectile=projectileRecords[index]
+		local centerX,centerY=smgDrone.x+smgDrone.hcoCenterOffset,smgDrone.y+smgDrone.hcoCenterOffset
+		assertTrue(projectile.weaponID=="mp5",typeID.." uses the registered native MP5")
+		local halfExtent=smgDrone.hcoHitboxSize*0.5
+		assertTrue(math.abs(projectile.x-centerX)>halfExtent or math.abs(projectile.y-centerY)>halfExtent,typeID.." projectile clears its complete square carrier fixture")
+	end
+end
+exerciseSMGBurst("smg_light",3)
+exerciseSMGBurst("smg_heavy",6)
+
 drone.hcoType=types.get("laser_light")
 drone.hcoWeaponCooldown=0
 for _=1,10 do curTime=curTime+0.1 droneWeapons.update(drone,player,true,0,0.1,true) end
 assertTrue(damage==18,"light laser applies damage only after its full telegraph")
 assertTrue(laserSounds>=1,"custom light laser asset is played")
+assertTrue(drone.hcoLaserPulse>0 and drone.hcoLaserPulseMax>=0.28,"fired laser retains a readable beam lifetime")
+assertTrue(drone.hcoLaserFromX and drone.hcoLaserTargetX==player.x and drone.hcoLaserTargetY==player.y,"fired laser snapshots immutable muzzle and impact endpoints")
+local beamTargetX,beamTargetY=drone.hcoLaserTargetX,drone.hcoLaserTargetY
+droneWeapons.update(drone,player,false,math.pi,0.05,false)
+assertTrue(drone.hcoLaserPulse>0 and drone.hcoLaserTargetX==beamTargetX and drone.hcoLaserTargetY==beamTargetY,"cooldown or lost authorization cannot erase an already fired beam before draw")
 
 drone.hcoTracking=0
 flight.beginTracking(drone,player)
