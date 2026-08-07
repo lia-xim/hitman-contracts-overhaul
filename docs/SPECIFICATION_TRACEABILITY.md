@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.3-rc37`
+**Candidate:** `0.14.4-rc38`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -16,7 +16,7 @@ This document prevents future work from collapsing the product specification int
 | Mobile target and secure movement | `targets/controller.lua` | Implemented | Routine, threatened, sheltered, reselection, escape and watchdog cases | Long live route/reload pass on several maps |
 | Protection and response roles | `security/escort.lua`, `security/director.lua` | Implemented for close protection and autonomous response | Role ownership, fan-out, search and follower safety cases | Verify weapons, combat pressure and difficulty balance in game |
 | Knowledge and hunt phases | `security/director.lua` | Implemented | Local evidence, pressure, decay and stand-down cases | Verify no wall omniscience and readable convergence |
-| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | Implemented in RC34, live-tuned through RC37 | Native action enumeration, cached-body refresh, death-time identity capture, three switches and observer-local identity rebind | Must be accepted from the real body interaction wheel |
+| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | Implemented in RC34, live-tuned through RC38 | Native action enumeration, cached-body refresh, death-time identity capture, three switches and observer-local identity rebind | Must be accepted from the real body interaction wheel |
 | Social recognition | `social/disguise.lua` plus instantiated native Goon sight states | Implemented for the observer-local uniform-class model | Calm native instant-detect interception, hard enemy-sight boundary, same-unit, experience/role, arbitrary held weapon, reload, witnessed/unwitnessed fire, lock breaking, access, evidence and compromise cases | Prove calm point-blank cover and overt exposure in a real mission |
 | Credentials and restricted areas | Native `playerActor:addKey` and off-limits queries, coordinated by `social/disguise.lua` | Implemented for keycard and keychain IDs | Acquisition/reload and adjusted trespass-query cases | Verify actual mission doors and STAFF/SECURITY/ELITE areas |
 | Existing cameras | `security/sensors.lua` | Implemented | Camera risk scaling and disruption/break evidence in runtime fixtures | Live camera cone, disguise and wall/EMP pass |
@@ -178,12 +178,18 @@ The second live pass established a simpler product rule and exposed two engine-i
 The next live pass proved that scaling `goon:increaseDetection()` was not sufficient. Native suspicion, alert, body-investigation and combat states each own a direct close-range path that can call `setEnemyInSight(true, player)` and/or enter combat without honoring the scaled result. RC37 therefore adds these invariants:
 
 - every existing and newly requested Goon state instance with `onSightHitPlayer` is guarded while a clean, calm disguise is active;
-- the guarded path retains the state's native `advanceDetection` calculation but caps ordinary social suspicion at `0.54`, immediately below the explicit `0.55` identity-check threshold;
+- the guarded path retains the state's native `advanceDetection` calculation; RC38 caps ordinary social suspicion at `0.39`, immediately below the native suspicion state's `0.40` success boundary, while the timed colleague check can still cross the explicit `0.55` identity-check threshold;
 - a class-level `setEnemyInSight(true, player)` boundary rejects any other native state that attempts to create player-specific hostility without observer knowledge;
 - aiming, directly witnessed fire, suspicious interaction states, a local compromise, a globally compromised uniform and communicated evidence bypass the guard and retain the original game behavior;
 - changing clothes clears stale player detection, `seenPlayer`, vision/hearing target and player-specific enemy-map entries for uninformed observers;
 - a guard that passes the current native AABB/FOV/raycast during the takeover keeps local knowledge of the new identity and may radio it;
 - checkpoint restoration performs a clean rebind without inventing takeover witnesses merely because a guard sees the already-restored appearance.
+
+## RC38 follower and alert-knowledge correction
+
+The next live pass showed two distinct systems being conflated. First, an HCO close guard could leave `goon_idle_following` for combat while the native leader retained it as a follower; native alert code then called `getWatchBack` on that combat state and crashed. HCO now records both sides of every close-protection link and validates all four follower-instruction methods at the leader's real `getFollower` boundary. An incompatible HCO link is removed before native alert code receives it, without changing vanilla-owned followers.
+
+Second, a native yellow/red alert state or last-known hunch is not proof that an observer recognized the person inside a clean disguise. The security director and target controller now require direct enemy sight, observer-local/global compromise or explicit communicated evidence before treating those native values as player-specific. Gunfire, bodies, sensors and radio propagation continue to move the principal and mobilize response units normally.
 
 ## Required live acceptance for this feature
 

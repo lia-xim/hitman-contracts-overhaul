@@ -1,13 +1,20 @@
-# Automated Test Report — 0.14.3-rc37
+# Automated Test Report — 0.14.4-rc38
+
+## RC38 follower-state and identity-knowledge correction
+
+- The runtime fixture now models follower-only methods on `goon_idle_following` instead of incorrectly placing them on every Goon state. It transitions an HCO close guard to `goon_combat`, exercises the native leader lookup and proves the stale link is removed before `advanceFollowerInstructions` can call missing `getWatchBack`/watch-distance methods.
+- Native alert state and a fresh native hunch are injected into the protected target while a clean disguise is active. The security director retains zero target-specific threat and the target remains in `ROUTINE`; explicit security evidence then still transitions it to safety.
+- Calm social cover is capped at 39%, below native suspicion's 40% success boundary. The separate timed colleague check can still cross the 55% identity/radio threshold.
+- All seven LÖVE suites pass against `0.14.4-rc38`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
 
 ## RC37 native AI-state identity correction
 
 - Installed-engine tracing identified four direct sight paths—suspicion, alert, body investigation and combat—that could bypass scaled detection and create hostility at close range.
-- The runtime fixture now gives Goon state instances a native-style `onSightHitPlayer` that raises detection, marks the player in sight and enters combat. A calm fresh disguise suppresses all three consequences and remains at or below the 54% soft cap.
+- The runtime fixture now gives Goon state instances a native-style `onSightHitPlayer` that raises detection, marks the player in sight and enters combat. A calm fresh disguise suppresses all three consequences.
 - A separate regression calls native `setEnemyInSight(true, player)` directly and proves the hard observer-knowledge boundary rejects it.
 - The same state executes its original hostility path when the player directly aims, proving the interception is conditional rather than disabling AI combat.
 - A pre-disguise observer seeded with full detection, `seenPlayer`, a vision target and a player-specific sight entry is cleanly rebound when it did not witness the takeover. A real current AABB/FOV/raycast witness instead becomes locally compromised.
-- All seven LÖVE suites pass against `0.14.3-rc37`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
+- All seven LÖVE suites passed against `0.14.3-rc37`; archive and exact local-install parity passed. Live confirmation remained mandatory.
 
 ## RC36 observer-local identity correction
 
@@ -227,18 +234,18 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 33 Lua modules parse, including RC37's instantiated AI-state interception, enemy-sight boundary and clean observer-identity rebind.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including RC38's follower-state boundary and identity-aware target/security threat handling.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test installation audit: **PASS** — installed `0.14.3-rc37`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running during installation.
+- Post-test installation audit: **PASS** — installed `0.14.4-rc38`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running during installation.
 - Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.3-rc37.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `2674ECE32C635E9CE34F454C82F2D25499A8A0B1EBE5571FFF91C3BC567CC784`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.3-rc37 payload=43`.
-- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches; the game was not running, the current debug log was empty and the newest stored crash log predates RC37.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.4-rc38.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `ACDB865199823CDAEEA7CA5ABA5C0FE0CE9792839C7E28F23409E59BB7F732A4`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.4-rc38 payload=43`.
+- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates the RC38 installation at 12:15.
 
-The markers above were collected from RC37 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC38 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

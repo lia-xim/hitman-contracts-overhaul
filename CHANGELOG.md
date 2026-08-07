@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.4-rc38 — 2026-08-07
+
+- Fixed the recurring native `advanceFollowerInstructions` / missing `getWatchBack` crash. Every HCO close-protection link now records both leader and follower ownership, and the native `getFollower` boundary atomically rejects that link when the follower has entered alert, combat, fear or another state without the four follower-instruction methods.
+- Corrected teardown and reassignment of escort chains. HCO now clears the leader's follower pointer as well as the guard's reverse ownership instead of accidentally clearing only that guard's own child follower.
+- Separated alert presentation from identity knowledge. A yellow/red native alert state or a generic last-known hunch no longer tells HCO that an otherwise valid disguised player has been identified, so the protected target and bodyguards do not flee merely because someone is scrutinizing the disguise.
+- Kept real escalation authoritative: direct enemy sight, observer-local or global compromise, witnessed overt behavior, explicit gunfire/body/sensor evidence and completed radio propagation still mobilize protection and make the target seek safety.
+- Lowered calm social-cover detection to 39%, below the native suspicion success threshold. The timed same-unit identity-check system can still push a close colleague across its 55% radio-check boundary.
+- Added live-shaped regressions for a close guard transitioning from a native follower state into combat and for an uninformed target remaining in routine despite native alert presentation.
+
 ## 0.14.3-rc37 — 2026-08-07
 
 - Fixed the live one-second disguise failure at its native source. Goon suspicion, alert, body-investigation and combat states contain close-range branches that bypass scaled detection and force combat; HCO now intercepts each instantiated state's player-sight callback while an uncompromised calm identity is active.

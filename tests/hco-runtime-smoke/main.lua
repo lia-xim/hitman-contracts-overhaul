@@ -170,6 +170,9 @@ function goonClass:setEnemyInSight(value, target)
 	end
 end
 
+function goonClass:setFollower(value) self.follower = value end
+function goonClass:getFollower() return self.follower end
+
 
 function goonClass:setSeenBody(body, seen)
 	self.seenBodies[body] = seen
@@ -408,6 +411,7 @@ local function createNPC(data)
 	function npc:getStateObject(id)
 		if not self.states[id] then
 			local stateObject = {id = id, owner = self}
+			self.states[id] = stateObject
 			function stateObject:advanceDetection(target)
 				self.owner:increaseDetection(target, 1)
 				return true
@@ -417,22 +421,21 @@ local function createNPC(data)
 				self.owner:setEnemyInSight(true, target)
 				self.owner.nativeSightCombat = true
 			end
-			function stateObject:goToFollow(leader)
+			function stateObject:goToFollow(leader, followID)
 				self.owner.following = leader
-				self.owner.state = self
+				self.owner.state = self.owner:getStateObject(followID or "goon_idle_following")
 				leader:setFollower(self.owner)
 			end
-			function stateObject:getWatchBack() return self.watchBack end
-			function stateObject:setWatchBack(value) self.watchBack = value end
-			function stateObject:getWatchDistance() return self.watchDistance end
-			function stateObject:setWatchDistance(value) self.watchDistance = value end
-			self.states[id] = stateObject
+			if tostring(id):find("following", 1, true) then
+				function stateObject:getWatchBack() return self.watchBack end
+				function stateObject:setWatchBack(value) self.watchBack = value end
+				function stateObject:getWatchDistance() return self.watchDistance end
+				function stateObject:setWatchDistance(value) self.watchDistance = value end
+			end
 		end
 		return self.states[id]
 	end
 	function npc:setState(value) self.state = value end
-	function npc:setFollower(value) self.follower = value end
-	function npc:getFollower() return self.follower end
 	function npc:receiveSightingData(source) self.receivedSightingFrom = source end
 	function npc:updateInteractionList(interactor)
 		local target = self._interactionList.options
@@ -630,6 +633,18 @@ assertTrue(#state.escorts >= 2, "elite escort selected")
 assertEqual(state.escorts[1].actor._hcoFactionVisual, activeProfile.visualIndex, "protection detail receives faction identity")
 assertEqual(state.security.droneDoctrine.name, activeProfile.drone.name, "contract receives archetype-specific drone doctrine")
 assertEqual(state.security.droneMode, "PATROL", "contract starts with passive drone patrol")
+local followerLeader = state.target
+local liveFollower = followerLeader:getFollower()
+assertTrue(liveFollower and liveFollower._hcoFollowLeader == followerLeader, "close protection records native leader ownership")
+assertTrue(type(liveFollower:getState().getWatchBack) == "function", "fresh close protection uses a follower-compatible state")
+liveFollower:setState(liveFollower:getStateObject("goon_combat"))
+assertEqual(followerLeader:getFollower(), nil, "leader releases HCO follower after combat state invalidates native follower instructions")
+assertEqual(liveFollower._hcoFollowLeader, nil, "stale reverse follower ownership is cleared atomically")
+local followerTickOK = pcall(function()
+	local follower = followerLeader:getFollower()
+	if follower then return follower:getState():getWatchBack() end
+end)
+assertTrue(followerTickOK, "native follower-instruction tick cannot call getWatchBack on a combat state")
 assertEqual(#events.directReceivers[actor.EVENTS.DIED], 2, "lifecycle and objective death listeners")
 local objectiveCriticalEntry
 for _, entry in ipairs(state.lastSelectionReport.entries) do
@@ -725,6 +740,7 @@ instantSightState:onSightHitPlayer(player)
 assertEqual(validC:getEnemyInSight(player), false, "native close-range sight cannot mark a calm fresh disguise hostile")
 assertEqual(validC.nativeSightCombat, false, "native close-range sight bypass cannot enter combat through a calm disguise")
 assertTrue(validC:getDetection(player) <= require("hco/config").DISGUISE_SOFT_DETECTION_CAP, "calm native sight remains below the identity-check boundary")
+assertTrue(validC:getDetection(player) < 0.4, "calm social cover remains below native suspicion success")
 validC:setEnemyInSight(true, player)
 assertEqual(validC:getEnemyInSight(player), false, "hard native enemy-sight boundary rejects uninformed hostility")
 player.aiming = true
@@ -867,6 +883,20 @@ assertEqual(player.animVar, eliteVariant, "elite identity is visibly applied")
 assertTrue(player:hasKey("elite-chain"), "native keychain credentials are copied")
 
 state.target.alertness = npcAlertnessStates.STATES.ALERT
+state.target:setState(state.target:getStateObject("goon_alert"))
+state.target.hunchTime = 0
+state.target.hunchX, state.target.hunchY = player.x, player.y
+state.security.knowledge = {}
+state.security.targetThreatLevel = 0
+state.targetAI.phase = "ROUTINE"
+state.targetAI.resumePhase = nil
+state.targetAI.safePoint = nil
+state.targetAI.threatTime = 0
+state.targetAI.clearTime = 0
+for _, updateState in ipairs(gameStateService.states) do updateState:update(0.2) end
+assertEqual(state.security.targetThreatLevel, 0, "native alert color alone is not disguised-player identity knowledge")
+assertEqual(state.targetAI.phase, "ROUTINE", "uninformed target does not flee from a valid nearby disguise")
+state.security.targetThreatLevel = 1
 for _, updateState in ipairs(gameStateService.states) do updateState:update(0.6) end
 assertTrue(state.targetAI.phase ~= "ROUTINE", "target enters threat routine")
 assertTrue(state.targetAI.safePoint, "secure destination selected")

@@ -193,6 +193,35 @@ function util.getNPCs(worldObject)
 	return {}
 end
 
+function util.observerKnowsPlayerIdentity(state, observer, player)
+	local root = state and (state.root or state)
+	local active = root and root.disguise
+
+	-- Without social cover the native game owns recognition completely.
+	if not active then
+		return true
+	end
+
+	local group = tostring(active.group or "")
+	local compromised = root.compromisedDisguises or {}
+
+	if active.compromised == true or compromised[group] == true then
+		return true
+	end
+
+	local observerID = util.getID(observer)
+	local localKnowledge = observerID and root.localCompromisedDisguises
+		and root.localCompromisedDisguises[observerID]
+
+	if localKnowledge and localKnowledge[group] == true then
+		return true
+	end
+
+	local okSight, enemyInSight = util.call(observer, "getEnemyInSight", player)
+
+	return okSight and enemyInSight == true
+end
+
 function util.log(config, message)
 	print(config.LOG_PREFIX .. " " .. tostring(message))
 end

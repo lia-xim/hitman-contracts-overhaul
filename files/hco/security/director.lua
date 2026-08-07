@@ -134,7 +134,7 @@ local function radioCanTransmit(actorObject)
 	return (not okOpen or open == true) and (not okDisrupted or disrupted ~= true)
 end
 
-local function directKnowledge(actorObject, player)
+local function directKnowledge(state, actorObject, player)
 	local okSight, enemyInSight = util.call(actorObject, "getEnemyInSight", player)
 
 	if okSight and enemyInSight then
@@ -145,6 +145,13 @@ local function directKnowledge(actorObject, player)
 		end
 
 		return x, y, 1, "direct"
+	end
+
+	-- A native hunch is a location, not proof that this guard has recognized the
+	-- person inside a valid disguise. Gunfire, bodies and sensors already enter
+	-- HCO through explicit evidence paths and remain authoritative.
+	if not util.observerKnowsPlayerIdentity(state, actorObject, player) then
+		return nil
 	end
 
 	local okTime, hunchTime = util.call(actorObject, "getBestHunchTime")
@@ -224,7 +231,11 @@ local function updateHuntPhase(security, maxConfidence)
 	end
 end
 
-local function alertnessThreat(actorObject)
+local function alertnessThreat(state, actorObject, player)
+	if not util.observerKnowsPlayerIdentity(state, actorObject, player) then
+		return 0
+	end
+
 	local ok, alertness = util.call(actorObject, "getAlertnessStateID")
 	local states = npcAlertnessStates and npcAlertnessStates.STATES
 
@@ -531,8 +542,8 @@ function director.update(state, dt)
 		local actorObject = data.actor
 
 		if util.isAlive(actorObject) then
-			local x, y, confidence, source = directKnowledge(actorObject, player)
-			local alertThreat = alertnessThreat(actorObject)
+			local x, y, confidence, source = directKnowledge(state, actorObject, player)
+			local alertThreat = alertnessThreat(state, actorObject, player)
 
 			if x then
 				local entry = setKnowledge(security, actorObject, x, y, math.max(confidence, alertThreat), source)
@@ -561,7 +572,7 @@ function director.update(state, dt)
 	end
 
 	local targetKnowledge = security.knowledge[util.getID(state.target)]
-	local targetThreat = targetKnowledge and targetKnowledge.confidence or alertnessThreat(state.target)
+	local targetThreat = targetKnowledge and targetKnowledge.confidence or alertnessThreat(state, state.target, player)
 
 	for _, source in ipairs(freshSources) do
 		for _, recipient in ipairs(actors) do

@@ -4,6 +4,9 @@ local profiles = require("hco/contracts/profiles")
 local util = require("hco/util")
 
 local escort = {}
+local followerBoundaryInstalled = false
+local nativeGetFollower
+local nativeSetFollower
 
 local escortSafeRejections = {
 	["no-patrol"] = true,
@@ -38,13 +41,103 @@ local function canEscort(entry, target)
 	return ok and weapon ~= nil
 end
 
+local function isFollowerStateCompatible(follower)
+	local okState, stateObject = util.call(follower, "getState")
+
+	return okState and stateObject
+		and type(stateObject.getWatchBack) == "function"
+		and type(stateObject.setWatchBack) == "function"
+		and type(stateObject.getWatchDistance) == "function"
+		and type(stateObject.setWatchDistance) == "function"
+end
+
+local function clearLeaderReference(follower)
+	local leader = follower and follower._hcoFollowLeader
+
+	if leader then
+		local linked = nativeGetFollower and nativeGetFollower(leader) or leader.follower
+		if linked == follower then
+			if nativeSetFollower then
+				nativeSetFollower(leader, nil)
+			else
+				util.call(leader, "setFollower", nil)
+			end
+		end
+	end
+
+	if follower then follower._hcoFollowLeader = nil end
+end
+
+local function clearFollowerReference(leader)
+	if not leader then return end
+	local follower = nativeGetFollower and nativeGetFollower(leader) or leader.follower
+
+	if follower and follower._hcoFollowLeader == leader then
+		follower._hcoFollowLeader = nil
+	end
+
+	if nativeSetFollower then
+		nativeSetFollower(leader, nil)
+	else
+		util.call(leader, "setFollower", nil)
+	end
+end
+
+local function installFollowerBoundary(goonClass)
+	if followerBoundaryInstalled then return true end
+	if not goonClass or type(goonClass.getFollower) ~= "function" or type(goonClass.setFollower) ~= "function" then
+		return false
+	end
+
+	-- This is a class-level native boundary. A leader may retain a close guard
+	-- after that guard leaves goon_idle_following for alert/combat/fear. Vanilla
+	-- alert then blindly invokes follower-only methods on the incompatible state.
+	-- Reject only links explicitly created by HCO; vanilla follower ownership is
+	-- otherwise untouched.
+	nativeGetFollower = goonClass.getFollower
+	nativeSetFollower = goonClass.setFollower
+
+	function goonClass:getFollower(...)
+		local follower = nativeGetFollower(self, ...)
+
+		if follower and follower._hcoFollowLeader == self and not isFollowerStateCompatible(follower) then
+			nativeSetFollower(self, nil)
+			follower._hcoFollowLeader = nil
+			util.log(config, "released stale HCO follower leader=" .. tostring(util.getID(self)) .. " follower=" .. tostring(util.getID(follower)))
+			return nil
+		end
+
+		return follower
+	end
+
+	followerBoundaryInstalled = true
+	return true
+end
+
 local function makeFollow(follower, leader)
+	clearLeaderReference(follower)
+	if not follower or not leader then return false end
+
+	local previous = nativeGetFollower and nativeGetFollower(leader) or leader.follower
+	if previous and previous ~= follower and previous._hcoFollowLeader == leader then
+		previous._hcoFollowLeader = nil
+		if nativeSetFollower then nativeSetFollower(leader, nil) else util.call(leader, "setFollower", nil) end
+	end
+
 	local okState, stateObject = util.call(follower, "getState")
 
 	if okState and stateObject and type(stateObject.goToFollow) == "function" then
 		local ok = pcall(stateObject.goToFollow, stateObject, leader, "goon_idle_following")
+		local assigned = nativeGetFollower and nativeGetFollower(leader) or leader.follower
 
-		return ok
+		if ok and assigned == follower and isFollowerStateCompatible(follower) then
+			follower._hcoFollowLeader = leader
+			return true
+		end
+
+		if assigned == follower then
+			if nativeSetFollower then nativeSetFollower(leader, nil) else util.call(leader, "setFollower", nil) end
+		end
 	end
 
 	return false
@@ -55,11 +148,12 @@ function escort.detach(state)
 		local actorObject = data.actor
 
 		if actorObject then
+			clearLeaderReference(actorObject)
+			clearFollowerReference(actorObject)
 			actorObject._hcoEscort = nil
 			actorObject._hcoOriginalExperience = nil
 			actorObject._hcoAssignedContract = nil
 			actorObject._hcoFactionVisual = nil
-			util.call(actorObject, "setFollower", nil)
 
 			if data.experience then
 				util.call(actorObject, "setExperienceLevel", data.experience)
@@ -85,7 +179,8 @@ function escort.detach(state)
 	end
 
 	if state.target then
-		util.call(state.target, "setFollower", nil)
+		clearLeaderReference(state.target)
+		clearFollowerReference(state.target)
 		if state.originalTargetMaxHealth then
 			util.call(state.target, "setMaxHealth", state.originalTargetMaxHealth)
 			if state.originalTargetHealth then
@@ -122,6 +217,7 @@ function escort.attach(state, report)
 	end)
 
 	local goonClass = actor.getClassData and actor.getClassData("goon")
+	installFollowerBoundary(goonClass)
 	local elite = goonClass and goonClass.EXPERIENCE_LEVELS and goonClass.EXPERIENCE_LEVELS.ELITE
 	local leader = state.target
 	local profile = profiles.resolve(state.contract and state.contract.seed or 0, state.contract and state.contract.archetype)
@@ -193,7 +289,8 @@ function escort.attach(state, report)
 			-- reference as soon as HCO changes the response unit to alert/combat. The
 			-- leader then calls follower-only methods such as getWatchBack() on a
 			-- combat state and crashes the mission.
-			util.call(actorObject, "setFollower", nil)
+			clearLeaderReference(actorObject)
+			clearFollowerReference(actorObject)
 		end
 		table.insert(state.escorts, data)
 	end

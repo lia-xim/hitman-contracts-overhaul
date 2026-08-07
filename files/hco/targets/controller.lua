@@ -375,19 +375,21 @@ local function threatLevel(state)
 	local stateID = getStateID(target)
 	local securityLevel = state.security and tonumber(state.security.targetThreatLevel) or 0
 	local aiPhase = state.targetAI and state.targetAI.phase or "ROUTINE"
+	local player = game and game.playerActor
+	local nativeThreatIsPlayerSpecific = util.observerKnowsPlayerIdentity(state, target, player)
 
-	if (stateID == "goon_alert" or stateID == "goon_combat" or stateID == "goon_startled_combat" or stateID == "goon_run_from_grenade" or aiPhase == "ROUTINE" and THREAT_STATES[stateID]) or securityLevel >= 0.75 then
+	if (nativeThreatIsPlayerSpecific and (stateID == "goon_alert" or stateID == "goon_combat" or stateID == "goon_startled_combat" or stateID == "goon_run_from_grenade" or aiPhase == "ROUTINE" and THREAT_STATES[stateID])) or securityLevel >= 0.75 then
 		return 2
 	end
 
-	if aiPhase == "ROUTINE" and UNEASY_STATES[stateID] or securityLevel >= 0.25 then
+	if (nativeThreatIsPlayerSpecific and aiPhase == "ROUTINE" and UNEASY_STATES[stateID]) or securityLevel >= 0.25 then
 		return 1
 	end
 
 	local okAlert, alertness = util.call(target, "getAlertnessStateID")
 	local states = npcAlertnessStates and npcAlertnessStates.STATES
 
-	if okAlert and states then
+	if nativeThreatIsPlayerSpecific and okAlert and states then
 		if alertness >= states.ALERT then
 			return 2
 		elseif alertness >= states.SUSPICION then
