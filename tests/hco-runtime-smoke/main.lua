@@ -158,6 +158,18 @@ function goonClass:increaseDetection(target, amount)
 	return self.detection[target]
 end
 
+function goonClass:setEnemyInSight(value, target)
+	self.enemyInSight = value == true
+	self.enemiesInSight = self.enemiesInSight or {}
+
+	if target then
+		self.enemiesInSight[target:getID()] = value == true
+	end
+	if value == true then
+		self.seenPlayer = true
+	end
+end
+
 
 function goonClass:setSeenBody(body, seen)
 	self.seenBodies[body] = seen
@@ -263,6 +275,8 @@ function player:hasKey(key)
 end
 function player:addKey(key) table.insert(self.keys, key) end
 function player:getVisibility() return 1 end
+function player:onEnemyLostSight() return end
+function player:onSightedByEnemy() return end
 
 game.playerActor = player
 
@@ -298,6 +312,9 @@ local function createNPC(data)
 		keychain = data.keychain,
 		animVar = data.animVar or "bandit1",
 		detection = {},
+		enemiesInSight = {},
+		enemiesInSightMirror = {},
+		closestEnemyDistance = math.huge,
 		seenBodies = {},
 		x = data.x or 100,
 		y = data.y or 0,
@@ -358,7 +375,10 @@ local function createNPC(data)
 	function npc:getDetection(target) return self.detection[target] or 0 end
 	function npc:setDetection(target, value) self.detection[target] = value end
 	function npc:getAlertnessStateID() return self.alertness end
-	function npc:getEnemyInSight() return self.enemyInSight == true end
+	function npc:getEnemyInSight(target)
+		if target then return self.enemiesInSight[target:getID()] == true end
+		return self.enemyInSight == true
+	end
 	function npc:getSeenPlayer() return self.seenPlayer == true or self.enemyInSight == true end
 	function npc:updateVisionData()
 		return {0, 0, 1, false, self.currentlySees == true}
@@ -388,6 +408,15 @@ local function createNPC(data)
 	function npc:getStateObject(id)
 		if not self.states[id] then
 			local stateObject = {id = id, owner = self}
+			function stateObject:advanceDetection(target)
+				self.owner:increaseDetection(target, 1)
+				return true
+			end
+			function stateObject:onSightHitPlayer(target)
+				self.owner:increaseDetection(target, 1)
+				self.owner:setEnemyInSight(true, target)
+				self.owner.nativeSightCombat = true
+			end
 			function stateObject:goToFollow(leader)
 				self.owner.following = leader
 				self.owner.state = self
@@ -632,17 +661,18 @@ for _, guard in ipairs(state.security.guards) do
 		guard.role = "response_unit"
 	end
 end
-validA.enemyInSight = true
+validA:setEnemyInSight(true, player)
 validA.hunchX, validA.hunchY = 360, 160
 securityDirector.update(state, 1)
 assertEqual(state.security.huntPhase, "PRESSURE", "direct sighting starts pressure hunt")
 assertTrue(state.security.dronesTriggeredByContact, "confirmed hostile contact triggers drone doctrine")
 assertTrue((state.security.droneDeploymentRequested or 0) > 0, "contact queues physical drone deployment")
-assertTrue(validC.destX ~= nil and validD.destX ~= nil, "search guards receive physical sector orders")
-assertTrue(validC.destX ~= validD.destX or validC.destY ~= validD.destY, "search guards fan out into distinct sectors")
+assertTrue(validC:getEnemyInSight(player) and validD:getEnemyInSight(player), "confirmed contact gives response guards explicit native target knowledge")
 assertTrue(validA.destX == nil, "close protection remains with target during search")
-validA.enemyInSight = false
+validA:setEnemyInSight(false, player)
 for _, npc in ipairs(world.npcs) do
+	npc:setEnemyInSight(false, player)
+	npc.seenPlayer = false
 	npc.hunchTime = 999
 	npc.hunchX, npc.hunchY = nil, nil
 	npc.destX, npc.destY = nil, nil
@@ -667,12 +697,20 @@ end
 assertEqual(liveDisguiseOption, disguiseOption, "cached live body menu receives disguise interaction")
 assertTrue(disguiseOption.actionCheck(validA, player), "disguise interaction available on body")
 local acquiredFaction = validA.animVar
+local instantSightState = validC:getStateObject("goon_suspicion")
+namedStoryNPC:setDetection(player, 1)
+namedStoryNPC.seenPlayer = true
+namedStoryNPC.lastVisionEnemy = player
+namedStoryNPC.enemiesInSight[player:getID()] = true
 liveDisguiseOption.interact(validA, player)
 assertEqual(player.animVar, validA.animVar, "player inherits the contract faction disguise")
 assertEqual(state.identityFX.kind, "acquired", "identity takeover starts a native world-space transition effect")
 assertEqual(validA.postInteractCount, 1, "successful identity takeover refreshes native body menu")
 assertTrue(not disguiseOption.actionCheck(validA, player), "taken identity cannot be duplicated from the same body")
 assertTrue(player:hasKey("security-A"), "body keycard granted")
+assertEqual(namedStoryNPC:getDetection(player), 0, "unwitnessed identity takeover clears stale full native detection")
+assertEqual(namedStoryNPC.seenPlayer, false, "unwitnessed identity takeover clears historical player identity")
+assertEqual(namedStoryNPC.lastVisionEnemy, nil, "unwitnessed identity takeover clears stale native vision target")
 player.weapon = {id = "player-sidearm", weaponType = 2}
 function player.weapon:getID() return self.id end
 function player.weapon:getType() return self.weaponType end
@@ -681,6 +719,22 @@ validC.animVar = acquiredFaction
 validC:setDetection(player, 0)
 validC:increaseDetection(player, 1)
 assertTrue(validC:getDetection(player) < 0.5, "visible matching security weapon does not instantly reveal a fresh disguise")
+validC:setDetection(player, 0)
+validC.nativeSightCombat = false
+instantSightState:onSightHitPlayer(player)
+assertEqual(validC:getEnemyInSight(player), false, "native close-range sight cannot mark a calm fresh disguise hostile")
+assertEqual(validC.nativeSightCombat, false, "native close-range sight bypass cannot enter combat through a calm disguise")
+assertTrue(validC:getDetection(player) <= require("hco/config").DISGUISE_SOFT_DETECTION_CAP, "calm native sight remains below the identity-check boundary")
+validC:setEnemyInSight(true, player)
+assertEqual(validC:getEnemyInSight(player), false, "hard native enemy-sight boundary rejects uninformed hostility")
+player.aiming = true
+instantSightState:onSightHitPlayer(player)
+assertEqual(validC:getEnemyInSight(player), true, "directly aiming at a guard permits native recognition")
+assertEqual(validC.nativeSightCombat, true, "overtly hostile behavior permits the original native combat transition")
+player.aiming = false
+validC:setEnemyInSight(false, player)
+validC.seenPlayer = false
+validC.nativeSightCombat = false
 namedStoryNPC:setDetection(player, 0)
 player.weapon.weaponType = 1
 namedStoryNPC:increaseDetection(player, 1)
@@ -795,11 +849,14 @@ stationaryNPC.dead = true
 stationaryNPC.blood = 15
 local staffVariant = stationaryNPC.animVar
 assertTrue(disguiseOption.actionCheck(stationaryNPC, player), "staff body exposes identity switch")
+validD.currentlySees = true
 disguiseOption.interact(stationaryNPC, player)
 assertEqual(state.disguise.tier, "staff", "unarmed civilian body produces staff access tier")
 assertTrue(state.disguise.bloodied, "damaged source records a bloodied uniform condition")
 assertEqual(player.animVar, staffVariant, "switch identity changes the visible player variant again")
 assertTrue(state.compromisedDisguises[acquiredFaction], "changing identity preserves compromise knowledge for the old uniform")
+assertTrue(state.localCompromisedDisguises[validD.id][staffVariant], "a real takeover eyewitness locally recognizes the new identity")
+validD.currentlySees = false
 
 validD.unconscious = true
 local eliteVariant = validD.animVar

@@ -185,6 +185,31 @@ Sources: `engine/spritebatchcontroller.lua`, `game/bullet.lua`, `game/weapon.lua
 
 The live RC32 screenshot proved the wreck batch was durable but froze on its first frame. This separates persistence from animation ownership: `security_camera:setBroken(true)` removes the destroyed carrier through `game.removeDynamicObject(self)`, while the independent airframe remains in the decor quadtree. The moving carrier previously called `airframes.sync()` every dynamic update; after destruction that source of reinsertion and frame refresh no longer exists. RC33 advances crash time and batch transforms from the already persistent HCO contract update before deployment early-returns, while limiting decor reinsertion to the finite effects window.
 
+## RC37 native disguise bypass evidence
+
+Source: `game/actors/states/suspicion.lua`
+
+- `onSightHitPlayer` 448–474 has an instant-detect branch that calls `increaseDetection(player, 1)` and then enters off-limits/combat handling without checking the scaled detection result.
+
+Source: `game/actors/states/alert.lua`
+
+- `onSightHitPlayer` 641–657 can call `goToCombat(true)` at close range before its ordinary `advanceDetection` branch.
+
+Source: `game/actors/states/investigate_body.lua`
+
+- `onSightHitPlayer` 295–309 calls `setEnemyInSight(true, player)` before either its instant or progressive detection branch and may then enter combat.
+
+Source: `game/actors/states/combat.lua`
+
+- `onSightHitPlayer` 1696–1748 refreshes player-specific sight while combat weapon logic depends on `goon:getEnemyInSight()`.
+
+Source: `game/actors/goon.lua`
+
+- `setEnemyInSight` 5835 records persistent `seenPlayer`, maximizes vision range and writes player-specific `enemiesInSight` knowledge.
+- `getEnemyInSight(target)` 6017 reads that target-specific map; `getSeenPlayer` 6025 is historical memory rather than proof of current contact.
+
+RC37 patches instantiated state objects rather than replacing the global state classes, preserving every non-player and no-disguise path. It additionally guards the Goon enemy-sight setter as a fail-closed integration boundary and rebinds only player-specific memory when an identity changes.
+
 ## Known real-engine validation boundary
 
 The interfaces above are source-verified and exercised by mocks with their important return semantics. Only the final in-game pass can prove cross-system timing, map-specific path quality, rendered objective behavior, and AI-state interactions in a live mission.

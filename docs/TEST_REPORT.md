@@ -1,4 +1,13 @@
-# Automated Test Report — 0.14.2-rc36
+# Automated Test Report — 0.14.3-rc37
+
+## RC37 native AI-state identity correction
+
+- Installed-engine tracing identified four direct sight paths—suspicion, alert, body investigation and combat—that could bypass scaled detection and create hostility at close range.
+- The runtime fixture now gives Goon state instances a native-style `onSightHitPlayer` that raises detection, marks the player in sight and enters combat. A calm fresh disguise suppresses all three consequences and remains at or below the 54% soft cap.
+- A separate regression calls native `setEnemyInSight(true, player)` directly and proves the hard observer-knowledge boundary rejects it.
+- The same state executes its original hostility path when the player directly aims, proving the interception is conditional rather than disabling AI combat.
+- A pre-disguise observer seeded with full detection, `seenPlayer`, a vision target and a player-specific sight entry is cleanly rebound when it did not witness the takeover. A real current AABB/FOV/raycast witness instead becomes locally compromised.
+- All seven LÖVE suites pass against `0.14.3-rc37`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
 
 ## RC36 observer-local identity correction
 
@@ -218,17 +227,18 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 33 Lua modules parse, including the RC36 weapon-neutral, observer-local witness and position-only response correction.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including RC37's instantiated AI-state interception, enemy-sight boundary and clean observer-identity rebind.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test installation audit: **PASS** — installed `0.14.2-rc36`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running during installation.
+- Post-test installation audit: **PASS** — installed `0.14.3-rc37`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running during installation.
 - Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.2-rc36.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `5CD368C9AA2C42D6278E6280DDEF49588554357B3C4916A14D39321737F2946E`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.2-rc36 payload=43`.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.3-rc37.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `2674ECE32C635E9CE34F454C82F2D25499A8A0B1EBE5571FFF91C3BC567CC784`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.3-rc37 payload=43`.
+- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches; the game was not running, the current debug log was empty and the newest stored crash log predates RC37.
 
-The markers above were collected from RC36 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC37 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

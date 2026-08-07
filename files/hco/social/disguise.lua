@@ -9,6 +9,14 @@ local util = require("hco/util")
 
 local disguise = {}
 
+-- These helpers are assigned below after their dependencies are declared. They
+-- are forward-declared because an identity takeover must immediately rebind
+-- native observer knowledge and patch already-instantiated AI states.
+local markLocalCompromise
+local queueRadioCompromise
+local hasCurrentVisualContact
+local ensureNPCSightHooks
+
 local SUSPICIOUS_PLAYER_STATES = {
 	player_lockpicking = true,
 	player_lockpicking_enter = true,
@@ -131,14 +139,6 @@ function disguise.getBehaviorRisk(state, player)
 		return 1
 	end
 
-	if state.disguise.illicitTime and (curTime or 0) - state.disguise.illicitTime <= config.DISGUISE_ILLICIT_ACTION_TIME then
-		-- The takeover remains suspicious at close range, but putting on a valid
-		-- uniform does not globally preserve the pre-takeover hostile identity.
-		-- Actual witnesses/body investigators are handled by native sight and
-		-- setSeenBody, which can still compromise this identity locally.
-		return config.DISGUISE_TAKEOVER_DETECTION
-	end
-
 	local okAim, aiming = util.call(player, "getAiming")
 
 	if okAim and aiming then
@@ -155,6 +155,13 @@ function disguise.getBehaviorRisk(state, player)
 		return config.DISGUISE_SPRINT_DETECTION
 	end
 
+	if state.disguise.illicitTime and (curTime or 0) - state.disguise.illicitTime <= config.DISGUISE_ILLICIT_ACTION_TIME then
+		-- The takeover remains suspicious at close range, but putting on a valid
+		-- uniform does not globally preserve the pre-takeover hostile identity.
+		-- Overt actions above always take precedence over this softer transition.
+		return config.DISGUISE_TAKEOVER_DETECTION
+	end
+
 	return math.max(
 		tonumber(state.disguise.lingerRisk) or 0,
 		tonumber(state.disguise.disturbanceRisk) or 0,
@@ -168,12 +175,13 @@ local function observerFactor(state, observer, player)
 	end
 
 	local _, enemyInSight = util.call(observer, "getEnemyInSight", player)
-	local _, currentDetection = util.call(observer, "getDetection", player)
 
 	-- Knowledge is observer-local. A global combat music/alert state never
 	-- identifies this disguised player by itself; an observer that already has
-	-- the player as its enemy remains authoritative.
-	if enemyInSight or tonumber(currentDetection) and currentDetection >= 1 then
+	-- the player as its current enemy remains authoritative. A full native
+	-- detection meter alone is not identity knowledge: the base game can leave
+	-- that meter behind when the player changes clothes.
+	if enemyInSight then
 		return 1
 	end
 
@@ -228,16 +236,58 @@ local function saveDisguise(state)
 	end
 end
 
-local function clearLowDetection(player)
+local function clearNativeIdentityMemory(observer, player, notifyNative)
+	if notifyNative then
+		util.call(observer, "setEnemyInSight", false, player)
+	end
+
+	local playerID = util.getID(player)
+	local otherEnemyInSight = false
+	if playerID and type(observer.enemiesInSight) == "table" then
+		observer.enemiesInSight[playerID] = false
+		for id, visible in pairs(observer.enemiesInSight) do
+			if id ~= playerID and visible == true then
+				otherEnemyInSight = true
+				break
+			end
+		end
+	end
+	if playerID and type(observer.enemiesInSightMirror) == "table" then
+		observer.enemiesInSightMirror[playerID] = false
+	end
+
+	observer.enemyInSight = otherEnemyInSight
+	if not otherEnemyInSight then observer.enemyWasInSight = false end
+	observer.seenPlayer = false
+	if observer.visionEnemy == player then observer.visionEnemy = nil end
+	if observer.lastVisionEnemy == player then observer.lastVisionEnemy = nil end
+	if observer.lastHearActor == player then observer.lastHearActor = nil end
+	if observer.closestEnemy == player then
+		observer.closestEnemy = nil
+		observer.closestEnemyDistance = math.huge
+	end
+	util.call(player, "onEnemyLostSight", observer)
+end
+
+local function rebindIdentityKnowledge(state, player, witnessTakeover)
 	if not game.worldObject or type(game.worldObject.getNPCs) ~= "function" then
 		return
 	end
 
 	for _, npc in ipairs(util.getNPCs(game.worldObject)) do
-		local ok, value = util.call(npc, "getDetection", player)
+		ensureNPCSightHooks(state, npc)
 
-		if ok and value and value < 1 then
-			util.call(npc, "setDetection", player, math.min(value, 0.2))
+		if witnessTakeover and util.isAlive(npc) and hasCurrentVisualContact(npc, player) then
+			-- A real eyewitness knows that this specific person changed clothes.
+			-- Keep that knowledge local until their physical radio report finishes.
+			markLocalCompromise(state, npc, state.disguise.group)
+			queueRadioCompromise(state, npc, state.disguise.group, "identity-takeover")
+		else
+			-- Everyone else must forget the old actor identity. Merely retaining a
+			-- full vanilla detection meter or historical seenPlayer flag would make
+			-- the fresh disguise fail instantly despite no witnessed takeover.
+			util.call(npc, "setDetection", player, 0)
+			clearNativeIdentityMemory(npc, player, true)
 		end
 	end
 end
@@ -304,7 +354,7 @@ function disguise.applyFromBody(state, body, player)
 		context.contract.metrics = context.contract.metrics or {}
 		context.contract.metrics.usedDisguise = true
 	end
-	clearLowDetection(player)
+	rebindIdentityKnowledge(state, player, true)
 	saveDisguise(state)
 	feedback.show(state.disguise.compromised and english.DISGUISE_COMPROMISED or english.disguiseAcquired(tier, switched, keycard or keychain, bloodied))
 	identityFX.trigger(state, state.disguise.compromised and "compromised" or "acquired")
@@ -361,6 +411,9 @@ function disguise.restore(state)
 	for _, body in ipairs(util.getNPCs(game.worldObject)) do
 		if state.usedDisguiseSources[util.getID(body)] then body._hcoDisguiseTaken = true end
 	end
+	if not state.disguise.compromised then
+		rebindIdentityKnowledge(state, player, false)
+	end
 
 	feedback.show(english.disguiseRestored(state.disguise.tier, state.disguise.compromised))
 	identityFX.trigger(state, state.disguise.compromised and "compromised" or "restored")
@@ -385,7 +438,7 @@ function disguise.clear(state, restoreVisual)
 	identityFX.clear(state)
 end
 
-local function markLocalCompromise(state, observer, group)
+markLocalCompromise = function(state, observer, group)
 	local id = util.getID(observer)
 
 	if not id then
@@ -396,7 +449,7 @@ local function markLocalCompromise(state, observer, group)
 	state.localCompromisedDisguises[id][group] = true
 end
 
-local function queueRadioCompromise(state, observer, group, kind)
+queueRadioCompromise = function(state, observer, group, kind)
 	local okRadio, radio = util.call(observer, "getRadio")
 
 	if not okRadio or not radio then
@@ -562,21 +615,29 @@ local function processPendingCompromises(state, dt)
 	end
 end
 
-local function hasCurrentVisualContact(observer, player)
-	local _, enemyInSight = util.call(observer, "getEnemyInSight", player)
-
-	if enemyInSight then
-		return true
-	end
-
+hasCurrentVisualContact = function(observer, player)
 	-- getSeenPlayer() is persistent vanilla memory ("has ever seen the player"),
 	-- not proof that this observer saw this shot. Reuse the current native
-	-- vision AABB/FOV and generic world raycast instead.
+	-- vision AABB/FOV and generic world raycast instead. enemyInSight is only a
+	-- fallback for unusual actors that do not expose those native vision APIs;
+	-- for regular goons it can itself be a stale one-frame flag.
+	local _, enemyInSight = util.call(observer, "getEnemyInSight", player)
+	local hasNativeVision = type(observer.updateVisionData) == "function"
+		and type(observer.isWithinView) == "function"
+		and type(observer.runGenericRaycast) == "function"
+
+	if not hasNativeVision then
+		return enemyInSight == true
+	end
+
 	local okVision, visionData = util.call(observer, "updateVisionData", player)
 	local okView, withinView = util.call(observer, "isWithinView", player)
 
-	if not okVision or type(visionData) ~= "table" or visionData[5] ~= true
-		or not okView or withinView ~= true then
+	if not okVision or type(visionData) ~= "table" or not okView then
+		return false
+	end
+
+	if visionData[5] ~= true or withinView ~= true then
 		return false
 	end
 
@@ -600,6 +661,93 @@ local function hasCurrentVisualContact(observer, player)
 	local okFixture, playerFixture = util.call(player, "getFixture")
 
 	return okFixture and playerFixture ~= nil and hit.fixture == playerFixture
+end
+
+local function shouldSuppressNativeRecognition(state, observer, player)
+	if player ~= (game and game.playerActor) or not state.contract or not state.disguise then
+		return false
+	end
+
+	if isGloballyCompromised(state)
+		or observerLocallyCompromised(state, observer, state.disguise.group) then
+		return false
+	end
+
+	return disguise.getBehaviorRisk(state, player) < 1
+end
+
+local function patchSightStateObject(state, stateObject)
+	if type(stateObject) ~= "table" or rawget(stateObject, "_hcoDisguiseSightOriginal") then
+		return false
+	end
+
+	local original = stateObject.onSightHitPlayer
+	if type(original) ~= "function" then
+		return false
+	end
+
+	rawset(stateObject, "_hcoDisguiseSightOriginal", original)
+	rawset(stateObject, "onSightHitPlayer", function(self, playerData, ...)
+		local observer = self.actor or self.owner
+
+		if observer and shouldSuppressNativeRecognition(state, observer, playerData) then
+			-- Vanilla suspicion, alert, investigate-body and combat states all have
+			-- direct branches that can mark the player hostile at close range. Run
+			-- only their native detection progression, then hold calm social cover
+			-- below the radio-check boundary. No combat transition or spotted stat
+			-- is allowed until this observer actually knows the identity.
+			local advanced = util.call(self, "advanceDetection", playerData)
+			if not advanced then
+				util.call(observer, "increaseDetection", playerData, 0.05)
+			end
+
+			local okDetection, currentDetection = util.call(observer, "getDetection", playerData)
+			if okDetection and tonumber(currentDetection)
+				and currentDetection > config.DISGUISE_SOFT_DETECTION_CAP then
+				util.call(observer, "setDetection", playerData, config.DISGUISE_SOFT_DETECTION_CAP)
+			end
+
+			clearNativeIdentityMemory(observer, playerData, false)
+			return
+		end
+
+		return original(self, playerData, ...)
+	end)
+
+	return true
+end
+
+ensureNPCSightHooks = function(state, npc)
+	if not npc then return end
+
+	local seen = {}
+	local function patch(candidate)
+		if candidate and not seen[candidate] then
+			seen[candidate] = true
+			patchSightStateObject(state, candidate)
+		end
+	end
+
+	local okCurrent, current = util.call(npc, "getState")
+	if okCurrent then patch(current) end
+
+	if type(npc.states) == "table" then
+		for _, stateObject in pairs(npc.states) do patch(stateObject) end
+	end
+	if type(npc.stateMap) == "table" then
+		for _, stateObject in pairs(npc.stateMap) do patch(stateObject) end
+	end
+end
+
+local function refreshNPCSightHooks(state, dt)
+	state.disguiseSightHookRefreshTime = (state.disguiseSightHookRefreshTime or 0) - (dt or 0)
+	if state.disguiseSightHookRefreshTime > 0 then return end
+	state.disguiseSightHookRefreshTime = 0.5
+
+	if not game.worldObject or type(game.worldObject.getNPCs) ~= "function" then return end
+	for _, npc in ipairs(util.getNPCs(game.worldObject)) do
+		ensureNPCSightHooks(state, npc)
+	end
 end
 
 local function compromiseDirectWitnesses(state)
@@ -718,6 +866,7 @@ end
 function disguise.update(state, dt)
 	local player = game and game.playerActor
 
+	refreshNPCSightHooks(state, dt)
 	processPendingCompromises(state, dt)
 	identityFX.update(state, dt)
 	if player then refreshNearbyBodies(state, player, dt) end
@@ -851,6 +1000,47 @@ local function installHooks(state, goonClass)
 		end
 	end
 
+	if not state.hooks.setEnemyInSight and type(goonClass.setEnemyInSight) == "function" then
+		state.hooks.setEnemyInSight = goonClass.setEnemyInSight
+		local original = goonClass.setEnemyInSight
+
+		function goonClass:setEnemyInSight(stateValue, actorInst)
+			if stateValue == true and actorInst == (game and game.playerActor)
+				and shouldSuppressNativeRecognition(state, self, actorInst) then
+				local okDetection, currentDetection = util.call(self, "getDetection", actorInst)
+				if okDetection and tonumber(currentDetection)
+					and currentDetection > config.DISGUISE_SOFT_DETECTION_CAP then
+					util.call(self, "setDetection", actorInst, config.DISGUISE_SOFT_DETECTION_CAP)
+				end
+				clearNativeIdentityMemory(self, actorInst, false)
+				return
+			end
+
+			return original(self, stateValue, actorInst)
+		end
+	end
+
+	if not state.hooks.getStateObject and type(goonClass.getStateObject) == "function" then
+		state.hooks.getStateObject = goonClass.getStateObject
+		local original = goonClass.getStateObject
+
+		function goonClass:getStateObject(...)
+			local stateObject = original(self, ...)
+			patchSightStateObject(state, stateObject)
+			return stateObject
+		end
+	end
+
+	if not state.hooks.setState and type(goonClass.setState) == "function" then
+		state.hooks.setState = goonClass.setState
+		local original = goonClass.setState
+
+		function goonClass:setState(stateObject, ...)
+			patchSightStateObject(state, stateObject)
+			return original(self, stateObject, ...)
+		end
+	end
+
 	if not state.hooks.hcoDisguiseDie and type(goonClass._die) == "function" then
 		state.hooks.hcoDisguiseDie = goonClass._die
 		local original = goonClass._die
@@ -978,6 +1168,7 @@ function disguise.initialize(state)
 
 	installBodyInteraction(state, goonClass)
 	installHooks(state, goonClass)
+	refreshNPCSightHooks(state, 1)
 	identityFX.initialize(state)
 	installEventListener(state)
 	state.hcoDroneBodySeen = function(sensor, body)

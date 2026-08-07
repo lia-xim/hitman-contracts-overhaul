@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.3-rc37 — 2026-08-07
+
+- Fixed the live one-second disguise failure at its native source. Goon suspicion, alert, body-investigation and combat states contain close-range branches that bypass scaled detection and force combat; HCO now intercepts each instantiated state's player-sight callback while an uncompromised calm identity is active.
+- Added a second hard boundary around native `setEnemyInSight(true, player)`. An uninformed observer cannot silently turn suspicion into player-specific hostility, while direct witnesses, compromised identities, aiming and overtly illicit player states still execute the original game behavior.
+- Replaced partial detection reduction after changing clothes with a clean observer-local identity rebind. Uninformed guards lose stale full detection, `seenPlayer`, sight target and player-specific enemy-map entries; a guard that actually sees the clothes change remains locally compromised and may complete a real radio report.
+- Removed full native detection as proof of identity and added a 54% calm-social-cover ceiling below the 55% radio-check threshold. Same-unit scrutiny can still cross that threshold through the explicit timed identity-check system.
+- Added regressions for native instant-detect/combat bypasses, the hard enemy-sight boundary, stale pre-disguise identity data, direct aiming exposure and real takeover witnesses.
+
 ## 0.14.2-rc36 — 2026-08-07
 
 - Made disguise recognition completely weapon-neutral. A held, drawn, concealed or holstered weapon of any model or family adds zero identity risk for STAFF, SECURITY and ELITE SECURITY disguises; reloading alone is also ordinary behavior.

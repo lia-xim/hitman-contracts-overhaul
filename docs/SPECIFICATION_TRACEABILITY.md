@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.2-rc36`
+**Candidate:** `0.14.3-rc37`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -16,8 +16,8 @@ This document prevents future work from collapsing the product specification int
 | Mobile target and secure movement | `targets/controller.lua` | Implemented | Routine, threatened, sheltered, reselection, escape and watchdog cases | Long live route/reload pass on several maps |
 | Protection and response roles | `security/escort.lua`, `security/director.lua` | Implemented for close protection and autonomous response | Role ownership, fan-out, search and follower safety cases | Verify weapons, combat pressure and difficulty balance in game |
 | Knowledge and hunt phases | `security/director.lua` | Implemented | Local evidence, pressure, decay and stand-down cases | Verify no wall omniscience and readable convergence |
-| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | Implemented in RC34, live-tuned through RC36 | Native action enumeration, cached-body refresh, death-time identity capture, three switches | Must be accepted from the real body interaction wheel |
-| Social recognition | `social/disguise.lua` | Implemented for the observer-local uniform-class model | Calm, same-unit, experience/role, arbitrary held weapon, reload, witnessed/unwitnessed fire, lock breaking, access, evidence and compromise cases | Tune timing and readability in a real mission |
+| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | Implemented in RC34, live-tuned through RC37 | Native action enumeration, cached-body refresh, death-time identity capture, three switches and observer-local identity rebind | Must be accepted from the real body interaction wheel |
+| Social recognition | `social/disguise.lua` plus instantiated native Goon sight states | Implemented for the observer-local uniform-class model | Calm native instant-detect interception, hard enemy-sight boundary, same-unit, experience/role, arbitrary held weapon, reload, witnessed/unwitnessed fire, lock breaking, access, evidence and compromise cases | Prove calm point-blank cover and overt exposure in a real mission |
 | Credentials and restricted areas | Native `playerActor:addKey` and off-limits queries, coordinated by `social/disguise.lua` | Implemented for keycard and keychain IDs | Acquisition/reload and adjusted trespass-query cases | Verify actual mission doors and STAFF/SECURITY/ELITE areas |
 | Existing cameras | `security/sensors.lua` | Implemented | Camera risk scaling and disruption/break evidence in runtime fixtures | Live camera cone, disguise and wall/EMP pass |
 | Physical drone system | `security/drones.lua` and drone modules | Implemented candidate surface | Dedicated drone, roster and airframe suites | Existing RC33 live matrix remains mandatory |
@@ -173,6 +173,18 @@ The second live pass established a simpler product rule and exposed two engine-i
 - loud gunfire, guard damage and protection casualties mobilize responders toward an incident position without calling `setEnemyInSight` or attaching the player actor;
 - only confirmed sight, body/camera/drone evidence or completed communication can turn a location search into player-specific pursuit.
 
+## RC37 native instant-detect correction
+
+The next live pass proved that scaling `goon:increaseDetection()` was not sufficient. Native suspicion, alert, body-investigation and combat states each own a direct close-range path that can call `setEnemyInSight(true, player)` and/or enter combat without honoring the scaled result. RC37 therefore adds these invariants:
+
+- every existing and newly requested Goon state instance with `onSightHitPlayer` is guarded while a clean, calm disguise is active;
+- the guarded path retains the state's native `advanceDetection` calculation but caps ordinary social suspicion at `0.54`, immediately below the explicit `0.55` identity-check threshold;
+- a class-level `setEnemyInSight(true, player)` boundary rejects any other native state that attempts to create player-specific hostility without observer knowledge;
+- aiming, directly witnessed fire, suspicious interaction states, a local compromise, a globally compromised uniform and communicated evidence bypass the guard and retain the original game behavior;
+- changing clothes clears stale player detection, `seenPlayer`, vision/hearing target and player-specific enemy-map entries for uninformed observers;
+- a guard that passes the current native AABB/FOV/raycast during the takeover keeps local knowledge of the new identity and may radio it;
+- checkpoint restoration performs a clean rebind without inventing takeover witnesses merely because a guard sees the already-restored appearance.
+
 ## Required live acceptance for this feature
 
 Automated completion is not production acceptance. On Intravenous 2 `1.4.12HF3`, fully restart the game and verify:
@@ -182,7 +194,7 @@ Automated completion is not production acceptance. On Intravenous 2 `1.4.12HF3`,
 3. Confirm the action disappears from that body and remains consumed after quicksave/quickload.
 4. Repeat with an unarmed staff actor, normal guard and elite guard. The appearances and tier messages must differ where the map supplies distinct variants.
 5. Take a carried keycard/keychain identity and open the corresponding real door. A uniform without credentials must not fabricate the key.
-6. Walk normally while holding several arbitrary weapons, including the player's normal silenced pistol. Holster/unholster and reload. None of those equipment states may change recognition; matching colleagues and elite guards may still inspect the identity materially faster.
+6. Walk normally while holding several arbitrary weapons, including the player's normal silenced pistol. Pass directly beside an ordinary guard, holster/unholster and reload. None of those equipment states or close range alone may force combat; matching colleagues and elite guards may still inspect the identity materially faster and initiate the explicit radio check.
 7. Fire one suppressed shot without any visual witness and relocate. Guards may investigate a heard impact/body according to native perception but must not identify the player. Then let one guard directly see aiming/firing and confirm only that observer knows until a real radio report completes.
 8. Remain close to the protected target, then leave. Scrutiny must rise after sustained lingering and recover after withdrawal.
 9. Expose the source corpse to one guard. Only that guard/nearby witnesses should know before its real radio completes. Disrupt or neutralize it and confirm no global compromise.
