@@ -19,7 +19,7 @@ function love.audio.newSource()
 end
 sound = {playWorld=function() worldSounds=worldSounds+1 end}
 
-local sourceActor = {id="guard",isValid=function() return true end,isDead=function() return false end,isUnconscious=function() return false end,getID=function(self) return self.id end}
+local sourceActor = {id="guard",dead=false,isValid=function() return true end,isDead=function(self) return self.dead end,isUnconscious=function() return false end,getID=function(self) return self.id end}
 local player = {x=500,y=500,id="player",isValid=function() return true end,isDead=function() return false end,isUnconscious=function() return false end,getPos=function(self) return self.x,self.y end,getID=function(self) return self.id end,getWeaponBulletHeight=function() return 90 end,takeDamage=function(self,amount) damage=damage+amount end}
 game = {playerActor=player,worldObject={getSize=function() return 1000,800 end}}
 weapons = {instantiate=function(self,id)
@@ -38,7 +38,8 @@ assertTrue(types.get("scout").renderScale==0.32 and types.get("pistol_light").re
 assertTrue(types.get("scout").armor==1 and types.get("pistol_light").armor==1 and types.get("smg_light").armor==1 and types.get("laser_light").armor==1,"all light drones remain strict one-hit targets")
 assertTrue(types.get("pistol_heavy").armor==2 and types.get("smg_heavy").armor==3 and types.get("laser_heavy").armor==3,"heavy drones are bounded to two or three ordinary hits")
 
-local context={slot=1,contract={seed=42,archetype="commander"},target={x=490,y=390,getPos=function(self) return self.x,self.y end},security={sectorPoints={{x=-80,y=900},{x=880,y=700}},guards={{role="response",actor=sourceActor}},droneGeneration=1}}
+local targetActor={x=490,y=390,dead=false,getPos=function(self) return self.x,self.y end,isValid=function() return true end,isDead=function(self) return self.dead end,isUnconscious=function() return false end}
+local context={slot=1,contract={seed=42,archetype="commander"},target=targetActor,security={sectorPoints={{x=-80,y=900},{x=880,y=700}},guards={{role="response",actor=sourceActor}},droneGeneration=1}}
 context.security.drones={}
 context.security.droneWaveFirstIndex=1
 local selected={}
@@ -63,6 +64,13 @@ local drone={x=300,y=300,hcoIndex=2,hcoContext=context,hcoType=types.get("pistol
 droneWeapons.update(drone,player,true,0,0.1,true)
 droneWeapons.update(drone,player,true,0,0.1,true)
 assertTrue(bullets==1 and worldSounds==1,"pistol drone emits a native bullet and native gunshot")
+
+sourceActor.dead=true
+targetActor.dead=true
+drone.hcoWeaponCooldown,drone.hcoBurstLeft=0,0
+droneWeapons.update(drone,player,true,0,0.1,true)
+droneWeapons.update(drone,player,true,0,0.1,true)
+assertTrue(bullets==2,"intact drone keeps firing through its stable native attribution proxy after the guard and principal die")
 
 drone.hcoType=types.get("laser_light")
 drone.hcoWeaponCooldown=0

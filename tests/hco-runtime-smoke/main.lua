@@ -343,7 +343,11 @@ local function createNPC(data)
 	function npc:isDead() return self.dead end
 	function npc:isUnconscious() return self.unconscious end
 	function npc:getActivePatrolRoute() return self.patrol end
-	function npc:setActivePatrolRoute(route, index) self.patrol, self.patrolIndex = route, index or 1 end
+	function npc:setActivePatrolRoute(route, index)
+		self.patrol, self.patrolIndex = route, index or 1
+		local stateObject = self:getState()
+		if stateObject and stateObject.onPatrolRouteSet then stateObject:onPatrolRouteSet(route) end
+	end
 	function npc:getPatrolRouteIndex() return self.patrolIndex end
 	function npc:setPatrolRouteIndex(index) self.patrolIndex = index end
 	function npc:hasRadio() return self.radio ~= nil end
@@ -420,6 +424,10 @@ local function createNPC(data)
 				self.owner:increaseDetection(target, 1)
 				self.owner:setEnemyInSight(true, target)
 				self.owner.nativeSightCombat = true
+			end
+			function stateObject:onPatrolRouteSet(route)
+				self.owner.path = route and {route = route, index = self.owner.patrolIndex} or nil
+				self.owner.patrolActivationCount = (self.owner.patrolActivationCount or 0) + (route and 1 or 0)
 			end
 			function stateObject:goToFollow(leader, followID)
 				self.owner.following = leader
@@ -624,6 +632,7 @@ assertTrue(state, "shared state was not created")
 assertEqual(state.targetID, "guard-b", "highest safe candidate selected")
 assertEqual(state.target._hcoContractTarget, true, "target marker installed")
 assertTrue(state.contract, "contract record created")
+assertTrue(state.target.path and state.target.path.route == state.targetAI.originalRoute, "target activation preserves the native patrol path created by onPatrolRouteSet")
 local activeProfile = require("hco/contracts/profiles").resolve(state.contract.seed, state.contract.archetype)
 assertEqual(state.target.animVar, activeProfile.targetVariant, "target receives archetype-native visual variant")
 assertEqual(#objectiveHandler.objectives, 2, "native objective injected beside vanilla objective")
@@ -637,6 +646,14 @@ local followerLeader = state.target
 local liveFollower = followerLeader:getFollower()
 assertTrue(liveFollower and liveFollower._hcoFollowLeader == followerLeader, "close protection records native leader ownership")
 assertTrue(type(liveFollower:getState().getWatchBack) == "function", "fresh close protection uses a follower-compatible state")
+local chainLeader = state.target
+for _, escortData in ipairs(state.escorts) do
+	if escortData.role == "close_protection" then
+		assertEqual(chainLeader:getFollower(), escortData.actor, "every close guard occupies one stable link in the native follower chain")
+		assertEqual(escortData.actor._hcoFollowLeader, chainLeader, "close guard reverse ownership matches its chain leader")
+		chainLeader = escortData.actor
+	end
+end
 liveFollower:setState(liveFollower:getStateObject("goon_combat"))
 assertEqual(followerLeader:getFollower(), nil, "leader releases HCO follower after combat state invalidates native follower instructions")
 assertEqual(liveFollower._hcoFollowLeader, nil, "stale reverse follower ownership is cleared atomically")
@@ -866,6 +883,25 @@ assertEqual(#objectiveHandler.objectives, objectiveCountBeforeReload, "active re
 require("hco/social/disguise").update(state, 0.1)
 assertTrue(state.disguiseRisk < 1, "calm restored disguise publishes reduced semantic risk for networked sensors")
 
+-- A restarted/checkpoint body can retain the old native action bitmask while
+-- its visible options were rebuilt without HCO. The runtime refresh must reset
+-- that stale cache generation so take-disguise appears again.
+local restartBody = createNPC({id = "restart-body", patrol = false, animVar = "bodyg", x = 130})
+restartBody.dead = true
+restartBody.currentActionBitmask = 1
+restartBody._interactionList = {object = restartBody, options = {goonClass.interactionList[3]}}
+table.insert(world.npcs, restartBody)
+state.disguiseInteractionRefreshTime = 0
+require("hco/social/disguise").update(state, 0.1)
+local restartHasDisguise = false
+for _, option in ipairs(restartBody:getInteractOptions(player, false).options) do
+	if option._hcoInteraction == "hco_take_disguise_v1" then restartHasDisguise = true end
+end
+assertTrue(restartHasDisguise, "mission restart rebuilds stale body interaction masks and restores take-disguise")
+for index = #world.npcs, 1, -1 do
+	if world.npcs[index] == restartBody then table.remove(world.npcs, index) end
+end
+
 validC.animVar = acquiredFaction
 validC:setDetection(player, 0)
 validC:increaseDetection(player, 1)
@@ -950,8 +986,10 @@ state.targetAI.phase = "ROUTINE"
 state.targetAI.resumePhase = nil
 state.targetAI.safePoint = nil
 local routineRecoveries = state.targetAI.routineRecoveries or 0
+state.target.path = nil
 for step = 1, 10 do require("hco/targets/controller").update(state, 1) end
 assertTrue(state.targetAI.routineRecoveries > routineRecoveries, "stationary routine target is advanced to another native patrol node")
+assertTrue(state.target.path and state.target.path.route == state.targetAI.originalRoute, "routine recovery keeps the native patrol path alive instead of clearing it after reactivation")
 
 state.target.alertness = npcAlertnessStates.STATES.ALERT
 state.target:setState(state.target:getStateObject("goon_alert"))

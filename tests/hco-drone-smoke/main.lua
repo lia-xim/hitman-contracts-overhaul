@@ -197,6 +197,21 @@ assertTrue(networkContext.security.droneMode=="AGGRESSIVE" and networkContext.se
 assertTrue(context.security.confirmedIdentityToken=="original" and networkContext.security.confirmedIdentityToken=="original","network alarm records the actually observed appearance rather than treating every later disguise as known")
 assertTrue(networkDrone.hcoDestX==nil and networkDrone.hcoNextSearchAt==0,"networked drones immediately abandon stale patrol destinations for the reported contact")
 assertTrue(networkGuard.enemyInSight==true and networkGuard.combat==true,"networked response guards receive actionable player contact rather than a cosmetic alert")
+
+-- Confirmed identity is durable while the security network remains aggressive.
+-- An old location report must not make a live drone forget how to reacquire the
+-- same visible player after a brief cone/cover break.
+curTime=20
+local reacquireX,reacquireY=detector:getAimPos()
+context.security.lastKnown={x=reacquireX-1000,y=reacquireY,time=0,confidence=1,source="old-contact",actor=game.playerActor}
+context.security.confirmedIdentityToken="original"
+detector.hcoConfirmedIdentityToken="original"
+detector.hcoLastConfirmedAt=0
+detector.hcoTracking=0
+detector.hcoSensorAngle,detector.hcoBodyAngle=math.pi,math.pi
+game.playerActor.x,game.playerActor.y=reacquireX+100,reacquireY
+detector:update(0.1)
+assertTrue(detector.hcoTracking>0,"aggressive drone reacquires a confirmed current identity through live LOS after old location knowledge expires")
 game.playerActor.x,game.playerActor.y=2000,2000
 networkContext.security.droneMode="AGGRESSIVE"
 patrolProbe:update(0.1)

@@ -1,4 +1,12 @@
-# Automated Test Report — 0.14.8-rc42
+# Automated Test Report — 0.14.9-rc43
+
+## RC43 native patrol, combat-continuity and interaction-lifecycle correction
+
+- Runtime coverage models the native Goon patrol callback creating a destination/path and proves initial target activation plus the nine-second recovery preserve that path rather than clearing it. The complete close-protection detail is asserted as one exact target-to-guard chain because the engine owns only one follower slot per leader.
+- Drone coverage confirms an already exposed/current appearance can be reacquired through fresh unobstructed LOS after the shared last-known report becomes stale. Location alert alone still cannot identify clean cover.
+- Weapon coverage kills both the selected response guard and principal after an initial shot, then proves the intact drone fires again through its stable valid native attribution proxy.
+- Disguise coverage simulates a mission-restart body with stale action bit `1` but no visible HCO option. The periodic native Goon-list verifier rebinds missing actions and the registration generation rebuilds the body's cached menu so takeover returns.
+- All seven LÖVE suites pass against `0.14.9-rc43`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
 
 ## RC42 disguise-aware drone identity and navigation-progress correction
 
@@ -266,18 +274,18 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 33 Lua modules parse, including RC42's appearance-token authority, distance-gated drone scrutiny and destination-progress recovery.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including RC43's native patrol preservation, interaction lifecycle repair and drone combat-continuity changes.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test installation audit: **PASS** — installed `0.14.8-rc42`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
+- Post-test installation audit: **PASS** — installed `0.14.9-rc43`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
 - Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.8-rc42.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `7CE46866B504F092AB15E32A061198CCCAEA2B16625DEC9C0052843CD3D83E6F`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.8-rc42 payload=43`.
-- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 14:23:14; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC42.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.9-rc43.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `9EB98DF4C7A11744CEF9A6061F069D919F6C607832117951F4F616E217A43248`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.9-rc43 payload=43`.
+- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 14:51:16; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC43.
 
-The markers above were collected from RC42 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC43 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

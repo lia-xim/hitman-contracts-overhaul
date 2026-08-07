@@ -16,6 +16,7 @@ local markLocalCompromise
 local queueRadioCompromise
 local hasCurrentVisualContact
 local ensureNPCSightHooks
+local ensureRuntimeBindings
 
 local SUSPICIOUS_PLAYER_STATES = {
 	player_lockpicking = true,
@@ -40,6 +41,10 @@ local SUSPICIOUS_PLAYER_STATES = {
 
 local INTERACTION_SENTINEL = "hco_take_disguise_v1"
 local RESTORE_INTERACTION_SENTINEL = "hco_restore_identity_v1"
+local GOON_HOOK_KEYS = {
+	"reset", "increaseDetection", "setEnemyInSight", "getStateObject", "setState",
+	"hcoDisguiseDie", "hcoDisguiseChoke", "setSeenBody", "makeFallen", "onBodyDropped"
+}
 
 local function getPlayerStateID(player)
 	local ok, stateObject = util.call(player, "getState")
@@ -984,8 +989,19 @@ local function isEligibleBody(state, body, interactor)
 	return group ~= nil
 end
 
-local function refreshBodyInteraction(body, interactor)
+local function refreshBodyInteraction(state, body, interactor)
 	if not body or not interactor then return false end
+	local generation = state.hcoDisguiseInteractionGeneration or 0
+	if body._hcoDisguiseInteractionGeneration ~= generation then
+		-- Native bodies cache both the visible option objects and a bitmask of the
+		-- class action IDs. HCO inserts its actions at slots 1/2, so a body cached
+		-- before registration or across a mission reset can otherwise claim those
+		-- bits while rendering neither action. Rebuild exactly once per registration
+		-- generation, then let the native updater own the menu again.
+		body.currentActionBitmask = 0
+		if body._interactionList then body._interactionList.options = {} end
+		body._hcoDisguiseInteractionGeneration = generation
+	end
 
 	-- Existing bodies cache their native option list. Updating that list after
 	-- HCO's class-level action registration is what makes hot-loaded and
@@ -1005,7 +1021,7 @@ local function refreshNearbyBodies(state, player, dt)
 
 	for _, body in ipairs(util.getNPCs(game.worldObject)) do
 		if isEligibleBody(state, body, player) or state.disguise and isBodyInteractionTarget(body, player) then
-			refreshBodyInteraction(body, player)
+			refreshBodyInteraction(state, body, player)
 
 			if isEligibleBody(state, body, player) and not state.disguiseBodyHintShown and util.distance(body, player) <= config.DISGUISE_BODY_HINT_RANGE then
 				state.disguiseBodyHintShown = true
@@ -1017,6 +1033,8 @@ end
 
 function disguise.update(state, dt)
 	local player = game and game.playerActor
+	local bindingsOK, bindingsError = pcall(ensureRuntimeBindings, state, false, dt)
+	if not bindingsOK then util.log(config, "disguise runtime binding refresh failed: " .. tostring(bindingsError)) end
 
 	refreshNPCSightHooks(state, dt)
 	processPendingCompromises(state, dt)
@@ -1151,6 +1169,8 @@ local function installBodyInteraction(state, goonClass)
 
 	state.hcoDisguiseInteraction = option
 	state.hcoDisguiseRestoreInteraction = restoreOption
+	state.hcoDisguiseInteractionGeneration = (state.hcoDisguiseInteractionGeneration or 0) + 1
+	state.hcoDisguiseBoundGoonClass = goonClass
 end
 
 local function installHooks(state, goonClass)
@@ -1163,6 +1183,7 @@ local function installHooks(state, goonClass)
 		function goonClass:reset(...)
 			self._hcoDisguiseIdentity = nil
 			self._hcoDisguiseTaken = nil
+			self._hcoDisguiseInteractionGeneration = nil
 			return original(self, ...)
 		end
 	end
@@ -1229,7 +1250,7 @@ local function installHooks(state, goonClass)
 			cacheBodyIdentity(self)
 			local result = original(self, ...)
 			local player = game and game.playerActor
-			if player then refreshBodyInteraction(self, player) end
+			if player then refreshBodyInteraction(state, self, player) end
 			return result
 		end
 	end
@@ -1242,7 +1263,7 @@ local function installHooks(state, goonClass)
 			cacheBodyIdentity(self)
 			local result = original(self, ...)
 			local player = game and game.playerActor
-			if player then refreshBodyInteraction(self, player) end
+			if player then refreshBodyInteraction(state, self, player) end
 			return result
 		end
 	end
@@ -1270,7 +1291,7 @@ local function installHooks(state, goonClass)
 			cacheBodyIdentity(self)
 			local result = original(self, ...)
 			local player = game and game.playerActor
-			if player then refreshBodyInteraction(self, player) end
+			if player then refreshBodyInteraction(state, self, player) end
 			return result
 		end
 	end
@@ -1282,7 +1303,7 @@ local function installHooks(state, goonClass)
 		function goonClass:onBodyDropped(...)
 			local result = original(self, ...)
 			local player = game and game.playerActor
-			if player then refreshBodyInteraction(self, player) end
+			if player then refreshBodyInteraction(state, self, player) end
 			return result
 		end
 	end
@@ -1319,6 +1340,35 @@ local function installHooks(state, goonClass)
 	end
 end
 
+local function hasInteractionBinding(state, goonClass)
+	local take, restore = false, false
+	for _, entry in ipairs(goonClass and goonClass.interactionList or {}) do
+		if entry._hcoInteraction == INTERACTION_SENTINEL or entry == state.hcoDisguiseInteraction then take = true end
+		if entry._hcoInteraction == RESTORE_INTERACTION_SENTINEL or entry == state.hcoDisguiseRestoreInteraction then restore = true end
+	end
+	return take and restore
+end
+
+ensureRuntimeBindings = function(state, force, dt)
+	state.disguiseBindingRefreshTime = (state.disguiseBindingRefreshTime or 0) - (dt or 0)
+	if not force and state.disguiseBindingRefreshTime > 0 then return true end
+	state.disguiseBindingRefreshTime = 0.5
+	local goonClass = actor.getClassData and actor.getClassData("goon")
+	if not goonClass or type(goonClass.interactionList) ~= "table" then return false end
+
+	if state.hcoDisguiseBoundGoonClass ~= goonClass then
+		state.hooks = state.hooks or {}
+		for _, key in ipairs(GOON_HOOK_KEYS) do state.hooks[key] = nil end
+		state.hcoDisguiseBoundGoonClass = goonClass
+		installHooks(state, goonClass)
+	end
+	if not hasInteractionBinding(state, goonClass) then
+		installBodyInteraction(state, goonClass)
+		util.log(config, "native disguise actions rebound after class/menu lifecycle reset")
+	end
+	return true
+end
+
 local function installEventListener(state)
 	if state.disguiseEventListenerInstalled or not playerActor.EVENTS or not playerActor.EVENTS.FIRED_WEAPON then
 		return
@@ -1348,6 +1398,8 @@ function disguise.initialize(state)
 
 	installBodyInteraction(state, goonClass)
 	installHooks(state, goonClass)
+	state.hcoDisguiseBoundGoonClass = goonClass
+	state.disguiseBindingRefreshTime = 0.5
 	refreshNPCSightHooks(state, 1)
 	identityFX.initialize(state)
 	installEventListener(state)

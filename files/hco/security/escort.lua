@@ -143,6 +143,12 @@ local function makeFollow(follower, leader)
 	return false
 end
 
+local function followsLeader(follower, leader)
+	if not follower or not leader or follower._hcoFollowLeader ~= leader or not isFollowerStateCompatible(follower) then return false end
+	local linked = nativeGetFollower and nativeGetFollower(leader) or leader.follower
+	return linked == follower
+end
+
 function escort.detach(state)
 	for _, data in ipairs(state.escorts or {}) do
 		local actorObject = data.actor
@@ -277,12 +283,11 @@ function escort.attach(state, report)
 		util.call(actorObject, "maxOutHealth")
 
 		if data.role == "close_protection" then
-			if index == 1 or (index - 1) % 3 == 0 then
-				leader = state.target
-			end
-
-			makeFollow(actorObject, leader)
-			leader = actorObject
+			-- Vanilla supports one follower per leader. Branching several guards from
+			-- the principal silently overwrites the previous link, leaving most of the
+			-- detail stationary. Build one verified native chain so every bodyguard
+			-- inherits the principal's patrol and flight movement.
+			if makeFollow(actorObject, leader) then leader = actorObject end
 		else
 			-- Response units are autonomous search/combat actors. Putting them into
 			-- the native follower chain leaves their leader holding a stale follower
@@ -327,15 +332,12 @@ function escort.update(state)
 		local actorObject = data.actor
 
 		if data.role == "close_protection" and util.isAlive(actorObject) then
-			if state.targetAI.phase == "ROUTINE" and util.distance(actorObject, leader) > config.ESCORT_REJOIN_DISTANCE then
+			-- Rebuild broken ownership even while guards are still physically close;
+			-- distance alone cannot reveal a follower link overwritten by another NPC.
+			if not followsLeader(actorObject, leader) or util.distance(actorObject, leader) > config.ESCORT_REJOIN_DISTANCE then
 				makeFollow(actorObject, leader)
-			elseif state.targetAI.phase ~= "ROUTINE" then
-				-- Close protection evacuates with the principal. Response units are
-				-- deliberately left under the security director's search orders.
-				makeFollow(actorObject, state.target)
 			end
-
-			leader = actorObject
+			if followsLeader(actorObject, leader) then leader = actorObject end
 		end
 	end
 end

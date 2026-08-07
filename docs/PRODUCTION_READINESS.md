@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.14.8-rc42`
+**Candidate:** `0.14.9-rc43`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 
@@ -32,7 +32,10 @@ Drones are pressure tools, not bullet sponges. Scout and Light airframes die in 
 - A stalled drone may cross only a narrow obstructed span between two verified outdoor footprints. During the eased transition the inherited camera update, HCO sensing, evidence scan and every weapon are disabled; wide roofed structures and void have no valid landing and remain impassable.
 - Confirmed drone contact is map-network evidence: all active HCO wings enter a visible red aggressive search and all contract response teams receive the reported position. Weapons remain local and fail closed behind geometry.
 - Disguise transitions remain world-space and the active identity adds a restrained persistent cyan/red player shimmer. Takeover is the first eligible native body action; a second native action restores the original appearance and clears active disguise persistence without revoking acquired credentials or consumed-source history. No separate menu or cursor is introduced.
-- A protected target stationary in routine for nine seconds is advanced through its original native route. A nearby unsuppressed shot creates location-only caution; confirmed protection incidents escalate flight and can invalidate an occupied shelter without granting magical player identity.
+- Native patrol activation owns the target destination/path. HCO never clears that path after `setActivePatrolRoute`; a target stationary in routine for nine seconds advances through the same authored route. All five close guards form one verified follower chain instead of competing for the target's single follower slot.
+- A nearby unsuppressed shot creates location-only caution; confirmed protection incidents escalate flight and can invalidate an occupied shelter without granting magical player identity.
+- An intact armed drone keeps a stable valid native attribution proxy for its lifetime and may reacquire an already confirmed current appearance through fresh unobstructed LOS. Death of the principal/guards or expiry of an old location report may not silently disable its weapon.
+- Native takeover/restore actions are revalidated during mission runtime. A replaced Goon class/list is rebound and stale per-body action bitmasks/options are rebuilt once per interaction generation.
 - Weapon choice, drawn/holstered state and reload are identity-neutral. Sound-only incidents mobilize a position search; player-specific pursuit requires observer-local evidence or completed communication. Native short-range detection may raise suspicion but cannot bypass that identity boundary.
 - Social-stealth values and the exact native/live boundary are centralized in `SPECIFICATION_TRACEABILITY.md`.
 
@@ -60,12 +63,13 @@ Run with the Cheat Trainer reset unless compatibility itself is being tested.
 2. One-, two- and three-contract activation where actor population allows it.
 3. At least one Easy/Normal and one Hard/True mission; confirm visibly different pressure without changing the five-bodyguard core.
 4. Routine patrol, loud-fire escalation, direct HCO-guard contact, body evidence and protection-casualty deployment paths.
-5. Complete the RC41 social-stealth matrix: takeover first in the real body selector, three tiers, persistent active shimmer, explicit original-identity restore, arbitrary armed distance cover, survivable brief close pass, sustained close exposure, immediate point-blank hostile handoff, unobserved-shot isolation, direct-witness recognition, credentials, behavior exposure, local/global radio compromise, drone source scan and reload.
+5. Complete the RC43 social-stealth matrix: takeover first in the real body selector both before and after mission restart, three tiers, persistent active shimmer, explicit original-identity restore, arbitrary armed distance cover, survivable brief close pass, sustained close exposure, immediate point-blank hostile handoff, unobserved-shot isolation, direct-witness recognition, credentials, behavior exposure, local/global radio compromise, drone source scan and reload.
 6. Scout plus every Light/Heavy Pistol, SMG and Laser row: silhouette, scale, heading, sound, attack cue, damage and cooldown.
 7. Player LOS loss, zero roofed/indoor spawns, ordinary wall steering, one successful narrow exterior hop, one rejected wide/roofed crossing, no sensing/fire during hop, world-edge containment, wing separation, committed patrol travel, invalid-sector fallback, rotating boxed-in scan and at least 30 seconds of aggressive search.
 8. On a multi-contract map, let one Scout or armed drone confirm the player: every wing must turn red and leave stale patrol routes, every response detail must receive the reported position, and only drones with their own unobstructed aim may fire.
 9. EMP/disruption, Light one-hit destruction, Heavy two/three-hit destruction, outer-rotor hits, crash landing, wreck cleanup and crash-site response.
-10. Target routine movement beyond nine seconds, first nearby loud-shot relocation without identity leak, shelter reselection after a local protection incident, evacuation and resolution; exactly-one payout after reload.
-11. No HCO traceback, stuck update, duplicate local/Workshop copy, broken vanilla objective, blocked player input or lingering audio after returning to menu.
+10. Target and all five bodyguards continuously traverse the authored routine beyond 15 seconds; then verify first nearby loud-shot relocation without identity leak, shelter reselection after a local protection incident, evacuation and resolution, plus exactly-one payout after reload.
+11. Confirm an armed drone, break LOS until the last position is stale, re-enter a clear firing lane and then kill its nearby response guard/principal attribution candidates. Every intact armed drone must reacquire and continue firing.
+12. No HCO traceback, stuck update, duplicate local/Workshop copy, broken vanilla objective, blocked player input or lingering audio after returning to menu.
 
 Any failure keeps the build at RC status. Automated proof is necessary but cannot establish live renderer, map geometry, native AI or mod-combination behavior on its own.

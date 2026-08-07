@@ -8,14 +8,25 @@ local function centerOffset(drone)
 end
 
 local function sourceActor(drone)
+	-- Native bullets need an actor-shaped attribution owner, but the weapon does
+	-- not cease to exist when that guard is later killed. Preserve the first valid
+	-- proxy for the drone's lifetime; corpses remain valid world actors and are a
+	-- safer attribution source than silently disabling an intact drone mid-fight.
+	if util.isValid(drone.hcoWeaponSource) then return drone.hcoWeaponSource end
 	local context = drone.hcoContext
 	local root = context and context.root
 	local contexts = root and type(root.contracts) == "table" and #root.contracts > 0 and root.contracts or {context}
 	for _, networkContext in ipairs(contexts) do
 		for _, guard in ipairs(networkContext and networkContext.security and networkContext.security.guards or {}) do
-			if guard.role ~= "close_protection" and util.isAlive(guard.actor) then return guard.actor end
+			if guard.role ~= "close_protection" and util.isAlive(guard.actor) then
+				drone.hcoWeaponSource = guard.actor
+				return guard.actor
+			end
 		end
-		if networkContext and util.isAlive(networkContext.target) then return networkContext.target end
+		if networkContext and util.isAlive(networkContext.target) then
+			drone.hcoWeaponSource = networkContext.target
+			return networkContext.target
+		end
 	end
 	return nil
 end
@@ -173,6 +184,7 @@ function droneWeapons.disable(drone)
 		pcall(drone.hcoNativeWeapon.remove, drone.hcoNativeWeapon)
 	end
 	if drone then drone.hcoNativeWeapon = nil end
+	if drone then drone.hcoWeaponSource = nil end
 end
 
 function droneWeapons.remove(drone)

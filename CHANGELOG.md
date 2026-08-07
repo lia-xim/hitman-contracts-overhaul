@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.9-rc43 — 2026-08-07
+
+- Restored real principal movement by preserving the path created by the native Goon patrol-state callback. Initial activation, routine restoration and the nine-second mobility watchdog now advance the original authored route without clearing its newly created destination.
+- Rebuilt close protection as one verified native follower chain. Intravenous 2 supports one follower per leader; the former branched layout overwrote earlier links and could leave the principal's detail standing still. Broken ownership is now repaired even while guards remain physically close.
+- Kept confirmed drones combat-capable through temporary contact loss. An exposed, appearance-matched player can be reacquired through fresh unobstructed line of sight even after an old last-known-position report expires.
+- Made native projectile attribution stable for each airframe. Killing the response guard or principal first no longer silently removes an intact armed drone's ability to shoot; the stored valid world actor remains its attribution proxy until the drone is disabled or destroyed.
+- Repaired the disguise actions after mission restart, class replacement and stale body-menu caches. HCO periodically verifies the real Goon interaction list, rebinds missing takeover/restore actions, re-enumerates native action IDs and rebuilds a body's visible option cache once per registration generation.
+- Added regressions for native patrol-path preservation and watchdog recovery, complete close-protection ownership, post-casualty drone fire, stale-location visual reacquisition and takeover recovery from a stale native action bitmask.
+
 ## 0.14.8-rc42 — 2026-08-07
 
 - Separated an aggressive search from confirmed player identity. An alarmed drone no longer receives cone-less tracking or a 72% minimum detection rate merely because security has a last-known position.

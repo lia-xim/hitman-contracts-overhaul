@@ -253,3 +253,18 @@ RC37 patches instantiated state objects rather than replacing the global state c
 ## Known real-engine validation boundary
 
 The interfaces above are source-verified and exercised by mocks with their important return semantics. Only the final in-game pass can prove cross-system timing, map-specific path quality, rendered objective behavior, and AI-state interactions in a live mission.
+
+## RC43 native patrol, follower, interaction-cache and projectile-attribution evidence
+
+Source: `game/actors/goon.lua`
+
+- `goon:setActivePatrolRoute(route, index)` at decompiled lines 3707–3721 stores the route and calls the current state's `onPatrolRouteSet(route, loading)`. That state callback creates the active destination/path. Calling `setPath(nil)` immediately afterward cancels the movement HCO just requested; RC43 treats the callback-created path as native-owned.
+- `goon:setFollower` / `goon:getFollower` expose one actor reference, not a follower collection. A target cannot directly own five close guards. RC43 builds target to guard 1 to guard 2 and so on, and verifies both the recorded HCO leader and the real native follower reference before accepting each link.
+
+Source: `game/entity.lua`
+
+- `entity:updateInteractionList` at decompiled lines 731–754 uses both the cached visible option objects and `currentActionBitmask`; `entity:enumerateActions` at lines 1444–1450 assigns power-of-two IDs. A body carried across registration or mission lifecycle can therefore retain bit 1 while lacking HCO's visible first action. RC43 increments an interaction generation when rebinding, resets that stale bitmask/options cache once per body/generation and hands subsequent visibility updates back to the native selector.
+
+Source: `game/bullet.lua` and `game/weapon.lua`
+
+- Native ballistic creation requires an actor-shaped owner for hostility, sound and damage attribution. Runtime drones are camera carriers rather than Goon actors, so HCO selects one valid HCO world actor as a proxy. RC43 retains that valid object for the airframe lifetime even after it becomes a corpse; actor death no longer silently makes an intact drone weapon ownerless.

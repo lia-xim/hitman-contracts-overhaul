@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.14.8-rc42`
+**Current build:** `0.14.9-rc43`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate test release. RC42 makes alarmed drones respect clean disguises at range, scopes shared confirmation to the actually observed appearance and replaces wall shuffling with stable obstacle following plus destination-progress recovery. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC43 preserves the principal's native patrol path, keeps its entire close-protection chain attached, prevents armed drones from silently losing fire authority after HCO casualties and repairs native disguise actions after mission restarts. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 
@@ -14,9 +14,9 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Executive, Broker, Fixer, and Commander archetypes with distinct appearance, rewards, drone doctrines, five close bodyguards, and 5/10/15/20 separate response units, constrained by the map's safe NPC population.
 - Native difficulty changes response strength, health, drone pressure, sensor performance, threat rating and payout instead of applying one hidden balance to every playthrough.
 - Stronger protected targets and elite guards with archetype-scaled health.
-- Mobile target phases, routine patrol recovery, nearby-incident awareness, safe-area relocation, physical evacuation, and anti-stuck recovery without teleporting targets.
+- Mobile target phases, native authored-route patrol, one continuous close-protection follower chain, nearby-incident awareness, safe-area relocation, physical evacuation, and anti-stuck recovery without teleporting targets.
 - Field-intelligence dead drops that reveal exact moving target markers.
-- Native body-menu identities with three tiers, visible actor variants, matching faction insignia, weapon-neutral cover, restricted areas, keycards/keychains, colleague recognition, bloodied-uniform risk, compromise, and interruptible radio checks.
+- Native body-menu identities with three tiers, visible actor variants, matching faction insignia, weapon-neutral cover, restricted areas, keycards/keychains, colleague recognition, bloodied-uniform risk, compromise, interruptible radio checks, and lifecycle repair after mission restarts or class/menu replacement.
 - Seven physical, actor-scaled drone models: one unarmed Scout plus light/heavy Pistol, SMG and Laser airframes.
 - A global twelve-airframe ceiling plus per-contract Heavy/Laser limits prevents multi-contract missions from turning into an unreadable or expensive 21-drone pile-up.
 - Stable standoff pursuit replaces continuous player orbiting; bodies turn with flight while independent sensor gimbals retain the player inside their allowed arc.

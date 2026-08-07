@@ -159,6 +159,7 @@ function stateModule.resetRuntime(state, reason)
 	state.identityCheckTime = nil
 	state.disguiseBodyHintShown = nil
 	state.disguiseInteractionRefreshTime = nil
+	state.disguiseBindingRefreshTime = 0
 	state.subsystemErrors = {}
 end
 

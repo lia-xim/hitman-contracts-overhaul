@@ -266,6 +266,27 @@ local function setNativeMovementState(target, phase)
 	return false
 end
 
+local function activateRoutinePatrol(state, routeIndex)
+	local target = state.target
+	local ai = state.targetAI
+	if not target or not ai or not ai.originalRoute or #(ai.routePoints or {}) < 2 then return false end
+	local index = math.max(1, math.min(#ai.routePoints, tonumber(routeIndex) or ai.originalRouteIndex or 1))
+	local okIdle, idleState = util.call(target, "getStateObject", target.IDLE_STATE or "goon_idle")
+	if okIdle and idleState then util.call(target, "setState", idleState) end
+	util.call(target, "usePatrolSpeed")
+
+	-- setActivePatrolRoute calls the active native state's onPatrolRouteSet. That
+	-- callback owns the destination/path it just created. Clearing the path after
+	-- this call cancels the principal's promenade and leaves both VIP and follower
+	-- chain standing forever, so routine activation deliberately does not touch it.
+	local activated = util.call(target, "setActivePatrolRoute", ai.originalRoute, index)
+	util.call(target, "setPatrolRouteIndex", index)
+	ai.routineVisited[index] = true
+	ai.routineStuckTime = 0
+	ai.routineLastIndex = index
+	return activated == true
+end
+
 local function issueMove(state, point, phase, countSwitch)
 	local target = state.target
 	local ai = state.targetAI
@@ -410,13 +431,7 @@ local function restoreRoutine(state)
 		return
 	end
 
-	local okIdle, idleState = util.call(target, "getStateObject", target.IDLE_STATE or "goon_idle")
-
-	if okIdle and idleState then
-		util.call(target, "setState", idleState)
-	end
-
-	util.call(target, "setActivePatrolRoute", ai.originalRoute, ai.originalRouteIndex or 1)
+	activateRoutinePatrol(state, ai.originalRouteIndex or 1)
 	transition(state, "ROUTINE")
 	ai.safePoint = nil
 	ai.stuckTime = 0
@@ -554,16 +569,10 @@ local function reassertRoutinePatrol(state)
 	if not ai.originalRoute or #(ai.routePoints or {}) < 2 then return false end
 	local _, currentIndex = util.call(target, "getPatrolRouteIndex")
 	local nextIndex = ((tonumber(currentIndex) or ai.originalRouteIndex or 1) % #ai.routePoints) + 1
-	local okIdle, idleState = util.call(target, "getStateObject", target.IDLE_STATE or "goon_idle")
-	if okIdle and idleState then util.call(target, "setState", idleState) end
-	local activated = util.call(target, "setActivePatrolRoute", ai.originalRoute, nextIndex)
-	util.call(target, "setPatrolRouteIndex", nextIndex)
-	util.call(target, "setPath", nil)
-	ai.routineVisited[nextIndex] = true
-	ai.routineStuckTime = 0
+	local activated = activateRoutinePatrol(state, nextIndex)
 	ai.routineRecoveries = (ai.routineRecoveries or 0) + 1
 	util.log(config, "target routine watchdog advanced patrol index=" .. tostring(nextIndex))
-	return activated == true
+	return activated
 end
 
 local function updateRoutineWatchdog(state, dt)
@@ -672,10 +681,7 @@ function controller.attach(state)
 
 	if #state.targetAI.routePoints > 1 then
 		local startIndex = state.targetAI.seed % #state.targetAI.routePoints + 1
-		util.call(target, "setActivePatrolRoute", state.targetAI.originalRoute, startIndex)
-		util.call(target, "setPatrolRouteIndex", startIndex)
-		util.call(target, "setPath", nil)
-		state.targetAI.routineVisited[startIndex] = true
+		activateRoutinePatrol(state, startIndex)
 	end
 end
 

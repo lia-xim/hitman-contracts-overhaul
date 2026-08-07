@@ -587,11 +587,11 @@ function drones.initialize()
 		self.hcoTracking = math.max(0, (self.hcoTracking or 0) - dt)
 		transiting = flight.isTransiting(self)
 		local visibleBeforeMove = not transiting and player and util.isAlive(player) and canSeePlayer(self, player) or false
-		local recentLastKnown = security and security.lastKnown and ((curTime or 0) - (security.lastKnown.time or 0)) <= 8
 		-- An alarm is a search order, not biometric knowledge. Cone-less pursuit is
-		-- reserved for an already exposed/currently confirmed identity; a clean
-		-- disguise must first enter this drone's own close scrutiny cone.
-		local pursuitCue = not transiting and identity.exposed and aggressive and recentLastKnown
+		-- reserved for an already exposed/currently confirmed identity. Once that
+		-- exact appearance is known, an expired location report must not make the
+		-- drone permanently forget how to reacquire live unobstructed contact.
+		local pursuitCue = not transiting and identity.exposed and aggressive
 			and player and util.isAlive(player) and hasPlayerLineOfSight(self, player, false) or false
 		local tacticalContact = identity.canTrack and (visibleBeforeMove or pursuitCue)
 		if tacticalContact then
