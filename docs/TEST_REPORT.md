@@ -1,4 +1,13 @@
-# Automated Test Report — 0.14.10-rc44
+# Automated Test Report — 0.14.11-rc45
+
+## RC45 native selector handoff, stable IDs and body-marker correction
+
+- The runtime fixture now reproduces the complete native selector sequence: `getInteractOptions(player, true)` validates an eligible body, followed by the render-only `getInteractOptions(nil, false)` call used by `setInteractionData`. The second call must preserve takeover as the first visible action.
+- Native action objects retain their original slots and IDs. HCO takeover/restore append with the next free power-of-two IDs, while only the returned per-body list is reordered for first-visible presentation.
+- A lifecycle regression removes both HCO class actions, runs the periodic repair and requires exactly one restored pair while both original native IDs remain unchanged.
+- The interaction callback no longer owns `postInteract`; the fixture models the selector's one native post-action refresh and rejects the former double-refresh behavior.
+- Visual coverage renders the new eligible-body stitch marker separately from acquisition, identity-check and compromise effects.
+- All seven LÖVE suites pass against `0.14.11-rc45`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
 
 ## RC44 authoritative cached body-menu correction
 
@@ -29,7 +38,7 @@
 - Flight coverage models both an indefinitely wide blocked region and a narrow wall between valid outdoor cells. The wide span remains impassable; after the steering delay the narrow span creates an eased transition and lands beyond the barrier on a verified footprint.
 - Drone orchestration injects an active transition beside the player and proves acquisition/sight grace reset while the inherited camera path and HCO weapon authority remain unavailable.
 - Runtime coverage holds a protected target stationary in `ROUTINE` for nine seconds and proves the controller advances its original native patrol route. A single nearby audible player shot produces cautious movement without assigning player identity; confirmed threat still escalates to the established flight/shelter path.
-- Native interaction coverage proves takeover/restore occupy positions one/two with IDs `1`/`2`, cached body menus present takeover first, consumed bodies present restoration first, and restoring clears the active disguise/persisted group while returning the original actor variant and retaining consumed-source history.
+- Historical RC41 coverage placed takeover/restore at class positions one/two with IDs `1`/`2`. RC45 supersedes that unsafe registry mutation: existing IDs stay fixed, HCO appends unused IDs and the returned visible menu still presents takeover/restore first.
 - All seven LÖVE suites pass against `0.14.7-rc41`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
 
 ## RC40 patrol continuity and shared-alarm correction
@@ -281,18 +290,18 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 33 Lua modules parse, including RC44's authoritative cached body-selector reconciliation.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including RC45's validate/render selector handoff, stable action-ID allocation and eligible-body world marker.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test installation audit: **PASS** — installed `0.14.10-rc44`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
+- Post-test installation audit: **PASS** — installed `0.14.11-rc45`, 43 source payload files, 43 installed payload files and 0 mismatches. The game was not running after installation.
 - Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.10-rc44.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `FB293337851BB6BA585D2CB4797216939361030AA4359FD299771682F508C412`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.10-rc44 payload=43`.
-- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 15:33:49; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC44.
+- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.11-rc45.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `1279499766F784575ACE6A64D6D4897C0FA18843E883BCA399AD41627B1960CD`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.11-rc45 payload=43`.
+- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 16:09:41; the game was not running, the current debug log was empty and the newest stored crash log at 12:07:42 predates RC45.
 
-The markers above were collected from RC44 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC45 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

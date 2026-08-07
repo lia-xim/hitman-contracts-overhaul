@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.11-rc45 — 2026-08-07
+
+- Fixed the live disguise-menu regression at the exact native selector handoff. Intravenous 2 validates body actions with the player interactor, then reads the cached list again with `interactor=nil` while constructing the visible description box. RC44 incorrectly treated that second render-only read as a failed eligibility check and removed takeover immediately before drawing it.
+- Preserved the already validated list on nil-interactor reads and added a regression matching the engine's validate-then-render sequence.
+- Stopped globally re-enumerating the Goon action registry. HCO now appends unique power-of-two IDs without changing native or third-party IDs, then reorders only its two visible per-body entries so takeover/restore remain first in the selector.
+- Removed HCO's duplicate `postInteract` call; the native object selector again owns the single post-action cache refresh.
+- Added a subtle cyan/teal world-space stitch marker around nearby eligible bodies, making available identities readable without a hotkey, cursor or detached HUD layer.
+- Added lifecycle coverage that removes HCO's class actions at runtime, requires exactly one repaired pair and proves both native action IDs remain unchanged.
+
 ## 0.14.10-rc44 — 2026-08-07
 
 - Fixed the remaining live case where the native body selector returned a cached `update=false` option list without the disguise action even though its action bit was already set.

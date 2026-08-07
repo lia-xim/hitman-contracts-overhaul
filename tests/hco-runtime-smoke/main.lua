@@ -630,7 +630,11 @@ function objectiveHandler:createObjective(config)
 end
 
 -- Reproduce the live checkpoint case: this body already owns a cached native
--- option list before HCO appends and enumerates its disguise action.
+-- option list before HCO appends its disguise actions.
+local nativeBodyActionOne = goonClass.interactionList[1]
+local nativeBodyActionTwo = goonClass.interactionList[2]
+local nativeBodyActionOneID = nativeBodyActionOne.id
+local nativeBodyActionTwoID = nativeBodyActionTwo.id
 validA:getInteractOptions(player, false)
 
 require("hco/bootstrap").start()
@@ -726,10 +730,14 @@ state.security.searchOrderTime = 0
 
 local disguiseOption = playerActor._hitmanContractsOverhaulState.hcoDisguiseInteraction
 local restoreIdentityOption = playerActor._hitmanContractsOverhaulState.hcoDisguiseRestoreInteraction
-assertEqual(goonClass.interactionList[1], disguiseOption, "take-disguise is the first native body action")
-assertEqual(goonClass.interactionList[2], restoreIdentityOption, "restore-original-identity sits directly behind takeover")
-assertEqual(disguiseOption.id, 1, "first disguise action receives the first native bit ID")
-assertEqual(restoreIdentityOption.id, 2, "restore action receives its own native bit ID")
+assertEqual(goonClass.interactionList[1], nativeBodyActionOne, "first native body action keeps its registry slot")
+assertEqual(goonClass.interactionList[2], nativeBodyActionTwo, "second native body action keeps its registry slot")
+assertEqual(nativeBodyActionOne.id, nativeBodyActionOneID, "first native body action keeps its bit ID")
+assertEqual(nativeBodyActionTwo.id, nativeBodyActionTwoID, "second native body action keeps its bit ID")
+assertEqual(goonClass.interactionList[3], disguiseOption, "take-disguise is appended without renumbering native actions")
+assertEqual(goonClass.interactionList[4], restoreIdentityOption, "restore-original-identity uses its own appended registry slot")
+assertEqual(disguiseOption.id, 4, "disguise action receives the next free native bit ID")
+assertEqual(restoreIdentityOption.id, 8, "restore action receives its own native bit ID")
 assertEqual(goonClass.actionTrackerID, 16, "native action tracker advances past both HCO options")
 validA:_die()
 assertEqual(validA.keycard, nil, "native death path drops live keycard before body interaction")
@@ -741,6 +749,8 @@ for _, option in ipairs(liveOptions) do
 end
 assertEqual(liveDisguiseOption, disguiseOption, "cached live body menu receives disguise interaction")
 assertEqual(liveOptions[1], disguiseOption, "take-disguise renders before native body actions")
+local selectorRenderOptions = validA:getInteractOptions(nil, false).options
+assertEqual(selectorRenderOptions[1], disguiseOption, "selector render handoff without an interactor preserves the validated disguise action")
 assertTrue(disguiseOption.actionCheck(validA, player), "disguise interaction available on body")
 local acquiredFaction = validA.animVar
 local instantSightState = validC:getStateObject("goon_suspicion")
@@ -749,6 +759,9 @@ namedStoryNPC.seenPlayer = true
 namedStoryNPC.lastVisionEnemy = player
 namedStoryNPC.enemiesInSight[player:getID()] = true
 liveDisguiseOption.interact(validA, player)
+-- The native object selector owns the single post-interaction refresh after an
+-- option callback returns. HCO must not invoke it a second time internally.
+validA:postInteract(player)
 assertEqual(player.animVar, validA.animVar, "player inherits the contract faction disguise")
 assertTrue(state.disguiseRisk < 1, "identity takeover publishes reduced sensor risk atomically without one exposed update frame")
 assertEqual(state.identityFX.kind, "acquired", "identity takeover starts a native world-space transition effect")
@@ -897,7 +910,7 @@ assertTrue(state.disguiseRisk < 1, "calm restored disguise publishes reduced sem
 local restartBody = createNPC({id = "restart-body", patrol = false, animVar = "bodyg", x = 130})
 restartBody.dead = true
 restartBody.currentActionBitmask = 1
-restartBody._interactionList = {object = restartBody, options = {goonClass.interactionList[3]}}
+restartBody._interactionList = {object = restartBody, options = {nativeBodyActionOne}}
 table.insert(world.npcs, restartBody)
 state.disguiseInteractionRefreshTime = 0
 require("hco/social/disguise").update(state, 0.1)
@@ -914,7 +927,7 @@ assertTrue(restartHasDisguise, "mission restart rebuilds stale body interaction 
 -- for the selector the player has already opened.
 restartBody._hcoDisguiseInteractionGeneration = state.hcoDisguiseInteractionGeneration
 restartBody.currentActionBitmask = disguiseOption.id
-restartBody._interactionList.options = {goonClass.interactionList[3]}
+restartBody._interactionList.options = {nativeBodyActionOne}
 local directRestartMenu = restartBody:getInteractOptions(player, false).options
 local directRestartHasDisguise = false
 for _, option in ipairs(directRestartMenu) do
@@ -1061,6 +1074,7 @@ end
 assertTrue(state.targetAI.recoveries > recoveryBefore, "blocked route triggers watchdog recovery within ten seconds")
 
 restoreIdentityOption.interact(validD, player)
+validD:postInteract(player)
 assertEqual(state.disguise, nil, "native restore action removes the active disguise")
 assertEqual(player.animVar, "sean", "native restore action reapplies the original player appearance")
 assertTrue(state.usedDisguiseSources[validA.id] and state.usedDisguiseSources[validD.id], "removing clothes does not make consumed identities reusable")
@@ -1265,6 +1279,24 @@ for _, data in ipairs(state.security.guards) do
 		assertTrue(data.actor.enemyInSight ~= true, "sound-only escalation never marks response guards as seeing the player")
 	end
 end
+
+-- Simulate another mod or a mission/class rebuild replacing the class action
+-- registry after HCO initialized. The periodic repair must append one fresh pair
+-- without changing either native action identity.
+for index = #goonClass.interactionList, 1, -1 do
+	if goonClass.interactionList[index]._hcoInteraction then table.remove(goonClass.interactionList, index) end
+end
+state.disguiseBindingRefreshTime = 0
+require("hco/social/disguise").update(state, 0.6)
+local reboundTake, reboundRestore, reboundCount = nil, nil, 0
+for _, entry in ipairs(goonClass.interactionList) do
+	if entry._hcoInteraction == "hco_take_disguise_v1" then reboundTake = entry; reboundCount = reboundCount + 1 end
+	if entry._hcoInteraction == "hco_restore_identity_v1" then reboundRestore = entry; reboundCount = reboundCount + 1 end
+end
+assertEqual(reboundCount, 2, "class/menu lifecycle repair restores exactly one HCO action pair")
+assertEqual(nativeBodyActionOne.id, nativeBodyActionOneID, "lifecycle repair never renumbers first native body action")
+assertEqual(nativeBodyActionTwo.id, nativeBodyActionTwoID, "lifecycle repair never renumbers second native body action")
+assertTrue(reboundTake and reboundRestore and reboundTake.id ~= reboundRestore.id, "rebound identity actions keep unique bit IDs")
 
 require("hco/bootstrap").start()
 assertEqual(#events.directReceivers[game.EVENTS.MAP_LOADED], 1, "duplicate lifecycle listener prevented")

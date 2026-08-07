@@ -55,6 +55,41 @@ function identityFX.clear(state)
 	if state then state.identityFX = nil end
 end
 
+function identityFX.drawAvailableBody(body, switching)
+	if not body or not love or not love.graphics then return false end
+	local ok, x, y = util.call(body, "getDrawPosition")
+	if not ok or not tonumber(x) or not tonumber(y) then x, y = util.getPos(body) end
+	if not x then return false end
+
+	local time = curTime or 0
+	local pulse = 0.5 + math.sin(time * 3.2) * 0.5
+	local radius = 13 + pulse * 2
+	local color = switching and COLORS.restored or COLORS.acquired
+	local alpha = math.floor(52 + pulse * 58)
+	local oldWidth = love.graphics.getLineWidth and love.graphics.getLineWidth() or 1
+	love.graphics.setColor(color[1], color[2], color[3], alpha)
+	love.graphics.setLineWidth(1)
+
+	-- Four restrained corner stitches read as an available identity in the same
+	-- world-space language as the active disguise, without adding a HUD label.
+	for index = 0, 3 do
+		local sx = (index == 0 or index == 3) and -1 or 1
+		local sy = index < 2 and -1 or 1
+		local bx, by = math.floor(x + sx * radius), math.floor(y + sy * radius)
+		love.graphics.line(bx, by, bx - sx * 4, by)
+		love.graphics.line(bx, by, bx, by - sy * 4)
+	end
+	local sweep = time * 1.4
+	for index = 0, 2 do
+		local angle = sweep + index * math.pi * 2 / 3
+		love.graphics.rectangle("fill", math.floor(x + math.cos(angle) * (radius + 4)), math.floor(y + math.sin(angle) * (radius + 4)), 1, 1)
+	end
+
+	love.graphics.setLineWidth(oldWidth)
+	love.graphics.setColor(255, 255, 255, 255)
+	return true
+end
+
 local function segmentCircle(x, y, radius, startAngle, length, segments)
 	local previousX, previousY
 	for index = 0, segments do

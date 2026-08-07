@@ -43,7 +43,7 @@ local INTERACTION_SENTINEL = "hco_take_disguise_v1"
 local RESTORE_INTERACTION_SENTINEL = "hco_restore_identity_v1"
 local GOON_HOOK_KEYS = {
 	"reset", "increaseDetection", "setEnemyInSight", "getStateObject", "setState",
-	"getInteractOptions", "hcoDisguiseDie", "hcoDisguiseChoke", "setSeenBody", "makeFallen", "onBodyDropped"
+	"getInteractOptions", "hcoDisguiseBodyPostDraw", "hcoDisguiseDie", "hcoDisguiseChoke", "setSeenBody", "makeFallen", "onBodyDropped"
 }
 
 local function getPlayerStateID(player)
@@ -995,10 +995,10 @@ local function invalidateBodyInteractionCache(state, body)
 	if body._hcoDisguiseInteractionGeneration == generation then return false end
 
 	-- Native bodies cache both the visible option objects and a bitmask of the
-	-- class action IDs. HCO inserts its actions at slots 1/2, so a body cached
-	-- before registration or across a mission reset can otherwise claim those
-	-- bits while rendering neither action. Rebuild exactly once per registration
-	-- generation, then let the native updater own the other menu entries again.
+	-- class action IDs. A body cached before HCO registration or across a mission
+	-- reset can otherwise claim an HCO bit while rendering neither action. Rebuild
+	-- exactly once per registration generation, then let the native updater own
+	-- the other menu entries again.
 	body.currentActionBitmask = 0
 	if body._interactionList then body._interactionList.options = {} end
 	body._hcoDisguiseInteractionGeneration = generation
@@ -1020,20 +1020,17 @@ local function setActionBit(body, option, visible)
 	end
 end
 
-local function reconcileVisibleAction(body, interactionList, option, sentinel, visible)
+local function reconcileVisibleAction(body, interactionList, option, sentinel, visible, preferredIndex)
 	local options = interactionList and interactionList.options
 	if type(options) ~= "table" or not option then return end
 	for index = #options, 1, -1 do
 		if isInteractionEntry(options[index], option, sentinel) then table.remove(options, index) end
 	end
 	if visible then
-		local inserted = util.call(body, "addInteractionOption", options, option)
-		if not inserted then
-			local index = 1
-			while options[index] and tonumber(options[index].id) and tonumber(option.id)
-				and tonumber(options[index].id) < tonumber(option.id) do index = index + 1 end
-			table.insert(options, index, option)
-		end
+		-- Keep HCO's signature action visually first without renumbering native or
+		-- third-party class actions. Renumbering a live class invalidates the cached
+		-- action bitmasks on every existing body and caused the original regression.
+		table.insert(options, math.max(1, math.min(preferredIndex or 1, #options + 1)), option)
 	end
 	setActionBit(body, option, visible)
 end
@@ -1041,9 +1038,9 @@ end
 local function reconcileVisibleBodyActions(state, body, interactor, interactionList)
 	if type(interactionList) ~= "table" or type(interactionList.options) ~= "table" then return interactionList end
 	reconcileVisibleAction(body, interactionList, state.hcoDisguiseInteraction, INTERACTION_SENTINEL,
-		isEligibleBody(state, body, interactor))
+		isEligibleBody(state, body, interactor), 1)
 	reconcileVisibleAction(body, interactionList, state.hcoDisguiseRestoreInteraction, RESTORE_INTERACTION_SENTINEL,
-		state.disguise ~= nil and isBodyInteractionTarget(body, interactor))
+		state.disguise ~= nil and isBodyInteractionTarget(body, interactor), 2)
 	return interactionList
 end
 
@@ -1171,8 +1168,6 @@ local function installBodyInteraction(state, goonClass)
 			feedback.show(english.DISGUISE_UNAVAILABLE)
 		elseif not applied then
 			util.log(config, "disguise interaction rejected: " .. tostring(reason or "unknown"))
-		else
-			util.call(body, "postInteract", interactor)
 		end
 	end
 
@@ -1194,27 +1189,37 @@ local function installBodyInteraction(state, goonClass)
 			feedback.show(english.DISGUISE_UNAVAILABLE)
 		elseif not removed then
 			util.log(config, "identity restore interaction rejected: " .. tostring(reason or "unknown"))
+		end
+	end
+
+	-- Append to the class registry so every already-enumerated native/third-party
+	-- action keeps its original bit ID. The returned per-body menu is reordered by
+	-- reconcileVisibleBodyActions, which gives the player the requested first-slot
+	-- takeover without mutating the engine's global action identity scheme.
+	table.insert(list, option)
+	table.insert(list, restoreOption)
+
+	local usedIDs = {}
+	local nextID = 1
+	for _, entry in ipairs(list) do
+		local id = tonumber(entry.id)
+		if id and id > 0 and not usedIDs[id] then
+			usedIDs[id] = true
+			while usedIDs[nextID] do nextID = nextID * 2 end
 		else
-			util.call(body, "postInteract", interactor)
+			entry.id = nil
 		end
 	end
-
-	-- Native interaction order is table order. Keep the signature feature above
-	-- inventory/search/finish-off actions, with the explicit rollback directly
-	-- behind it whenever a disguise is already active.
-	table.insert(list, 1, option)
-	table.insert(list, 2, restoreOption)
-
-	if type(goonClass.enumerateActions) == "function" then
-		local ok, err = util.call(goonClass, "enumerateActions")
-		if not ok then error("failed to enumerate native disguise action: " .. tostring(err)) end
-	else
-		goonClass.actionTrackerID = 1
-		for _, entry in ipairs(list) do
-			entry.id = goonClass.actionTrackerID
-			goonClass.actionTrackerID = goonClass.actionTrackerID * 2
+	for _, entry in ipairs(list) do
+		if not entry.id then
+			while usedIDs[nextID] do nextID = nextID * 2 end
+			entry.id = nextID
+			usedIDs[nextID] = true
+			nextID = nextID * 2
 		end
 	end
+	while usedIDs[nextID] do nextID = nextID * 2 end
+	goonClass.actionTrackerID = nextID
 
 	state.hcoDisguiseInteraction = option
 	state.hcoDisguiseRestoreInteraction = restoreOption
@@ -1296,6 +1301,14 @@ local function installHooks(state, goonClass)
 		local original = goonClass.getInteractOptions
 
 		function goonClass:getInteractOptions(interactor, update)
+			-- objectSelector:setInteractionData deliberately re-reads the already
+			-- validated menu without passing an interactor. That nil call is a render
+			-- handoff, not a request to re-run action checks. Treating nil as an invalid
+			-- player removed the disguise action between selector filtering and drawing.
+			if interactor == nil then
+				return original(self, interactor, update)
+			end
+
 			-- This is the authoritative selector boundary. The base implementation may
 			-- return a cached list without updating it at all when update=false. Repair
 			-- the cache before that query, then reconcile the exact returned list after
@@ -1306,6 +1319,21 @@ local function installHooks(state, goonClass)
 			-- inventory and finish-off entries would remain absent from that menu.
 			local interactionList = original(self, interactor, update or invalidated)
 			return reconcileVisibleBodyActions(state, self, interactor, interactionList)
+		end
+	end
+
+	if not state.hooks.hcoDisguiseBodyPostDraw and type(goonClass.postDraw) == "function" then
+		state.hooks.hcoDisguiseBodyPostDraw = goonClass.postDraw
+		local original = goonClass.postDraw
+
+		function goonClass:postDraw(...)
+			local result = original(self, ...)
+			local player = game and game.playerActor
+			if player and isEligibleBody(state, self, player)
+				and util.distance(self, player) <= config.DISGUISE_BODY_MARKER_RANGE then
+				identityFX.drawAvailableBody(self, state.disguise ~= nil)
+			end
+			return result
 		end
 	end
 

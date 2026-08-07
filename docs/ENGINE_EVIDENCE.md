@@ -276,3 +276,12 @@ Source: `game/entity.lua`
 - `entity:getInteractOptions(interactor, update)` at lines 716–728 creates and evaluates a list only on the first query. Once `_interactionList` exists, an `update=false` call returns it unchanged.
 - The body selector can therefore consume a stale visible list even when `currentActionBitmask` says HCO's first action is active. A periodic `updateInteractionList` is not sufficient because it may run only after the player has opened that selector.
 - RC44 wraps the inherited method on the registered Goon class. It invalidates a stale registration generation before native evaluation and reconciles only HCO's takeover/restore objects in the returned `interactionList.options` afterward. Native carry, finish-off and inventory ownership are unchanged.
+
+## RC45 selector render-handoff and stable action identity evidence
+
+Source: `game/object_selector.lua` and `game/entity.lua`
+
+- `objectSelector:update` validates nearby objects through `interObj:getInteractOptions(interactor, true)`. After selection changes, `setInteractionData` deliberately reads the same cached list again through `obj:getInteractOptions()` with no interactor while preparing the visible description box.
+- The nil-interactor read is therefore a render handoff, not a second eligibility decision. RC44 reconciled that call as though the player were absent and removed the valid takeover action immediately before it was drawn. RC45 leaves render-only reads unchanged and reconciles only calls that carry a real interactor.
+- `entity:enumerateActions` assigns global power-of-two identities to the entire class registry. Inserting HCO at class slots one/two and re-enumerating can change the identity of every native or third-party action on already-instantiated bodies. RC45 preserves every existing valid ID, appends fresh unused powers of two for HCO and changes only the order of the returned per-body option list.
+- `objectSelector:attemptInteract` invokes the selected callback and then owns the single `interObject:postInteract(interactor)` refresh. HCO callbacks no longer duplicate that native refresh.

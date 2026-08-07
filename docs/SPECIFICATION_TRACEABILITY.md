@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.10-rc44`
+**Candidate:** `0.14.11-rc45`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -16,7 +16,7 @@ This document prevents future work from collapsing the product specification int
 | Mobile target and secure movement | `targets/controller.lua` | RC43 native patrol-path preservation and routine/incident watchdog candidate | Native `onPatrolRouteSet` path creation/preservation, routine recovery, first-shot caution, threatened, sheltered, incident reselection, escape and stuck-route cases | Long live route/reload/incident pass on several maps |
 | Protection and response roles | `security/escort.lua`, `security/director.lua` | RC43 complete single-follower chain for close protection and autonomous response | Exact five-guard ownership chain, reconstruction, search and follower safety cases | Verify moving detail, weapons, combat pressure and difficulty balance in game |
 | Knowledge and hunt phases | `security/director.lua` | Implemented | Local evidence, pressure, decay and stand-down cases | Verify no wall omniscience and readable convergence |
-| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | RC44 first-action takeover, authoritative query-time reconciliation, lifecycle rebinding, stale-cache repair, explicit rollback and persistent-state presentation candidate | Native two-action enumeration/order, stale-bitmask generation reset, cached `update=false` selector repair, runtime class/menu rebind, death-time identity capture, three switches, rollback and persistence cleanup | Must be accepted from the real body interaction wheel after fresh start and restart |
+| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | RC45 first-visible takeover, validate/render query semantics, stable native action IDs, lifecycle rebinding, stale-cache repair, explicit rollback, body-availability marker and persistent-state presentation candidate | Stable-ID append, stale-generation reset, player-validation then nil-render selector sequence, runtime class/menu rebind, death-time identity capture, three switches, rollback and persistence cleanup | Must be accepted from the real body interaction wheel after fresh start and restart |
 | Social recognition | `social/disguise.lua` plus instantiated native Goon sight states | Implemented for the observer-local uniform-class model | Instant-bypass interception, 150-unit timed close scrutiny, 72-unit point-blank exposure, native hostile handoff, arbitrary held weapon, witnessed/unwitnessed fire, access, evidence and compromise cases | Prove distance bands and native response in a real mission |
 | Credentials and restricted areas | Native `playerActor:addKey` and off-limits queries, coordinated by `social/disguise.lua` | Implemented for keycard and keychain IDs | Acquisition/reload and adjusted trespass-query cases | Verify actual mission doors and STAFF/SECURITY/ELITE areas |
 | Existing cameras | `security/sensors.lua` | Implemented | Camera risk scaling and disruption/break evidence in runtime fixtures | Live camera cone, disguise and wall/EMP pass |
@@ -32,7 +32,7 @@ This document prevents future work from collapsing the product specification int
 
 ### Native interaction ownership
 
-The game owns body interaction through `goon.interactionList`, `entity:enumerateActions`, `entity:getInteractOptions`, `entity:updateInteractionList`, `currentActionBitmask`, and `entity:postInteract`. RC41 owns two sentinel entries in that native list: takeover at position one and original-identity restoration directly behind it.
+The game owns body interaction through `goon.interactionList`, `entity:getInteractOptions`, `entity:updateInteractionList`, `currentActionBitmask`, `entity:postInteract`, and the object selector's validate/render sequence. RC45 appends two sentinel entries with unused power-of-two IDs so existing class identities remain stable. It reorders only the returned per-body list: takeover is first when eligible and original-identity restoration follows while active. A selector read without an interactor preserves the previously validated list because it is the engine's render handoff, not a new eligibility check.
 
 The integration contract is:
 
@@ -137,7 +137,7 @@ Acquisition and compromise reuse known native UI sounds. Identity checks deliber
 
 RC34 is not allowed to advance unless all of the following remain green:
 
-- HCO puts takeover/restore at native positions one/two, assigns IDs `1`/`2`, and advances the tracker to `16` in the controlled vanilla two-action fixture.
+- HCO preserves the controlled fixture's native positions/IDs `1`/`2`, appends takeover/restore with unused IDs `4`/`8`, advances the tracker to `16`, and renders eligible HCO actions first only in the returned body menu.
 - A body whose interaction cache predates HCO receives the action through the real update-list path.
 - `_die` captures weapon/keycard identity before native stripping.
 - A successful interaction calls native `postInteract` and cannot be repeated from the same source, including after reload.

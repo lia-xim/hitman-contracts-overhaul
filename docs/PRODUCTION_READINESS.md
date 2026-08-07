@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.14.10-rc44`
+**Candidate:** `0.14.11-rc45`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 
@@ -31,7 +31,7 @@ Drones are pressure tools, not bullet sponges. Scout and Light airframes die in 
 - Patrol/search destinations remain committed until arrival or an explicit tactical/idle transition. Invalid/current-position authored sectors are exhausted before deterministic outdoor fallbacks; if the map offers no route, the sensor performs a continuous 360-degree scan instead of becoming inert.
 - A stalled drone may cross only a narrow obstructed span between two verified outdoor footprints. During the eased transition the inherited camera update, HCO sensing, evidence scan and every weapon are disabled; wide roofed structures and void have no valid landing and remain impassable.
 - Confirmed drone contact is map-network evidence: all active HCO wings enter a visible red aggressive search and all contract response teams receive the reported position. Weapons remain local and fail closed behind geometry.
-- Disguise transitions remain world-space and the active identity adds a restrained persistent cyan/red player shimmer. Takeover is the first eligible native body action; a second native action restores the original appearance and clears active disguise persistence without revoking acquired credentials or consumed-source history. No separate menu or cursor is introduced.
+- Disguise transitions remain world-space and the active identity adds a restrained persistent cyan/red player shimmer. A small stitch marker identifies unused nearby uniforms. Takeover is the first visible eligible body action and restoration the second HCO action, but both are appended with unused bit IDs so native/third-party class action identities never change. No separate menu or cursor is introduced.
 - Native patrol activation owns the target destination/path. HCO never clears that path after `setActivePatrolRoute`; a target stationary in routine for nine seconds advances through the same authored route. All five close guards form one verified follower chain instead of competing for the target's single follower slot.
 - A nearby unsuppressed shot creates location-only caution; confirmed protection incidents escalate flight and can invalidate an occupied shelter without granting magical player identity.
 - An intact armed drone keeps a stable valid native attribution proxy for its lifetime and may reacquire an already confirmed current appearance through fresh unobstructed LOS. Death of the principal/guards or expiry of an old location report may not silently disable its weapon.
