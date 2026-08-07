@@ -699,8 +699,12 @@ state.security.huntPhase = "STAND_DOWN"
 state.security.searchOrderTime = 0
 
 local disguiseOption = playerActor._hitmanContractsOverhaulState.hcoDisguiseInteraction
-assertEqual(disguiseOption.id, 4, "disguise action receives the next native bit ID")
-assertEqual(goonClass.actionTrackerID, 8, "native action tracker advances past disguise option")
+local restoreIdentityOption = playerActor._hitmanContractsOverhaulState.hcoDisguiseRestoreInteraction
+assertEqual(goonClass.interactionList[1], disguiseOption, "take-disguise is the first native body action")
+assertEqual(goonClass.interactionList[2], restoreIdentityOption, "restore-original-identity sits directly behind takeover")
+assertEqual(disguiseOption.id, 1, "first disguise action receives the first native bit ID")
+assertEqual(restoreIdentityOption.id, 2, "restore action receives its own native bit ID")
+assertEqual(goonClass.actionTrackerID, 16, "native action tracker advances past both HCO options")
 validA:_die()
 assertEqual(validA.keycard, nil, "native death path drops live keycard before body interaction")
 assertEqual(validA.weapon, nil, "native death path drops live weapon before body interaction")
@@ -710,6 +714,7 @@ for _, option in ipairs(liveOptions) do
 	if option._hcoInteraction == "hco_take_disguise_v1" then liveDisguiseOption = option end
 end
 assertEqual(liveDisguiseOption, disguiseOption, "cached live body menu receives disguise interaction")
+assertEqual(liveOptions[1], disguiseOption, "take-disguise renders before native body actions")
 assertTrue(disguiseOption.actionCheck(validA, player), "disguise interaction available on body")
 local acquiredFaction = validA.animVar
 local instantSightState = validC:getStateObject("goon_suspicion")
@@ -721,6 +726,8 @@ liveDisguiseOption.interact(validA, player)
 assertEqual(player.animVar, validA.animVar, "player inherits the contract faction disguise")
 assertEqual(state.identityFX.kind, "acquired", "identity takeover starts a native world-space transition effect")
 assertEqual(validA.postInteractCount, 1, "successful identity takeover refreshes native body menu")
+local takeoverMenu = validA:getInteractOptions(player, true).options
+assertEqual(takeoverMenu[1], restoreIdentityOption, "consumed source exposes restore-original as the first remaining identity action")
 assertTrue(not disguiseOption.actionCheck(validA, player), "taken identity cannot be duplicated from the same body")
 assertTrue(player:hasKey("security-A"), "body keycard granted")
 assertEqual(namedStoryNPC:getDetection(player), 0, "unwitnessed identity takeover clears stale full native detection")
@@ -932,6 +939,16 @@ disguiseOption.interact(validD, player)
 assertEqual(state.disguise.tier, "elite_security", "elite source produces elite security access tier")
 assertEqual(player.animVar, eliteVariant, "elite identity is visibly applied")
 assertTrue(player:hasKey("elite-chain"), "native keychain credentials are copied")
+assertTrue(restoreIdentityOption.actionCheck(validD, player), "active disguise exposes an explicit native restore action")
+
+state.security.knowledge = {}
+state.security.targetThreatLevel = 0
+state.targetAI.phase = "ROUTINE"
+state.targetAI.resumePhase = nil
+state.targetAI.safePoint = nil
+local routineRecoveries = state.targetAI.routineRecoveries or 0
+for step = 1, 10 do require("hco/targets/controller").update(state, 1) end
+assertTrue(state.targetAI.routineRecoveries > routineRecoveries, "stationary routine target is advanced to another native patrol node")
 
 state.target.alertness = npcAlertnessStates.STATES.ALERT
 state.target:setState(state.target:getStateObject("goon_alert"))
@@ -947,10 +964,15 @@ state.targetAI.clearTime = 0
 for _, updateState in ipairs(gameStateService.states) do updateState:update(0.2) end
 assertEqual(state.security.targetThreatLevel, 0, "native alert color alone is not disguised-player identity knowledge")
 assertEqual(state.targetAI.phase, "ROUTINE", "uninformed target does not flee from a valid nearby disguise")
-state.security.targetThreatLevel = 1
-for _, updateState in ipairs(gameStateService.states) do updateState:update(0.6) end
-assertTrue(state.targetAI.phase ~= "ROUTINE", "target enters threat routine")
+local targetX, targetY = state.target:getPos()
+player.x, player.y = targetX + 100, targetY
+securityDirector.notifyPlayerGunfire(state, player)
+require("hco/targets/controller").update(state, 0.6)
+assertEqual(state.targetAI.phase, "UNEASY", "one nearby audible shot moves the principal without identifying the shooter")
 assertTrue(state.targetAI.safePoint, "secure destination selected")
+state.security.targetThreatLevel = 1
+require("hco/targets/controller").update(state, 0.2)
+assertEqual(state.targetAI.phase, "THREATENED", "confirmed protection incident escalates the principal from relocation to flight")
 
 state.target.x, state.target.y = state.targetAI.safePoint.x, state.targetAI.safePoint.y
 for _, updateState in ipairs(gameStateService.states) do updateState:update(0.2) end
@@ -973,6 +995,13 @@ for step = 1, 13 do
 	for _, updateState in ipairs(gameStateService.states) do updateState:update(1) end
 end
 assertTrue(state.targetAI.recoveries > recoveryBefore, "blocked route triggers watchdog recovery within ten seconds")
+
+restoreIdentityOption.interact(validD, player)
+assertEqual(state.disguise, nil, "native restore action removes the active disguise")
+assertEqual(player.animVar, "sean", "native restore action reapplies the original player appearance")
+assertTrue(state.usedDisguiseSources[validA.id] and state.usedDisguiseSources[validD.id], "removing clothes does not make consumed identities reusable")
+assertEqual(state.contract.disguiseGroup, nil, "removed disguise is cleared from campaign persistence")
+assertEqual(state.identityFX.kind, "restored", "removing a disguise plays the world-space restore transition")
 
 events:fire(actor.EVENTS.NEUTRALIZED, state.target)
 assertEqual(state.contract.status, "completed", "contract completed")

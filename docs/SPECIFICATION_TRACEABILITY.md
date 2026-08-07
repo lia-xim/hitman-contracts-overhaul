@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.6-rc40`
+**Candidate:** `0.14.7-rc41`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -13,14 +13,14 @@ This document prevents future work from collapsing the product specification int
 | --- | --- | --- | --- | --- |
 | Native-first presentation | `contracts/objective.lua`, `feedback.lua`, native interaction lists, actor/world draw hooks | Implemented for the current feature surface | Boot, runtime, feedback and visual suites | Confirm no detached menu, overlapping banners or cursor capture |
 | Deterministic optional contracts | `contracts/core.lua`, `selector.lua`, `persistence.lua` | Implemented | Runtime lifecycle, reload, rollback and multi-contract cases | Test compatible campaign maps and one unsupported map |
-| Mobile target and secure movement | `targets/controller.lua` | Implemented | Routine, threatened, sheltered, reselection, escape and watchdog cases | Long live route/reload pass on several maps |
+| Mobile target and secure movement | `targets/controller.lua` | RC41 routine/incident watchdog candidate | Routine recovery, first-shot caution, threatened, sheltered, incident reselection, escape and stuck-route cases | Long live route/reload/incident pass on several maps |
 | Protection and response roles | `security/escort.lua`, `security/director.lua` | Implemented for close protection and autonomous response | Role ownership, fan-out, search and follower safety cases | Verify weapons, combat pressure and difficulty balance in game |
 | Knowledge and hunt phases | `security/director.lua` | Implemented | Local evidence, pressure, decay and stand-down cases | Verify no wall omniscience and readable convergence |
-| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | Implemented in RC34, live-tuned through RC39 | Native action enumeration, cached-body refresh, death-time identity capture, three switches and observer-local identity rebind | Must be accepted from the real body interaction wheel |
+| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | RC41 first-action takeover, explicit rollback and persistent-state presentation candidate | Native two-action enumeration/order, cached-body refresh, death-time identity capture, three switches, rollback and persistence cleanup | Must be accepted from the real body interaction wheel |
 | Social recognition | `social/disguise.lua` plus instantiated native Goon sight states | Implemented for the observer-local uniform-class model | Instant-bypass interception, 150-unit timed close scrutiny, 72-unit point-blank exposure, native hostile handoff, arbitrary held weapon, witnessed/unwitnessed fire, access, evidence and compromise cases | Prove distance bands and native response in a real mission |
 | Credentials and restricted areas | Native `playerActor:addKey` and off-limits queries, coordinated by `social/disguise.lua` | Implemented for keycard and keychain IDs | Acquisition/reload and adjusted trespass-query cases | Verify actual mission doors and STAFF/SECURITY/ELITE areas |
 | Existing cameras | `security/sensors.lua` | Implemented | Camera risk scaling and disruption/break evidence in runtime fixtures | Live camera cone, disguise and wall/EMP pass |
-| Physical drone system | `security/drones.lua` and drone modules | RC40 committed patrol, outdoor fallback, stationary scan and shared map alarm candidate | Dedicated drone, roster and airframe suites | RC40 live patrol/network matrix remains mandatory |
+| Physical drone system | `security/drones.lua` and drone modules | RC41 committed patrol, bounded inert barrier hop, outdoor fallback, stationary scan and shared map alarm candidate | Dedicated drone, roster and airframe suites | RC41 live patrol/barrier/network matrix remains mandatory |
 | Rewards and persistence | `contracts/rewards.lua`, `persistence.lua` | Implemented | Exactly-once reward, active reload, terminal reload and bundle cases | Campaign save/reload across mission transitions |
 | Authored map profiles | Contract archetypes provide visual/doctrine identity; per-map authored safe-area profiles remain partial | Partial | Profile selection and deterministic doctrine cases | Author and approve high-value mission profiles |
 | Expanded contract families | Eliminate/neutralize plus bonus conditions are present; theft, extraction and authored accidents are not | Partial expansion | Current contract-resolution cases | New families require their own engine proofs |
@@ -32,16 +32,16 @@ This document prevents future work from collapsing the product specification int
 
 ### Native interaction ownership
 
-The game owns body interaction through `goon.interactionList`, `entity:enumerateActions`, `entity:getInteractOptions`, `entity:updateInteractionList`, `currentActionBitmask`, and `entity:postInteract`. RC34 appends one combined action because the specification explicitly permits this first-release shape.
+The game owns body interaction through `goon.interactionList`, `entity:enumerateActions`, `entity:getInteractOptions`, `entity:updateInteractionList`, `currentActionBitmask`, and `entity:postInteract`. RC41 owns two sentinel entries in that native list: takeover at position one and original-identity restoration directly behind it.
 
 The integration contract is:
 
-1. Find or create exactly one HCO-sentinel action on the real Goon class list.
+1. Find or create exactly one takeover sentinel and one original-identity restore sentinel on the real Goon class list; remove duplicate entries left by reload/hot-load.
 2. Re-run native action enumeration so IDs remain powers of two and `actionTrackerID` advances correctly, including actions added by other mods.
 3. Refresh already-cached interaction lists instead of assuming all bodies are created after HCO.
 4. Refresh after `_die`, `_choke`, `makeFallen`, and `onBodyDropped`.
-5. Call native `postInteract` after a successful takeover so the consumed action disappears immediately.
-6. Never expose the action without an active HCO contract, a player interactor, an eligible dead/unconscious Goon, a valid appearance variant, and an unused source identity.
+5. Call native `postInteract` after takeover or restoration so the body menu updates immediately.
+6. Never expose takeover without an active HCO contract, a player interactor, an eligible dead/unconscious Goon, a valid appearance variant, and an unused source identity. Expose restoration only while an identity is active.
 
 This closes the RC33 test gap where the harness called `option.interact` directly but never proved that the engine would display the option.
 
@@ -114,7 +114,7 @@ The values are intentionally centralized in `config.lua`; live balancing changes
 
 ### Appearance and transition language
 
-The permanent state is communicated by the player's real animation variant. HCO faction identities also retain the matching restrained torso insignia. Transitions use a short world-space effect attached to `playerActor:postDraw`, never a detached screen/menu layer:
+The permanent state is communicated by the player's real animation variant, matching restrained torso insignia and a low-alpha segmented identity shimmer around the player (cyan while credible, red while compromised). Transitions use the same world-space `playerActor:postDraw` hook, never a detached screen/menu layer:
 
 - cyan segmented ring, brackets and pixel stitch burst for acquisition/switching;
 - muted teal confirmation on reload restoration;
@@ -130,13 +130,14 @@ Acquisition and compromise reuse known native UI sounds. Identity checks deliber
 - Consumed source IDs survive checkpoint reload.
 - The current animation variant, credentials, faction mark and compromised-class map are restored together.
 - Contract cleanup restores the original player variant and removes HCO's player insignia/effects.
+- The explicit restore action clears only the active disguise record/visual and pending identity calls. Copied credentials, consumed-source IDs and learned compromised-uniform history remain authoritative.
 - If a variant cannot be applied and read back, takeover fails atomically and the previous appearance/identity remains authoritative.
 
 ## RC34 automated acceptance
 
 RC34 is not allowed to advance unless all of the following remain green:
 
-- HCO assigns the third native body action ID as `4` and advances the tracker to `8` in the controlled vanilla two-action fixture.
+- HCO puts takeover/restore at native positions one/two, assigns IDs `1`/`2`, and advances the tracker to `16` in the controlled vanilla two-action fixture.
 - A body whose interaction cache predates HCO receives the action through the real update-list path.
 - `_die` captures weapon/keycard identity before native stripping.
 - A successful interaction calls native `postInteract` and cannot be repeated from the same source, including after reload.
@@ -210,13 +211,23 @@ Second, a native yellow/red alert state or last-known hunch is not proof that an
 - A weapon carrier may use a living response actor from any active HCO context for native projectile attribution, so a surviving armed wing does not become inert after its own principal/detail dies while another network detail remains alive.
 - Automated coverage must prove fallback travel, destination commitment, cross-context wing/guard propagation and red network-search presentation. Live acceptance must hold for at least 30 seconds on a multi-contract map.
 
+## RC41 exterior transition, target awareness and identity readability
+
+- Ordinary steering remains the first response to a wall. Only after 0.85 seconds of blocked progress may a drone inspect the intended heading for a landing no farther than 144 units away; the obstructed run may be at most 96 units and the destination must pass the complete outdoor footprint check.
+- The resulting eased hop is a named movement-only state. Native camera update, HCO player/body acquisition, contact relay and weapon authority are all suspended until landing. The carrier and hitbox follow the visible airframe, which gains a short lift arc and cyan pixel cues.
+- A wide roof/building or map void produces no valid landing. Safety retirement/recovery still applies outside the explicit transition, preventing a hidden or unreachable armed carrier.
+- Protected targets now sample routine movement. Nine seconds without progress advances the original native patrol route rather than leaving a principal indefinitely AFK.
+- One nearby unsuppressed shot writes only a location-level protection incident and cautious target threat. It cannot identify the shooter. Damage/casualties or confirmed evidence still produce full flight; a fresh local incident can invalidate a sheltered safe area.
+- Takeover is the first eligible native body action, restoration is the second HCO action, and a persistent world shimmer makes the active/compromised identity readable. Restoration returns the original player variant and clears campaign disguise fields while retaining copied credentials, consumed identities and previous compromise knowledge.
+- Automated coverage must prove bounded landing selection, transit sensing lockout, target routine recovery, first-shot caution, action order, removal and persistence cleanup. Live acceptance must prove geometry, native-AI movement and render behavior.
+
 ## Required live acceptance for this feature
 
 Automated completion is not production acceptance. On Intravenous 2 `1.4.12HF3`, fully restart the game and verify:
 
-1. Kill and separately choke a guard. The native interaction selector must show `Take disguise / search body` without a custom key or menu.
-2. Take the disguise. Confirm an immediate visible actor change, short cyan world effect, compact identity message and no input/cursor regression.
-3. Confirm the action disappears from that body and remains consumed after quicksave/quickload.
+1. Kill and separately choke a guard. The native interaction selector must show `Take disguise / search body` as the first eligible action without a custom key or menu.
+2. Take the disguise. Confirm an immediate actor change, short cyan transition, compact identity message and a restrained persistent cyan shimmer with no input/cursor regression.
+3. Confirm takeover disappears from that body and **Restore original identity** becomes the first remaining identity action. Restore once: the original appearance and persisted active disguise must clear, while credentials and consumed-source history remain. Reacquire another eligible identity and quicksave/quickload it.
 4. Repeat with an unarmed staff actor, normal guard and elite guard. The appearances and tier messages must differ where the map supplies distinct variants.
 5. Take a carried keycard/keychain identity and open the corresponding real door. A uniform without credentials must not fabricate the key.
 6. Walk normally while holding several arbitrary weapons, including the player's normal silenced pistol. At normal distance, holster/unholster and reload must remain neutral. Make one brief close pass and retreat before scrutiny completes; then remain in unobstructed close view until that observer exposes you. Finally enter point-blank view and confirm immediate native threatening/combat. Matching colleagues and elite guards must resolve the close check faster.
@@ -226,7 +237,7 @@ Automated completion is not production acceptance. On Intravenous 2 `1.4.12HF3`,
 10. Repeat and allow the radio to finish. Confirm the red compromise transition and full recognition by a previously uninformed guard.
 11. Trigger a same-unit identity check. Walk out of range to cancel once; remain nearby to fail once.
 12. Leave the source body in a drone's unobstructed cone, then repeat with the drone disrupted. Only the valid scan may compromise the identity.
-13. Save/reload while clean and while compromised. Appearance, credentials, source consumption and compromise state must agree after both reloads.
-14. Finish/restart/leave the mission. The player's campaign appearance and normal no-disguise combat must be restored with no HCO traceback.
+13. Save/reload while clean and while compromised. Appearance, persistent cyan/red shimmer, credentials, source consumption and compromise state must agree after both reloads.
+14. Finish/restart/leave the mission. The player's campaign appearance, shimmer and normal no-disguise combat must be restored with no HCO traceback.
 
 Any failed item returns this matrix to `implemented, live-blocked`; it must not be described as production-proven.

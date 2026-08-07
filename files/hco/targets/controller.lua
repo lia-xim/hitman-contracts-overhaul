@@ -548,6 +548,52 @@ local function updateStuckWatchdog(state, dt)
 	end
 end
 
+local function reassertRoutinePatrol(state)
+	local target = state.target
+	local ai = state.targetAI
+	if not ai.originalRoute or #(ai.routePoints or {}) < 2 then return false end
+	local _, currentIndex = util.call(target, "getPatrolRouteIndex")
+	local nextIndex = ((tonumber(currentIndex) or ai.originalRouteIndex or 1) % #ai.routePoints) + 1
+	local okIdle, idleState = util.call(target, "getStateObject", target.IDLE_STATE or "goon_idle")
+	if okIdle and idleState then util.call(target, "setState", idleState) end
+	local activated = util.call(target, "setActivePatrolRoute", ai.originalRoute, nextIndex)
+	util.call(target, "setPatrolRouteIndex", nextIndex)
+	util.call(target, "setPath", nil)
+	ai.routineVisited[nextIndex] = true
+	ai.routineStuckTime = 0
+	ai.routineRecoveries = (ai.routineRecoveries or 0) + 1
+	util.log(config, "target routine watchdog advanced patrol index=" .. tostring(nextIndex))
+	return activated == true
+end
+
+local function updateRoutineWatchdog(state, dt)
+	local target = state.target
+	local ai = state.targetAI
+	ai.routineSampleTime = (ai.routineSampleTime or 0) + dt
+	if ai.routineSampleTime < config.STUCK_SAMPLE_INTERVAL then return end
+	local x, y = util.getPos(target)
+	local moved = x and ai.routineLastX and math.sqrt((x - ai.routineLastX)^2 + (y - ai.routineLastY)^2) or math.huge
+	ai.routineSampleTime = 0
+	ai.routineLastX, ai.routineLastY = x, y
+	if moved <= config.STUCK_DISTANCE_EPSILON then
+		ai.routineStuckTime = (ai.routineStuckTime or 0) + config.STUCK_SAMPLE_INTERVAL
+	else
+		ai.routineStuckTime = 0
+	end
+	if ai.routineStuckTime >= (config.TARGET_ROUTINE_STUCK_TIMEOUT or 9) then reassertRoutinePatrol(state) end
+end
+
+local function consumeNearbyIncident(state)
+	local ai = state.targetAI
+	local incident = state.security and state.security.protectionIncident
+	if not incident or (tonumber(incident.time) or 0) <= (ai.lastIncidentTime or -1) then return false end
+	ai.lastIncidentTime = tonumber(incident.time) or 0
+	local x, y = util.getPos(state.target)
+	if not x then return false end
+	local dx, dy = x - incident.x, y - incident.y
+	return dx * dx + dy * dy <= (config.TARGET_INCIDENT_AWARENESS_RANGE or 1050)^2
+end
+
 local function shouldEvacuate(state)
 	local ai = state.targetAI
 	local profile = profiles.resolve(state.contract.seed, state.contract.archetype)
@@ -606,6 +652,12 @@ function controller.attach(state)
 		weaponDropped = false,
 		safePoint = nil,
 		routineVisited = {},
+		routineSampleTime = 0,
+		routineStuckTime = 0,
+		routineRecoveries = 0,
+		routineLastX = x,
+		routineLastY = y,
+		lastIncidentTime = -1,
 		evacuationWarningTime = 0
 	}
 	local goonClass = actor.getClassData and actor.getClassData("goon")
@@ -620,7 +672,9 @@ function controller.attach(state)
 
 	if #state.targetAI.routePoints > 1 then
 		local startIndex = state.targetAI.seed % #state.targetAI.routePoints + 1
+		util.call(target, "setActivePatrolRoute", state.targetAI.originalRoute, startIndex)
 		util.call(target, "setPatrolRouteIndex", startIndex)
+		util.call(target, "setPath", nil)
 		state.targetAI.routineVisited[startIndex] = true
 	end
 end
@@ -688,6 +742,18 @@ function controller.update(state, dt)
 	end
 
 	local level = threatLevel(state)
+	local nearbyIncident = consumeNearbyIncident(state)
+	if nearbyIncident and (ai.phase == "SHELTERED" or ai.phase == "CORNERED") then
+		ai.recoveries = 0
+		issueSecureMove(state, "THREATENED", true)
+	elseif nearbyIncident and ai.phase == "THREATENED" and ai.safePoint then
+		local incident = state.security and state.security.protectionIncident
+		local dx, dy = ai.safePoint.x - incident.x, ai.safePoint.y - incident.y
+		if dx * dx + dy * dy <= (config.TARGET_INCIDENT_RELOCATE_RANGE or 520)^2 then
+			ai.recoveries = 0
+			issueSecureMove(state, "THREATENED", true)
+		end
+	end
 
 	-- Native combat perception can replace the flight state after the player
 	-- fires. A protected principal must never join the assault: reassert the
@@ -713,6 +779,8 @@ function controller.update(state, dt)
 			enterThreat(state)
 		elseif level == 1 then
 			enterUneasy(state)
+		else
+			updateRoutineWatchdog(state, dt)
 		end
 	elseif ai.phase == "UNEASY" then
 		if level >= 2 then

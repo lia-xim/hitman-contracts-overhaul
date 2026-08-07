@@ -1,8 +1,14 @@
 [h1]HITMAN CONTRACTS OVERHAUL[/h1]
 [b]Intravenous 2 meets Hitman: optional HVT contracts, mobile targets, heavy protection details, disguises, social stealth and physical security-drone wings — integrated into the native game.[/b]
 
-[h2]NEW IN RC29 — NATIVE BALANCE & SMARTER DRONES[/h2]
+[h2]NEW IN RC41 — SMART FLIGHT, LIVING TARGETS & READABLE IDENTITIES[/h2]
 [list]
+[*]Drones steer first, then visibly hop narrow walls/gates only between verified outdoor cells
+[*]Barrier hops are movement-only: no scan, relay or weapon fire until the drone lands
+[*]Wide buildings, roofs and unreachable void remain forbidden
+[*]Protected targets recover stalled patrols and react to nearby audible incidents without magically learning who fired
+[*]Take Disguise is the first body action; Restore Original Identity removes it again
+[*]A persistent cyan/red world shimmer makes active or compromised cover readable on the player
 [*]Easy/Normal/Hard/True/Custom difficulty now changes guards, targets, response size, drone pressure, sensor strength, threat rating and payout together
 [*]Threat ratings I–V appear in the compact native contract announcement
 [*]Global twelve-drone fleet ceiling plus per-contract Heavy/Laser limits keep multi-contract missions readable
@@ -24,7 +30,7 @@
 [list]
 [*]One to three deterministic optional contracts on sufficiently populated maps
 [*]Executive, Broker, Commander and Fixer targets with distinct native appearance and security doctrine
-[*]Moving targets, safer fallback positions, physical evacuation and anti-stuck recovery — no teleporting bosses
+[*]Moving targets, routine patrol recovery, local-incident awareness, safer fallback positions and physical evacuation — no teleporting bosses
 [*]Five close bodyguards remain with the principal while separate response units search and attack
 [*]Field-intelligence dead drops reveal exact moving target markers
 [*]Compact completion banner, campaign-money payout, audio feedback and reload persistence
@@ -32,8 +38,10 @@
 
 [h2]DISGUISE & SOCIAL STEALTH[/h2]
 [list]
-[*]Search unconscious or dead guards and take Staff, Security or Elite disguises
-[*]Normal walking and plausible equipment reduce suspicion
+[*]Take Staff, Security or Elite disguises as the first native body action
+[*]Restore your original identity from a body menu without losing stolen credentials
+[*]Normal walking and any held/holstered weapon preserve cover at believable distance
+[*]Persistent cyan/red player shimmer communicates active or compromised cover
 [*]Running, aiming, firing, lockpicking, carrying bodies and restricted access expose you
 [*]Close colleagues identify false uniforms faster
 [*]Stolen keycards use the game's real credential system
@@ -54,7 +62,7 @@ Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a l
 The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.13.0-rc29[/b] — production-candidate release. RC29 adds native-difficulty balance, bounded multi-contract fleets, semantic body/disguise sensing and final family-specific presentation while retaining the complete-hitbox and physical-crash fixes. Internal render diagnostics are disabled in normal play. Promotion to 1.0 follows the published crash-free live mission matrix.
+[b]0.14.7-rc41[/b] — production-candidate release. RC41 adds bounded disarmed exterior-barrier flight, principal patrol/incident watchdogs, first-position disguise takeover, explicit original-identity restoration and persistent identity readability while retaining the complete drone combat/crash and consequential social-stealth systems. Promotion to 1.0 follows the published crash-free live mission matrix.
 
 [h2]OPEN SOURCE[/h2]
 Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.

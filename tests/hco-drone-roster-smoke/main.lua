@@ -102,6 +102,32 @@ local _,_,wallMove,avoided=flight.move(drone,1,60)
 assertTrue(avoided and wallMove>0,"building wall triggers an active avoidance maneuver instead of a standstill")
 assertTrue(drone.x+13<340,"building avoidance does not cross the blocked wall tile")
 
+-- A narrow wall/gate between two outdoor cells is crossed as an explicit
+-- unarmed air transit after steering has proven unable to progress. Wide
+-- buildings remain rejected by the bounded landing search.
+game.worldObject.getPFGridValue=function(_,index)
+	return index.x>=340 and index.x<=390 and world.PATHFIND_TILE_STATE.OBSTRUCTED or world.PATHFIND_TILE_STATE.WALKABLE
+end
+drone.x,drone.y=317,300
+drone.hcoDestX,drone.hcoDestY=500,313
+drone.hcoBlockedTime=require("hco/config").DRONE_BARRIER_HOP_DELAY
+flight.move(drone,0.1,60)
+assertTrue(flight.isTransiting(drone) and drone.hcoTransitProgress==0,"narrow barrier starts a controlled flight transition")
+for step=1,12 do flight.move(drone,0.1,60) end
+assertTrue(not flight.isTransiting(drone) and drone.x+13>390,"barrier transition lands on the verified outdoor side")
+
+envController={
+	getRoofReady=function() return true end,
+	getPosUnderRoof=function(_,x) return x>=340 and x<=390 end
+}
+game.worldObject.getPFGridValue=function() return world.PATHFIND_TILE_STATE.WALKABLE end
+drone.x,drone.y=317,300
+drone.hcoDestX,drone.hcoDestY=500,313
+drone.hcoBlockedTime=require("hco/config").DRONE_BARRIER_HOP_DELAY
+flight.move(drone,0.1,60)
+assertTrue(not flight.isTransiting(drone) and drone.x+13<340,"even a narrow roofed building is never accepted as barrier-hop geometry")
+envController=nil
+
 -- Intravenous 2 exposes its finalized indoor map through envController. A
 -- pathable tile under a roof is still an invalid armed-drone location.
 game.worldObject.getPFGridValue=function() return world.PATHFIND_TILE_STATE.WALKABLE end

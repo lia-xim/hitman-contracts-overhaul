@@ -415,8 +415,9 @@ function drones.initialize()
 		if self.hcoFrameTime >= 0.09 then self.hcoFrameTime = 0 self.hcoFrame = self.hcoFrame % 4 + 1 end
 		local offset = centerOffset(self)
 		local centerX, centerY = (self.x or 0) + offset, (self.y or 0) + offset
-		local safePosition = flight.isSafeCombatPoint(centerX, centerY, math.max(10, offset * 0.8))
-		if not safePosition and (self.hcoNextSafetyRecoveryAt or 0) <= (curTime or 0) then
+		local transiting = flight.isTransiting(self)
+		local safePosition = transiting or flight.isSafeCombatPoint(centerX, centerY, math.max(10, offset * 0.8))
+		if not transiting and not safePosition and (self.hcoNextSafetyRecoveryAt or 0) <= (curTime or 0) then
 			self.hcoNextSafetyRecoveryAt = (curTime or 0) + 0.5
 			local recoveryX, recoveryY = flight.recoveryPoint(self)
 			if recoveryX then
@@ -454,21 +455,36 @@ function drones.initialize()
 			airframes.sync(self.hcoAirframe, self)
 			return result
 		end
+		if flight.isTransiting(self) then
+			-- Barrier overflight is a movement-only state. Do not invoke the inherited
+			-- security-camera update while the carrier crosses geometry: even a native
+			-- camera-side sight callback would create an unfair one-way alarm from a
+			-- position the player may not be able to shoot through.
+			self.hcoDetect, self.hcoSightGrace = 0, 0
+			self.lightColorCurrent = self.lightColor
+			self:updateCastColor()
+			droneWeapons.update(self, game and game.playerActor, false, math.pi, dt, false)
+			local _, velocityAngle = flight.move(self, dt, config.DRONE_MAX_PATROL_SPEED)
+			flight.updateAim(self, dt, game and game.playerActor, false, velocityAngle)
+			airframes.sync(self.hcoAirframe, self)
+			return true
+		end
 		-- Let the native camera maintain disruption/light-buffer state first.
 		-- It also runs its own fixed sweep, so HCO writes the authoritative gimbal
 		-- angle afterwards; otherwise the native update silently steals the cone
 		-- back every frame and appears to fly past a detected player.
 		local result = drone.baseClass.update(self, dt)
-		scanBodyEvidence(self, dt)
+		if not flight.isTransiting(self) then scanBodyEvidence(self, dt) end
 
 		local security = self.hcoContext and self.hcoContext.security
 		local aggressive = security and security.droneMode == "AGGRESSIVE"
 		local modeSpeed = aggressive and config.DRONE_AGGRESSIVE_SPEED_MULTIPLIER or config.DRONE_PATROL_SPEED_MULTIPLIER
 		local player = game and game.playerActor
 		self.hcoTracking = math.max(0, (self.hcoTracking or 0) - dt)
-		local visibleBeforeMove = player and util.isAlive(player) and canSeePlayer(self, player) or false
+		transiting = flight.isTransiting(self)
+		local visibleBeforeMove = not transiting and player and util.isAlive(player) and canSeePlayer(self, player) or false
 		local recentLastKnown = security and security.lastKnown and ((curTime or 0) - (security.lastKnown.time or 0)) <= 8
-		local pursuitCue = aggressive and recentLastKnown and player and util.isAlive(player) and hasPlayerLineOfSight(self, player, false) or false
+		local pursuitCue = not transiting and aggressive and recentLastKnown and player and util.isAlive(player) and hasPlayerLineOfSight(self, player, false) or false
 		local tacticalContact = visibleBeforeMove or pursuitCue
 		if tacticalContact then
 			if self.hcoTracking <= 0 then flight.beginTracking(self, player) else self.hcoTracking = 2.2 end
@@ -489,7 +505,10 @@ function drones.initialize()
 		local requestedSpeed = config.DRONE_SPEED * (self.hcoSpeed or 1) * modeSpeed
 		local maximumSpeed = aggressive and config.DRONE_MAX_AGGRESSIVE_SPEED or config.DRONE_MAX_PATROL_SPEED
 		local _, velocityAngle, movedDistance = flight.move(self, dt, math.min(requestedSpeed, maximumSpeed))
-		if movedDistance < 0.05 then
+		transiting = flight.isTransiting(self)
+		if transiting then
+			self.hcoIdleTime = 0
+		elseif movedDistance < 0.05 then
 			self.hcoIdleTime = (self.hcoIdleTime or 0) + dt
 		else
 			self.hcoIdleTime = math.max(0, (self.hcoIdleTime or 0) - dt * 2)
@@ -508,12 +527,17 @@ function drones.initialize()
 			end
 		end
 		flight.updateAim(self, dt, player, visibleBeforeMove or pursuitCue, velocityAngle)
-		local visible = player and util.isAlive(player) and canSeePlayer(self, player) or false
+		local visible = not transiting and player and util.isAlive(player) and canSeePlayer(self, player) or false
 		if visible then
 			if self.hcoTracking <= 0 then flight.beginTracking(self, player) else self.hcoTracking = 2.2 end
 		end
 		if visible then self.hcoSightGrace = 0.4 else self.hcoSightGrace = math.max(0, (self.hcoSightGrace or 0) - dt) end
-		local detectionVisible = visible or (self.hcoSightGrace or 0) > 0
+		if transiting then
+			self.hcoDetect, self.hcoSightGrace = 0, 0
+			self.lightColorCurrent = self.lightColor
+			self:updateCastColor()
+		end
+		local detectionVisible = not transiting and (visible or (self.hcoSightGrace or 0) > 0)
 		if detectionVisible then
 			local detectTime = config.DRONE_DETECT_TIME * (self.hcoDetectScale or 1) * (aggressive and 1 or config.DRONE_PATROL_DETECT_MULTIPLIER)
 			local semanticFactor = semanticDetectionFactor(self, aggressive)
@@ -540,7 +564,7 @@ function drones.initialize()
 		end
 		local confirmed = aggressive and self.hcoTracking > 0 and ((curTime or 0) - (self.hcoLastConfirmedAt or -100)) < 3
 		local attackOffset = centerOffset(self)
-		local attackReady = self.hcoHitboxReady == true and flight.isSafeCombatPoint((self.x or 0) + attackOffset, (self.y or 0) + attackOffset, math.max(10, attackOffset * 0.8))
+		local attackReady = not transiting and self.hcoHitboxReady == true and flight.isSafeCombatPoint((self.x or 0) + attackOffset, (self.y or 0) + attackOffset, math.max(10, attackOffset * 0.8))
 		droneWeapons.update(self, player, visible, aimError, dt, confirmed and attackReady)
 		airframes.sync(self.hcoAirframe, self)
 		return result

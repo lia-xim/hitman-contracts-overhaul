@@ -47,6 +47,7 @@ local function mobilizeProtection(state, x, y, reason, confirmedPlayer)
 	if not x then x, y = util.getPos(state.target) end
 	if not x then return end
 	local confidence = confirmedPlayer and 1 or 0.55
+	security.protectionIncident = {x=x, y=y, time=curTime or 0, reason=reason, confirmedPlayer=confirmedPlayer == true}
 	security.lastKnown = {x=x, y=y, confidence=confidence, source=reason, time=curTime or 0, actor=confirmedPlayer and player or nil}
 	security.targetThreatLevel = 1
 	security.huntPhase = "PRESSURE"
@@ -403,6 +404,18 @@ function director.notifyPlayerGunfire(state, player)
 	local security = state and state.security
 	if not security or not player or not util.isAlive(state.target) then return end
 	local now = curTime or 0
+	local x, y = util.getPos(player)
+	local targetX, targetY = util.getPos(state.target)
+	if x and targetX then
+		local dx, dy = x - targetX, y - targetY
+		if dx * dx + dy * dy <= (config.TARGET_INCIDENT_AWARENESS_RANGE or 1050)^2 then
+			-- One audible shot near the principal is enough to make them relocate.
+			-- It is only a location-level warning: the player identity remains unknown
+			-- until a witness, radio or drone confirms it.
+			security.targetThreatLevel = math.max(security.targetThreatLevel or 0, 0.4)
+			security.protectionIncident = {x=x, y=y, time=now, reason="nearby-gunfire", confirmedPlayer=false}
+		end
+	end
 	if not security.gunfireWindowStarted or now - security.gunfireWindowStarted > config.DRONE_GUNFIRE_WINDOW then
 		security.gunfireWindowStarted = now
 		security.playerGunshots = 0
@@ -410,7 +423,6 @@ function director.notifyPlayerGunfire(state, player)
 	security.playerGunshots = (security.playerGunshots or 0) + 1
 	if security.playerGunshots >= config.DRONE_GUNFIRE_THRESHOLD and not security.dronesTriggeredByGunfire then
 		security.dronesTriggeredByGunfire = true
-		local x, y = util.getPos(player)
 		mobilizeProtection(state, x, y, "sustained-player-gunfire", false)
 	end
 end

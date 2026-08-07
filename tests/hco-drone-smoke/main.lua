@@ -147,6 +147,16 @@ local committedPatrolX,committedPatrolY=patrolProbe.hcoDestX,patrolProbe.hcoDest
 assertTrue(committedPatrolX~=nil,"patrol resolves a distinct fallback destination when its authored sector collapses onto the current position")
 patrolProbe:update(0.1)
 assertTrue(patrolProbe.hcoDestX==committedPatrolX and patrolProbe.hcoDestY==committedPatrolY,"patrol keeps a distant destination instead of re-rolling it before arrival")
+local transitOffset=patrolProbe.hcoCenterOffset or 13
+local transitStartX,transitStartY=patrolProbe.x+transitOffset,patrolProbe.y+transitOffset
+patrolProbe.hcoTransit={startX=transitStartX,startY=transitStartY,finishX=transitStartX+90,finishY=transitStartY,time=0,duration=1}
+patrolProbe.hcoTransitProgress=0
+patrolProbe.hcoDetect,patrolProbe.hcoSightGrace=0.4,0.4
+game.playerActor.x,game.playerActor.y=transitStartX+20,transitStartY
+patrolProbe:update(0.1)
+assertTrue(patrolProbe.hcoTransit~=nil and patrolProbe.hcoDetect==0 and patrolProbe.hcoSightGrace==0,"barrier transit suppresses acquisition while the drone is not in a fair combat cell")
+patrolProbe.hcoTransit=nil
+patrolProbe.hcoTransitProgress=0
 local armorProbe=context.security.drones[2]
 armorProbe.hcoArmor,armorProbe.hcoArmorMax=3,3
 local normalBullet={damage=20,armorPenetration=2,firer=game.playerActor}

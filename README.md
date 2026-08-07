@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.14.6-rc40`
+**Current build:** `0.14.7-rc41`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate test release. RC40 preserves RC39's consequential close recognition and fixes passive drone wings: patrol destinations remain stable until reached, invalid sectors fall back to real outdoor search points, stationary sensors sweep through 360 degrees, and one confirmed drone sighting alarms every HCO wing and response team on the map. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC41 adds fair bounded exterior-barrier overflight, a target routine-mobility/incident watchdog, first-position disguise takeover, explicit original-identity restoration and a persistent player identity shimmer. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 
@@ -14,13 +14,13 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Executive, Broker, Fixer, and Commander archetypes with distinct appearance, rewards, drone doctrines, five close bodyguards, and 5/10/15/20 separate response units, constrained by the map's safe NPC population.
 - Native difficulty changes response strength, health, drone pressure, sensor performance, threat rating and payout instead of applying one hidden balance to every playthrough.
 - Stronger protected targets and elite guards with archetype-scaled health.
-- Mobile target phases, safe-area relocation, physical evacuation, and anti-stuck recovery without teleporting targets.
+- Mobile target phases, routine patrol recovery, nearby-incident awareness, safe-area relocation, physical evacuation, and anti-stuck recovery without teleporting targets.
 - Field-intelligence dead drops that reveal exact moving target markers.
 - Native body-menu identities with three tiers, visible actor variants, matching faction insignia, weapon-neutral cover, restricted areas, keycards/keychains, colleague recognition, bloodied-uniform risk, compromise, and interruptible radio checks.
 - Seven physical, actor-scaled drone models: one unarmed Scout plus light/heavy Pistol, SMG and Laser airframes.
 - A global twelve-airframe ceiling plus per-contract Heavy/Laser limits prevents multi-contract missions from turning into an unreadable or expensive 21-drone pile-up.
 - Stable standoff pursuit replaces continuous player orbiting; bodies turn with flight while independent sensor gimbals retain the player inside their allowed arc.
-- Native roof-map and floor-grid footprint validation keep armed drones outside buildings, out of unreachable void and apart from other airframes; unused roster models are preferred before duplicates.
+- Native roof-map and floor-grid footprint validation keep armed drones outside buildings, out of unreachable void and apart from other airframes. After ordinary steering fails, a bounded unarmed hop may cross only a narrow barrier between two verified outdoor cells; roofed structures remain forbidden.
 - Armed drones fire only after a completed native line-of-sight trace and while their centered bullet target is valid. Pistol/SMG models create native game bullets; lasers expose an aim line and full charge window before damage.
 - Light/heavy rotor profiles and laser one-shots are adapted from creator-supplied audio, while ballistic drones retain native weapon sounds.
 - Native-airframe flight presentation with hover motion, rotor/sensor pulses, a short pixel wake, family-colored effects, real laser-charge progress, damage smoke and a readable sensor heading.
@@ -39,13 +39,13 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 
 No menu or hotkey is required. Start a compatible mission from the beginning. HCO selects safe mission actors and adds optional contracts through the native objective system. Follow the intelligence marker, recover the dead drop, and then track the moving target.
 
-Approach a dead or unconscious guard and choose **Take disguise / search body** in the normal interaction selector. The player visibly adopts that actor variant; HCO identities retain their faction insignia. The held weapon, weapon model and holster state do not affect the identity. Keep a believable distance: sustained close eye contact builds observer-local scrutiny, same-unit/elite guards inspect faster, and point-blank visual contact blows the cover immediately. Running, aiming at someone, witnessed firing, lockpicking, carrying a body, a bloodied uniform, fresh evidence, restricted access or target lingering can also expose you. An unseen shot creates investigation at its location without revealing who fired it. A real radio report can be disrupted before local recognition becomes global compromise.
+Approach a dead or unconscious guard and choose **Take disguise / search body**, now the first eligible action in the normal interaction selector. The player visibly adopts that actor variant and receives a restrained persistent cyan identity shimmer; compromised cover is shown in red. Open any dead/unconscious body selector while disguised and choose **Restore original identity** to put the original appearance back on. Stolen credentials remain in the native inventory and consumed uniforms cannot be duplicated. The held weapon, weapon model and holster state do not affect the identity. Keep a believable distance: sustained close eye contact builds observer-local scrutiny, same-unit/elite guards inspect faster, and point-blank visual contact blows the cover immediately. Running, aiming at someone, witnessed firing, lockpicking, carrying a body, a bloodied uniform, fresh evidence, restricted access or target lingering can also expose you. An unseen shot creates investigation at its location without revealing who fired it. A real radio report can be disrupted before local recognition becomes global compromise.
 
 Drones participate in that same social-stealth model. A calm valid identity buys time during routine patrols, not invisibility. Aggressive security uses faster sensor scrutiny, and a drone that finds the body from which the uniform was taken compromises the disguise over the security network.
 
 If security confirms you, the detail enters combat and shares your last known position. Heard gunfire, a wounded guard or a protection casualty instead starts a search at the incident location and requests the archetype's drone response without giving uninformed guards your identity.
 
-The Scout remains an information weapon: it exposes and relays your last known position. Armed models join escalated wings according to archetype. They must maintain real line of sight and gimbal alignment, expose their aim, respect range/cooldowns, and remain shootable or disruptable throughout the attack.
+The Scout remains an information weapon: it exposes and relays your last known position. Armed models join escalated wings according to archetype. They must maintain real line of sight and gimbal alignment, expose their aim, respect range/cooldowns, and remain shootable or disruptable throughout the attack. During a narrow-wall overflight they cannot scan, confirm, relay or fire; combat resumes only after an outdoor landing.
 
 ## Cheat Trainer compatibility
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.7-rc41 — 2026-08-07
+
+- Added bounded drone barrier overflight for narrow exterior walls, gates, fences and door separations. A drone first attempts ordinary steering, then crosses only when it finds a fully verified outdoor landing within 144 units and the obstructed span is no wider than 96 units; roofed buildings and map void remain forbidden.
+- Made overflight an explicit movement-only state. Native camera perception, HCO acquisition, body scans, tracking confirmation and every weapon family are disabled until the drone has landed in a fair combat cell. The airframe rises through a short eased hop with cyan pixel lift cues while its physical hit target continues to follow it.
+- Added a routine-mobility watchdog for protected targets. A principal stationary for nine seconds is advanced to another point on the original native patrol route instead of becoming permanently AFK.
+- Added location-only principal awareness for the first nearby unsuppressed player shot. It causes cautious relocation without leaking the player's identity; protection damage/casualties and confirmed evidence still escalate to full flight and can force a sheltered target to change safe area.
+- Promoted disguise takeover to the first native body-menu action and added a dedicated second action, **Restore original identity**. Removing a disguise restores the original player appearance and clears active disguise persistence while preserving legitimately stolen credentials, consumed sources and learned compromise history.
+- Replaced the one-second-only disguise indication with a two-layer native world effect: the existing acquisition/compromise transition plus a restrained persistent cyan identity shimmer (red when compromised) around the player.
+- Added regressions for bounded wall overflight, inert transition state, continuous routine target movement, first-shot target awareness, native interaction ordering, explicit disguise removal and persistence cleanup.
+
 ## 0.14.6-rc40 — 2026-08-07
 
 - Fixed live drones appearing permanently stationary because patrol/search destinations were replaced every 1.1 seconds before distant waypoints could be reached. Non-tracking destinations are now committed until arrival, a tactical relocation or the idle watchdog invalidates them.

@@ -39,6 +39,7 @@ local SUSPICIOUS_PLAYER_STATES = {
 }
 
 local INTERACTION_SENTINEL = "hco_take_disguise_v1"
+local RESTORE_INTERACTION_SENTINEL = "hco_restore_identity_v1"
 
 local function getPlayerStateID(player)
 	local ok, stateObject = util.call(player, "getState")
@@ -420,6 +421,33 @@ function disguise.restore(state)
 	feedback.show(english.disguiseRestored(state.disguise.tier, state.disguise.compromised))
 	identityFX.trigger(state, state.disguise.compromised and "compromised" or "restored")
 
+	return true
+end
+
+function disguise.remove(state, player)
+	player = player or game and game.playerActor
+	local active = state and state.disguise
+	if not active or not player or not active.originalAnimVar then return false, "no-active-disguise" end
+	local changed = util.call(player, "setAnimVariant", active.originalAnimVar)
+	local _, applied = util.call(player, "getAnimVariant")
+	if not changed or tostring(applied) ~= tostring(active.originalAnimVar) then
+		feedback.show(english.DISGUISE_VISUAL_FAILED)
+		return false, "original-visual-rejected"
+	end
+	player._hcoDisguiseFactionVisual = nil
+	for _, pending in ipairs(state.pendingCompromises or {}) do
+		if pending.openedByHCO and pending.radio then util.call(pending.radio, "close") end
+	end
+	state.disguise = nil
+	state.disguiseRisk = 1
+	state.localCompromisedDisguises = {}
+	state.pendingCompromises = {}
+	state.closeScrutiny = {}
+	state.lastLocalExposureFeedbackTime = nil
+	saveDisguise(state)
+	feedback.show(english.DISGUISE_REMOVED)
+	identityFX.trigger(state, "restored")
+	util.log(config, "original player identity restored")
 	return true
 end
 
@@ -935,18 +963,23 @@ local function updateDisturbanceRisk(state, player)
 	state.disguise.disturbanceRisk = risk
 end
 
+local function isBodyInteractionTarget(body, interactor)
+	if not interactor or not interactor.PLAYER or not body then return false end
+	local _, dead = util.call(body, "isDead")
+	local _, unconscious = util.call(body, "isUnconscious")
+	return dead == true or unconscious == true
+end
+
 local function isEligibleBody(state, body, interactor)
 	local bodyID = util.getID(body)
-	if not state.contract or not interactor or not interactor.PLAYER or not body or body._hcoDisguiseTaken
+	if not state.contract or not isBodyInteractionTarget(body, interactor) or body._hcoDisguiseTaken
 		or bodyID and state.usedDisguiseSources and state.usedDisguiseSources[bodyID] then
 		return false
 	end
 
-	local _, dead = util.call(body, "isDead")
-	local _, unconscious = util.call(body, "isUnconscious")
 	local _, group = util.call(body, "getAnimVariant")
 
-	return group ~= nil and (dead == true or unconscious == true)
+	return group ~= nil
 end
 
 local function refreshBodyInteraction(body, interactor)
@@ -969,10 +1002,10 @@ local function refreshNearbyBodies(state, player, dt)
 	state.disguiseInteractionRefreshTime = config.DISGUISE_SWITCH_COOLDOWN
 
 	for _, body in ipairs(util.getNPCs(game.worldObject)) do
-		if isEligibleBody(state, body, player) then
+		if isEligibleBody(state, body, player) or state.disguise and isBodyInteractionTarget(body, player) then
 			refreshBodyInteraction(body, player)
 
-			if not state.disguiseBodyHintShown and util.distance(body, player) <= config.DISGUISE_BODY_HINT_RANGE then
+			if isEligibleBody(state, body, player) and not state.disguiseBodyHintShown and util.distance(body, player) <= config.DISGUISE_BODY_HINT_RANGE then
 				state.disguiseBodyHintShown = true
 				feedback.show(english.DISGUISE_BODY_AVAILABLE)
 			end
@@ -1035,17 +1068,18 @@ end
 local function installBodyInteraction(state, goonClass)
 	local list = goonClass.interactionList
 	local option
-	local inList = false
+	local restoreOption
 
 	for index = #list, 1, -1 do
 		local existing = list[index]
 		if existing._hcoInteraction == INTERACTION_SENTINEL or existing == state.hcoDisguiseInteraction then
 			if not option then
 				option = existing
-				inList = true
-			else
-				table.remove(list, index)
 			end
+			table.remove(list, index)
+		elseif existing._hcoInteraction == RESTORE_INTERACTION_SENTINEL or existing == state.hcoDisguiseRestoreInteraction then
+			if not restoreOption then restoreOption = existing end
+			table.remove(list, index)
 		end
 	end
 
@@ -1073,9 +1107,34 @@ local function installBodyInteraction(state, goonClass)
 		end
 	end
 
-	if not inList then
-		table.insert(list, option)
+	restoreOption = restoreOption or {}
+	restoreOption._hcoInteraction = RESTORE_INTERACTION_SENTINEL
+
+	function restoreOption.getText()
+		return english.disguiseRestoreInteraction()
 	end
+
+	function restoreOption.actionCheck(body, interactor)
+		return state.disguise ~= nil and isBodyInteractionTarget(body, interactor)
+	end
+
+	function restoreOption.interact(body, interactor)
+		local ok, removed, reason = pcall(disguise.remove, state, interactor)
+		if not ok then
+			util.log(config, "identity restore interaction failed: " .. tostring(removed))
+			feedback.show(english.DISGUISE_UNAVAILABLE)
+		elseif not removed then
+			util.log(config, "identity restore interaction rejected: " .. tostring(reason or "unknown"))
+		else
+			util.call(body, "postInteract", interactor)
+		end
+	end
+
+	-- Native interaction order is table order. Keep the signature feature above
+	-- inventory/search/finish-off actions, with the explicit rollback directly
+	-- behind it whenever a disguise is already active.
+	table.insert(list, 1, option)
+	table.insert(list, 2, restoreOption)
 
 	if type(goonClass.enumerateActions) == "function" then
 		local ok, err = util.call(goonClass, "enumerateActions")
@@ -1089,6 +1148,7 @@ local function installBodyInteraction(state, goonClass)
 	end
 
 	state.hcoDisguiseInteraction = option
+	state.hcoDisguiseRestoreInteraction = restoreOption
 end
 
 local function installHooks(state, goonClass)

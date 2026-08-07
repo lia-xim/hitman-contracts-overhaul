@@ -39,6 +39,10 @@ function english.disguiseInteraction(active)
 	return active and "Switch identity / search body" or "Take disguise / search body"
 end
 
+function english.disguiseRestoreInteraction()
+	return "Restore original identity"
+end
+
 function english.disguiseRestored(tier, compromised)
 	if compromised then return english.DISGUISE_COMPROMISED end
 	return "IDENTITY RESTORED — " .. (TIER_NAMES[tostring(tier)] or "UNKNOWN ACCESS")
@@ -51,6 +55,7 @@ english.DISGUISE_IDENTITY_CHECK = "IDENTITY CHECK — MOVE AWAY OR DISRUPT THE R
 english.DISGUISE_LOCALLY_EXPOSED = "COVER BLOWN — BREAK CONTACT"
 english.DISGUISE_VISUAL_FAILED = "IDENTITY FAILED — UNIFORM IS NOT PLAYER-COMPATIBLE"
 english.DISGUISE_UNAVAILABLE = "IDENTITY UNAVAILABLE"
+english.DISGUISE_REMOVED = "ORIGINAL IDENTITY RESTORED — DISGUISE REMOVED"
 english.TARGET_ESCAPING = "CONTRACT UPDATE: TARGET IS ESCAPING"
 english.TARGET_ESCAPED = "CONTRACT FAILED: TARGET ESCAPED"
 

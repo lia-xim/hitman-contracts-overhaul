@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.14.6-rc40`
+**Candidate:** `0.14.7-rc41`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 
@@ -29,8 +29,10 @@ Drones are pressure tools, not bullet sponges. Scout and Light airframes die in 
 - Moving fixtures self-repair, follow the visible aim center and retain a post-world-collision projectile fallback for runtime combinations that omit late fixtures. A persistently unhittable carrier is inert and automatically retired.
 - Destruction is a hard terminal boundary: every queued weapon state, detection accumulator, aim cue, rotor loop and native light-buffer allocation is cancelled before the family-specific wreck sequence begins.
 - Patrol/search destinations remain committed until arrival or an explicit tactical/idle transition. Invalid/current-position authored sectors are exhausted before deterministic outdoor fallbacks; if the map offers no route, the sensor performs a continuous 360-degree scan instead of becoming inert.
+- A stalled drone may cross only a narrow obstructed span between two verified outdoor footprints. During the eased transition the inherited camera update, HCO sensing, evidence scan and every weapon are disabled; wide roofed structures and void have no valid landing and remain impassable.
 - Confirmed drone contact is map-network evidence: all active HCO wings enter a visible red aggressive search and all contract response teams receive the reported position. Weapons remain local and fail closed behind geometry.
-- Disguise transitions are world-space and temporary. The persistent state is the real player animation variant plus an optional matching HCO faction insignia; no separate menu, cursor or permanent status dashboard is introduced.
+- Disguise transitions remain world-space and the active identity adds a restrained persistent cyan/red player shimmer. Takeover is the first eligible native body action; a second native action restores the original appearance and clears active disguise persistence without revoking acquired credentials or consumed-source history. No separate menu or cursor is introduced.
+- A protected target stationary in routine for nine seconds is advanced through its original native route. A nearby unsuppressed shot creates location-only caution; confirmed protection incidents escalate flight and can invalidate an occupied shelter without granting magical player identity.
 - Weapon choice, drawn/holstered state and reload are identity-neutral. Sound-only incidents mobilize a position search; player-specific pursuit requires observer-local evidence or completed communication. Native short-range detection may raise suspicion but cannot bypass that identity boundary.
 - Social-stealth values and the exact native/live boundary are centralized in `SPECIFICATION_TRACEABILITY.md`.
 
@@ -58,12 +60,12 @@ Run with the Cheat Trainer reset unless compatibility itself is being tested.
 2. One-, two- and three-contract activation where actor population allows it.
 3. At least one Easy/Normal and one Hard/True mission; confirm visibly different pressure without changing the five-bodyguard core.
 4. Routine patrol, loud-fire escalation, direct HCO-guard contact, body evidence and protection-casualty deployment paths.
-5. Complete the RC39 social-stealth matrix: real body selector, three tiers, visual transitions, arbitrary armed distance cover, survivable brief close pass, sustained close exposure, immediate point-blank hostile handoff, unobserved-shot isolation, direct-witness recognition, credentials, behavior exposure, local/global radio compromise, drone source scan and reload.
+5. Complete the RC41 social-stealth matrix: takeover first in the real body selector, three tiers, persistent active shimmer, explicit original-identity restore, arbitrary armed distance cover, survivable brief close pass, sustained close exposure, immediate point-blank hostile handoff, unobserved-shot isolation, direct-witness recognition, credentials, behavior exposure, local/global radio compromise, drone source scan and reload.
 6. Scout plus every Light/Heavy Pistol, SMG and Laser row: silhouette, scale, heading, sound, attack cue, damage and cooldown.
-7. Player LOS loss, zero roofed/indoor spawns, wall/door/window steering, world-edge containment, wing separation, committed patrol travel, invalid-sector fallback, rotating boxed-in scan and at least 30 seconds of aggressive search.
+7. Player LOS loss, zero roofed/indoor spawns, ordinary wall steering, one successful narrow exterior hop, one rejected wide/roofed crossing, no sensing/fire during hop, world-edge containment, wing separation, committed patrol travel, invalid-sector fallback, rotating boxed-in scan and at least 30 seconds of aggressive search.
 8. On a multi-contract map, let one Scout or armed drone confirm the player: every wing must turn red and leave stale patrol routes, every response detail must receive the reported position, and only drones with their own unobstructed aim may fire.
 9. EMP/disruption, Light one-hit destruction, Heavy two/three-hit destruction, outer-rotor hits, crash landing, wreck cleanup and crash-site response.
-10. Target routine, shelter, reselection, evacuation and resolution; exactly-one payout after reload.
+10. Target routine movement beyond nine seconds, first nearby loud-shot relocation without identity leak, shelter reselection after a local protection incident, evacuation and resolution; exactly-one payout after reload.
 11. No HCO traceback, stuck update, duplicate local/Workshop copy, broken vanilla objective, blocked player input or lingering audio after returning to menu.
 
 Any failure keeps the build at RC status. Automated proof is necessary but cannot establish live renderer, map geometry, native AI or mod-combination behavior on its own.

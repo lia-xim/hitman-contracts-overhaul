@@ -91,6 +91,33 @@ local function drawPixels(active, x, y, radius, alpha)
 	end
 end
 
+local function drawPersistentIdentity(state, player)
+	if not state.disguise or not love or not love.graphics then return end
+	local x, y = util.getPos(player)
+	if not x then return end
+	local compromised = state.disguise.compromised == true
+		or state.compromisedDisguises and state.compromisedDisguises[state.disguise.group] == true
+	local color = compromised and COLORS.compromised or COLORS.acquired
+	local time = curTime or 0
+	local pulse = 0.5 + math.abs(math.sin(time * 2.4)) * 0.5
+	local radius = 17 + pulse * 1.5
+	local alpha = compromised and math.floor(85 + pulse * 65) or math.floor(48 + pulse * 45)
+	local oldWidth = love.graphics.getLineWidth and love.graphics.getLineWidth() or 1
+	love.graphics.setColor(color[1], color[2], color[3], alpha)
+	love.graphics.setLineWidth(compromised and 2 or 1)
+	for index = 0, 3 do
+		local start = time * (compromised and 0.9 or 0.35) + index * math.pi * 0.5
+		segmentCircle(x, y, radius, start, math.pi * 0.28, 4)
+	end
+	drawBrackets(x, y, radius + 4, alpha, compromised)
+	for index = 0, 3 do
+		local angle = time * -0.45 + index * math.pi * 0.5
+		love.graphics.rectangle("fill", math.floor(x + math.cos(angle) * (radius + 7)), math.floor(y + math.sin(angle) * (radius + 7)), 2, 2)
+	end
+	love.graphics.setLineWidth(oldWidth)
+	love.graphics.setColor(255, 255, 255, 255)
+end
+
 local function drawEffect(state, player)
 	local active = state.identityFX
 	if not active or not love or not love.graphics then return end
@@ -145,7 +172,10 @@ function identityFX.initialize(state)
 
 	function playerActor:postDraw(...)
 		local result = original(self, ...)
-		if game and self == game.playerActor then drawEffect(state, self) end
+		if game and self == game.playerActor then
+			drawPersistentIdentity(state, self)
+			drawEffect(state, self)
+		end
 		return result
 	end
 

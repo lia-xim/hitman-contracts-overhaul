@@ -121,6 +121,25 @@ function flight.isSafeCombatPoint(x, y, clearance)
 	return true
 end
 
+function flight.footprintHasRoof(x, y, clearance)
+	local _, grid = getFloorAccess()
+	if not grid or type(grid.worldToIndex) ~= "function" then return false end
+	local radius = math.max(0, clearance or OUTDOOR_CLEARANCE)
+	for _, sample in ipairs({
+		{0, 0}, {radius, 0}, {-radius, 0}, {0, radius}, {0, -radius},
+		{radius * 0.7, radius * 0.7}, {-radius * 0.7, radius * 0.7},
+		{radius * 0.7, -radius * 0.7}, {-radius * 0.7, -radius * 0.7}
+	}) do
+		local sampleX, sampleY = x + sample[1], y + sample[2]
+		local okIndex, index = pcall(grid.worldToIndex, grid, sampleX, sampleY)
+		if okIndex and index ~= nil then
+			local roofed, known = getRoofState(grid, index, sampleX, sampleY)
+			if roofed or envController and type(envController.getRoofReady) == "function" and flight.roofMapReady() and not known then return true end
+		end
+	end
+	return false
+end
+
 local function resolvePlayableCandidate(x, y, referenceX, referenceY, scanRange)
 	local worldObject, grid = getFloorAccess()
 	x, y = flight.clampToWorld(x, y)
@@ -351,6 +370,87 @@ local function blocksFlightSegment(startX, startY, finishX, finishY, clearance)
 	return false
 end
 
+local function findBarrierLanding(drone, centerX, centerY, intendedAngle)
+	local clearance = math.max(10, centerOffset(drone) * 0.8)
+	local maximumDistance = config.DRONE_BARRIER_HOP_MAX_DISTANCE or 144
+	local maximumBlocked = config.DRONE_BARRIER_HOP_MAX_BLOCKED or 96
+	local sampleStep = 12
+	local blockedAt
+
+	for distance = sampleStep, maximumDistance, sampleStep do
+		local candidateX, candidateY = flight.clampToWorld(
+			centerX + math.cos(intendedAngle) * distance,
+			centerY + math.sin(intendedAngle) * distance
+		)
+		-- Buildings are never hop geometry, even when a small roof happens to be
+		-- narrower than the wall/gate limit. Only roof-free exterior separation is
+		-- bridgeable.
+		if flight.footprintHasRoof(candidateX, candidateY, clearance) then return nil, nil end
+		local blocked = blocksFlightAt(candidateX, candidateY, clearance)
+		if blocked then
+			blockedAt = blockedAt or distance
+		elseif blockedAt then
+			local blockedWidth = distance - blockedAt + sampleStep
+			-- Only bridge a narrow wall, gate, fence or doorway between two fully
+			-- verified outdoor cells. A roofed building or map void remains too wide
+			-- and therefore cannot become a one-way firing position.
+			if blockedWidth <= maximumBlocked and distance >= clearance * 2 then
+				return candidateX, candidateY, distance
+			end
+			return nil, nil
+		end
+	end
+
+	return nil, nil
+end
+
+function flight.isTransiting(drone)
+	return drone and drone.hcoTransit ~= nil
+end
+
+function flight.beginBarrierHop(drone, intendedAngle)
+	if not drone or drone.hcoTransit then return drone and drone.hcoTransit ~= nil end
+	local offset = centerOffset(drone)
+	local centerX, centerY = (drone.x or 0) + offset, (drone.y or 0) + offset
+	local landingX, landingY, distance = findBarrierLanding(drone, centerX, centerY, intendedAngle)
+	if not landingX then return false end
+	local minimumDuration = config.DRONE_BARRIER_HOP_DURATION_MIN or 0.62
+	local maximumDuration = config.DRONE_BARRIER_HOP_DURATION_MAX or 1.05
+	drone.hcoTransit = {
+		startX = centerX,
+		startY = centerY,
+		finishX = landingX,
+		finishY = landingY,
+		time = 0,
+		duration = util.clamp(distance / 150, minimumDuration, maximumDuration)
+	}
+	drone.hcoTransitProgress = 0
+	drone.hcoBlockedTime = 0
+	return true
+end
+
+local function updateBarrierHop(drone, dt)
+	local transit = drone.hcoTransit
+	if not transit then return nil end
+	local offset = centerOffset(drone)
+	local oldX, oldY = (drone.x or 0) + offset, (drone.y or 0) + offset
+	transit.time = math.min(transit.duration, transit.time + math.max(0, dt))
+	local progress = util.clamp(transit.time / math.max(0.01, transit.duration), 0, 1)
+	local eased = 0.5 - math.cos(progress * math.pi) * 0.5
+	local nextX = transit.startX + (transit.finishX - transit.startX) * eased
+	local nextY = transit.startY + (transit.finishY - transit.startY) * eased
+	drone:setPos(nextX - offset, nextY - offset)
+	drone.hcoTransitProgress = progress
+	local angle = math.atan2(transit.finishY - transit.startY, transit.finishX - transit.startX)
+	local moved = math.sqrt((nextX - oldX)^2 + (nextY - oldY)^2)
+	if progress >= 1 then
+		drone.hcoTransit = nil
+		drone.hcoTransitProgress = 0
+		drone.hcoWallRecovery = 0
+	end
+	return angle, moved
+end
+
 local function steerAroundBuilding(drone, centerX, centerY, intendedAngle, step)
 	local index = drone.hcoIndex or 1
 	local recovery = drone.hcoWallRecovery or 0
@@ -431,6 +531,10 @@ function flight.destination(drone, player, aggressive)
 end
 
 function flight.move(drone, dt, speed)
+	local transitAngle, transitMoved = updateBarrierHop(drone, dt)
+	if transitAngle then
+		return 0, transitAngle, transitMoved, true, true
+	end
 	local offset = centerOffset(drone)
 	local centerX, centerY = (drone.x or 0) + offset, (drone.y or 0) + offset
 	local dx, dy = (drone.hcoDestX or centerX) - centerX, (drone.hcoDestY or centerY) - centerY
@@ -450,15 +554,21 @@ function flight.move(drone, dt, speed)
 		end
 		local intendedAngle = math.atan2(nextY - centerY, nextX - centerX)
 		if blocksFlightSegment(centerX, centerY, nextX, nextY, math.max(10, offset * 0.8)) then
+			drone.hcoBlockedTime = (drone.hcoBlockedTime or 0) + dt
+			if drone.hcoBlockedTime >= (config.DRONE_BARRIER_HOP_DELAY or 0.85)
+				and flight.beginBarrierHop(drone, intendedAngle) then
+				return distance, intendedAngle, 0, true, true
+			end
 			nextX, nextY, intendedAngle, avoidedBuilding = steerAroundBuilding(drone, centerX, centerY, intendedAngle, step)
 		else
 			drone.hcoWallRecovery = 0
+			drone.hcoBlockedTime = math.max(0, (drone.hcoBlockedTime or 0) - dt * 3)
 		end
 		drone:setPos(nextX - offset, nextY - offset)
 		movedDistance = math.sqrt((nextX - centerX)^2 + (nextY - centerY)^2)
 		velocityAngle = movedDistance > 0.01 and intendedAngle or math.atan2(dy, dx)
 	end
-	return distance, velocityAngle, movedDistance or 0, avoidedBuilding == true
+	return distance, velocityAngle, movedDistance or 0, avoidedBuilding == true, flight.isTransiting(drone)
 end
 
 function flight.updateAim(drone, dt, player, hasVisual, velocityAngle)

@@ -239,6 +239,15 @@ function airframes.initialize()
 				graphics.rectangle("fill", math.floor(px), math.floor(py), index == 1 and 3 or 2, 2)
 			end
 		end
+		if (self.hcoTransitProgress or 0) > 0 and type(graphics.rectangle) == "function" then
+			local lift = math.sin(math.pi * self.hcoTransitProgress)
+			for index = 1, 6 do
+				local angle = self.hcoPhase + index * 1.047 + time * 2.4
+				local radius = 13 + index * 2 + lift * 5
+				graphics.setColor(accentR, accentG, accentB, 155 - index * 14)
+				graphics.rectangle("fill", math.floor(drawX + math.cos(angle) * radius), math.floor(drawY + math.sin(angle) * radius), 2, 2)
+			end
+		end
 
 		local effectScale = self.hcoHeavy and 1.25 or 1
 		graphics.push()
@@ -462,9 +471,10 @@ function airframes.initialize()
 		drawPasses = drawPasses + 1
 		local time = curTime or 0
 		local bob = math.sin(time * 6.5 + self.hcoPhase) * 1.1
-		local drawX, drawY = self.x, self.y + bob
+		local transitLift = math.sin(math.pi * util.clamp(self.hcoTransitProgress or 0, 0, 1))
+		local drawX, drawY = self.x, self.y + bob - transitLift * 11
 		local renderAngle = (self.hcoBodyAngle or 0) + SPRITE_FORWARD_OFFSET
-		local scale = self.hcoRenderScale or 0.55
+		local scale = (self.hcoRenderScale or 0.55) * (1 + transitLift * 0.08)
 		local armorMaximum = tonumber(self.hcoArmorMax) or 1
 		local armorCurrent = tonumber(self.hcoArmor) or armorMaximum
 		if not self.hcoCrashAt and armorMaximum > 1 and armorCurrent < armorMaximum then
@@ -563,6 +573,7 @@ function airframes.sync(shell, owner)
 		shell.hcoArmorDisplay = owner.hcoArmorDisplay
 		shell.hcoArmor, shell.hcoArmorMax = owner.hcoArmor, owner.hcoArmorMax
 		shell.hcoLastArmorDamage = owner.hcoLastArmorDamage
+		shell.hcoTransitProgress = owner.hcoTransitProgress or 0
 		local definition = owner.hcoType or {}
 		shell.hcoAccent = definition.accent or shell.hcoAccent
 		local offset = owner.hcoCenterOffset or 13
