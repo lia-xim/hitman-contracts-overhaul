@@ -439,7 +439,7 @@ A disguise contains:
 - source actor ID;
 - clean or compromised state;
 - bloodied or visibly damaged state;
-- allowed weapon families;
+- source weapon metadata for persistence/appearance only, never recognition;
 - familiarity group;
 - acquisition timestamp.
 
@@ -462,15 +462,14 @@ Suspicion factors:
 - restricted-zone mismatch;
 - running or sprinting;
 - aiming;
-- visible weapon mismatch;
-- reloading or firing;
+- firing when directly observed;
 - lockpicking, bashing, sabotage, or body interaction;
 - blood or damage on the disguise;
 - compromised uniform class;
 - player proximity to a fresh disturbance;
 - repeated lingering near the target.
 
-Normal walking with a valid uniform and plausible weapon should remain credible at medium distance. Elite or same-unit guards identify inconsistencies faster.
+Normal walking with a valid uniform remains credible at medium distance regardless of the held weapon, weapon family or holster state. Elite or same-unit guards identify behavioral and identity inconsistencies faster, but do not infer hostility from equipment alone.
 
 ### 9.4 Access tiers
 
@@ -484,12 +483,12 @@ Access checks should reuse the game's off-limits and frustration/suspicion behav
 
 ### 9.5 Weapons and behavior
 
-- A civilian disguise with a visible rifle is immediately implausible.
-- Regular security may carry common security weapons.
-- Elite security may carry heavier mission-appropriate weapons.
-- Holstered or concealed weapon state should be respected if exposed by the game.
-- Aiming at anyone breaks social cover immediately.
-- Gunfire compromises the current disguise to direct witnesses and communicated recipients.
+- Held weapon model, weapon family and holster/concealment state add no disguise risk for any identity tier.
+- Reloading by itself is ordinary behavior and does not break social cover.
+- Aiming at a person breaks social cover for observers that can actually see it.
+- Gunfire compromises the current disguise only to direct visual witnesses and recipients of a completed report.
+- Heard but unseen gunfire creates a location-based investigation at the shot origin; it never supplies the shooter's actor identity.
+- A global alert or combat state elsewhere on the map contains no identity information. Uninformed observers remain uninformed until sight, body evidence, camera/drone evidence or radio communication establishes a link.
 
 ### 9.6 Compromised disguises
 
@@ -834,7 +833,7 @@ Every event callback must validate:
 
 ## 20. Implementation phases
 
-**Implementation checkpoint (`0.14.1-rc35`, 2026-08-07):** Phases 0–5 and the seven-model physical-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. RC24–RC33 established compact, outdoor, shootable, armed and persistently wrecked drone airframes. RC34 rebuilds Phase 3/4 social stealth on the real Goon interaction ID/cache path, captures identity before native death/choke inventory stripping, adds all three identity tiers, keycards/keychains, visible player variants and insignia, behavior/evidence/lingering risk, interruptible identity checks, uniform compromise, reload persistence and native-world transition effects. RC35 applies the first live balance correction: normal Security weapons remain plausible, same-unit recognition is readable rather than abrupt, the takeover window is no longer full exposure and body evidence requires the native sight path rather than distance. The exact specification-to-code/test/live matrix is `SPECIFICATION_TRACEABILITY.md`. A crash-free live acceptance pass remains mandatory. Thermal cameras, dedicated operators, authored private-area allowlists and expanded contract families remain incomplete expansions. Automated results are not substitutes for real-game proof.
+**Implementation checkpoint (`0.14.2-rc36`, 2026-08-07):** Phases 0–5 and the seven-model physical-drone portion of Phase 6 are present in the RC source and covered by syntax, simulated runtime, lifecycle, persistence, failure-isolation and rollback tests. RC24–RC33 established compact, outdoor, shootable, armed and persistently wrecked drone airframes. RC34 rebuilds Phase 3/4 social stealth on the real Goon interaction ID/cache path, captures identity before native death/choke inventory stripping, adds all three identity tiers, keycards/keychains, visible player variants and insignia, behavior/evidence/lingering risk, interruptible identity checks, uniform compromise, reload persistence and native-world transition effects. RC35 corrected takeover timing and body-sight propagation. RC36 makes carried equipment irrelevant to identity and removes global combat/noise shortcuts: only observer-local perception or communicated evidence may identify the player, while sound and casualties create position-only searches. The exact specification-to-code/test/live matrix is `SPECIFICATION_TRACEABILITY.md`. A crash-free live acceptance pass remains mandatory. Thermal cameras, dedicated operators, authored private-area allowlists and expanded contract families remain incomplete expansions. Automated results are not substitutes for real-game proof.
 
 ### Phase 0: Runtime probe
 
@@ -901,7 +900,7 @@ Exit criteria:
 Exit criteria:
 
 - player can cross a guarded public/semi-restricted area while behaving normally;
-- aiming or carrying an implausible weapon breaks cover;
+- aiming or committing a witnessed hostile action breaks cover;
 - normal combat remains unchanged when no disguise is active.
 
 ### Phase 4: Compromise and smarter hunt
@@ -1224,12 +1223,18 @@ Disguise acquisition is owned by the engine's existing body-interaction chain. A
 
 Identity metadata is captured before `_die` or `_choke` drops the actor's weapon, keycard and keychain. The active identity persists its uniform/familiarity group, STAFF/SECURITY/ELITE tier, credentials, source and consumed-source set, allowed equipment, original player appearance, acquisition time, blood condition, faction insignia and compromise state. A failed appearance read-back restores the previous player variant atomically.
 
-Recognition remains a modifier on native vision, distance, time, geometry, alertness, off-limits and detection presentation. It must account for same-unit familiarity, observer experience/role, plausible equipment, sprint/aim/reload/fire, illicit interactions, blood, fresh evidence and target lingering. Native combat always restores full detection authority. `getOfflimits` and `getOfflimitsActive` must agree, while real key/keychain IDs remain valid independently of uniform compromise.
+Recognition remains a modifier on native vision, distance, time, geometry, observer-local alertness, off-limits and detection presentation. It must account for same-unit familiarity, observer experience/role, sprint/aim, directly witnessed fire, illicit interactions, blood, fresh evidence and target lingering. Held equipment, holster state, reload and unrelated global combat add no identity risk. `getOfflimits` and `getOfflimitsActive` must agree, while real key/keychain IDs remain valid independently of uniform compromise.
 
 Identity checks and body reports use a real NPC radio. Leaving check range, disrupting the radio or neutralizing the carrier prevents global compromise; successful transmission compromises the uniform class. Acquisition, restoration, checking and compromise receive short player-attached pixel transitions on the native world draw path. The permanent visual truth is the player's real actor variant and optional matching faction insignia, never a detached dashboard. Exact requirements, automated evidence and live gates are maintained in `SPECIFICATION_TRACEABILITY.md`.
 
 ### RC35 armed-cover and evidence-visibility correction
 
-Security disguises are armed identities. Carrying a visible sidearm or primary weapon is not itself a reveal: the source guard's native weapon type establishes a plausible family, and another ordinary Security family creates scrutiny rather than instant hostility. STAFF remains incompatible with an openly carried firearm. Aiming, firing, violent player states and active native combat retain full detection authority.
+This historical intermediate rule is superseded by RC36. RC35 first reduced the abrupt weapon-family penalty, shortened the takeover window and removed distance-only body discovery; RC36 removes weapon plausibility from recognition entirely.
 
-The first 1.5 seconds after changing clothes create only a short 25% scrutiny floor. They do not globally preserve the player's old identity. Guards who genuinely saw the preceding attack remain hostile through native combat, while source-body knowledge propagates only after the engine's real body-investigation sight event or a physical drone cone/raycast. HCO may never infer body discovery from distance alone.
+The first 1.5 seconds after changing clothes create only a short 25% scrutiny floor. They do not globally preserve the player's old identity. Guards who genuinely saw the preceding attack remain hostile through their observer-local knowledge, while source-body knowledge propagates only after the engine's real body-investigation sight event or a physical drone cone/raycast. HCO may never infer body discovery from distance alone.
+
+### RC36 observer-local identity and weapon-neutral cover
+
+Weapon plausibility is removed from the identity model. Any held or holstered sidearm, primary weapon or other normal loadout has zero influence on recognition for every disguise tier; reloading alone is likewise neutral. This is a deliberate product rule, not a balance value.
+
+A shot has two separate consequences. A direct visual witness can associate the hostile act with the disguised player, locally compromises that identity and may radio the result. An observer that only hears the shot receives an incident position to investigate, never the player's actor identity. The same position-only rule applies to protection damage and casualties until a real observer confirms contact. Global combat state may alter native urgency but must never make an uninformed observer recognize the player.

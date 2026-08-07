@@ -38,13 +38,16 @@ local function forceCombatContact(actorObject, player, x, y)
 	return false
 end
 
-local function mobilizeProtection(state, x, y, reason)
+local function mobilizeProtection(state, x, y, reason, confirmedPlayer)
 	local security = state.security
 	local player = game and game.playerActor
 	if not security or not player then return end
 
-	if not x then x, y = util.getPos(player) end
-	security.lastKnown = {x=x, y=y, confidence=1, source=reason, time=curTime or 0, actor=player}
+	if not x and security.lastKnown then x, y = security.lastKnown.x, security.lastKnown.y end
+	if not x then x, y = util.getPos(state.target) end
+	if not x then return end
+	local confidence = confirmedPlayer and 1 or 0.55
+	security.lastKnown = {x=x, y=y, confidence=confidence, source=reason, time=curTime or 0, actor=confirmedPlayer and player or nil}
 	security.targetThreatLevel = 1
 	security.huntPhase = "PRESSURE"
 	security.droneMode = "AGGRESSIVE"
@@ -56,8 +59,19 @@ local function mobilizeProtection(state, x, y, reason)
 
 	for _, guard in ipairs(security.guards or {}) do
 		if guard.role ~= "close_protection" then
-			forceCombatContact(guard.actor, player, x, y)
-			setKnowledge(security, guard.actor, x, y, 1, reason)
+			if confirmedPlayer then
+				forceCombatContact(guard.actor, player, x, y)
+			else
+				-- Noise or a casualty gives security a place to investigate, never
+				-- the shooter's identity. Native alert/search states own the response.
+				util.call(guard.actor, "setSightPos", x, y, true)
+				util.call(guard.actor, "setSightTime", 0)
+				local okState, stateObject = util.call(guard.actor, "getState")
+				if okState and stateObject and type(stateObject.goToAlert) == "function" then
+					pcall(stateObject.goToAlert, stateObject)
+				end
+			end
+			setKnowledge(security, guard.actor, x, y, confidence, reason)
 		end
 	end
 
@@ -350,7 +364,7 @@ local function scanMissionContact(state, player)
 			if okSight and seen and (util.distance(observer, state.target) <= 900 or radioCanTransmit(observer)) then
 				local x, y = util.getPos(player)
 				security.dronesTriggeredByContact = true
-				mobilizeProtection(state, x, y, "mission-hostile-contact")
+				mobilizeProtection(state, x, y, "mission-hostile-contact", true)
 				util.log(config, "drone deployment requested by mission contact slot=" .. tostring(state.slot or 1) .. " observer=" .. tostring(util.getID(observer)))
 				return
 			end
@@ -386,7 +400,7 @@ function director.notifyPlayerGunfire(state, player)
 	if security.playerGunshots >= config.DRONE_GUNFIRE_THRESHOLD and not security.dronesTriggeredByGunfire then
 		security.dronesTriggeredByGunfire = true
 		local x, y = util.getPos(player)
-		mobilizeProtection(state, x, y, "sustained-player-gunfire")
+		mobilizeProtection(state, x, y, "sustained-player-gunfire", false)
 	end
 end
 
@@ -480,17 +494,24 @@ function director.update(state, dt)
 	security.sampleTime = 0
 	local lostGuard = false
 	local damagedGuard = false
+	local incidentX, incidentY
 	for _, guard in ipairs(security.guards or {}) do
 		local alive = util.isAlive(guard.actor)
 		local _, health = util.call(guard.actor, "getHealth")
-		if guard.wasAlive ~= false and not alive then lostGuard = true end
-		if alive and tonumber(health) and tonumber(guard.lastHealth) and health < guard.lastHealth then damagedGuard = true end
+		if guard.wasAlive ~= false and not alive then
+			lostGuard = true
+			incidentX, incidentY = util.getPos(guard.actor)
+		end
+		if alive and tonumber(health) and tonumber(guard.lastHealth) and health < guard.lastHealth then
+			damagedGuard = true
+			incidentX, incidentY = util.getPos(guard.actor)
+		end
 		guard.wasAlive = alive
 		guard.lastHealth = health
 	end
 	if lostGuard or damagedGuard then
 		security.dronesTriggeredByContact = true
-		mobilizeProtection(state, nil, nil, lostGuard and "protection-casualty" or "protection-under-fire")
+		mobilizeProtection(state, incidentX, incidentY, lostGuard and "protection-casualty" or "protection-under-fire", false)
 	end
 	-- Body discovery is owned by the native investigate-body sight/raycast
 	-- path. social/disguise hooks goon:setSeenBody and forwards only a real
@@ -525,7 +546,7 @@ function director.update(state, dt)
 
 				if entry.confidence >= 0.95 and not security.dronesTriggeredByContact then
 					security.dronesTriggeredByContact = true
-					mobilizeProtection(state, entry.x, entry.y, "confirmed-hostile-contact")
+					mobilizeProtection(state, entry.x, entry.y, "confirmed-hostile-contact", true)
 					util.log(config, "full response mobilized by confirmed contact slot=" .. tostring(state.slot or 1))
 				end
 			else

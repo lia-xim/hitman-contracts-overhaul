@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.2-rc36 — 2026-08-07
+
+- Made disguise recognition completely weapon-neutral. A held, drawn, concealed or holstered weapon of any model or family adds zero identity risk for STAFF, SECURITY and ELITE SECURITY disguises; reloading alone is also ordinary behavior.
+- Removed the global five-second exposure applied after every player shot. Only an observer that passes the engine's current vision AABB, FOV and world-raycast path learns that identity; persistent `getSeenPlayer()` memory is deliberately rejected, and a valid radio report may then propagate the current witness's knowledge.
+- Removed global combat as a source of identity. An unrelated guard no longer recognizes a disguised player merely because combat exists elsewhere on the map.
+- Changed loud-fire, damaged-guard and protection-casualty escalation from forced player contact to a location-based native alert/search. Security receives the incident position but not the player's actor identity until a real observer confirms contact.
+- Added regressions for arbitrary held weapons, reload, unobserved fire, direct firing witnesses, unrelated global combat and sound-only response mobilization.
+
 ## 0.14.1-rc35 — 2026-08-07
 
 - Rebalanced armed social stealth from the first live disguise pass. A visible weapon matching the stolen guard's native weapon family now carries only baseline scrutiny; a different ordinary Security weapon family raises mild suspicion rather than causing a near-instant reveal. STAFF identities still cannot openly carry a firearm.

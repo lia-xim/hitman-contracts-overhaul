@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.1-rc35`
+**Candidate:** `0.14.2-rc36`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -16,8 +16,8 @@ This document prevents future work from collapsing the product specification int
 | Mobile target and secure movement | `targets/controller.lua` | Implemented | Routine, threatened, sheltered, reselection, escape and watchdog cases | Long live route/reload pass on several maps |
 | Protection and response roles | `security/escort.lua`, `security/director.lua` | Implemented for close protection and autonomous response | Role ownership, fan-out, search and follower safety cases | Verify weapons, combat pressure and difficulty balance in game |
 | Knowledge and hunt phases | `security/director.lua` | Implemented | Local evidence, pressure, decay and stand-down cases | Verify no wall omniscience and readable convergence |
-| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | Implemented in RC34, live-tuned in RC35 | Native action enumeration, cached-body refresh, death-time identity capture, three switches | Must be accepted from the real body interaction wheel |
-| Social recognition | `social/disguise.lua` | Implemented for the current uniform-class model | Calm, same-unit, experience/role, reload, lock breaking, weapon, access, evidence and compromise cases | Tune timing and readability in a real mission |
+| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | Implemented in RC34, live-tuned through RC36 | Native action enumeration, cached-body refresh, death-time identity capture, three switches | Must be accepted from the real body interaction wheel |
+| Social recognition | `social/disguise.lua` | Implemented for the observer-local uniform-class model | Calm, same-unit, experience/role, arbitrary held weapon, reload, witnessed/unwitnessed fire, lock breaking, access, evidence and compromise cases | Tune timing and readability in a real mission |
 | Credentials and restricted areas | Native `playerActor:addKey` and off-limits queries, coordinated by `social/disguise.lua` | Implemented for keycard and keychain IDs | Acquisition/reload and adjusted trespass-query cases | Verify actual mission doors and STAFF/SECURITY/ELITE areas |
 | Existing cameras | `security/sensors.lua` | Implemented | Camera risk scaling and disruption/break evidence in runtime fixtures | Live camera cone, disguise and wall/EMP pass |
 | Physical drone system | `security/drones.lua` and drone modules | Implemented candidate surface | Dedicated drone, roster and airframe suites | Existing RC33 live matrix remains mandatory |
@@ -54,7 +54,7 @@ An active identity now records and persists:
 - STAFF, SECURITY or ELITE SECURITY tier;
 - native off-limits reduction;
 - keycard and keychain IDs;
-- allowed source weapon type and weapon ID;
+- source weapon type and weapon ID as identity metadata only, never as recognition inputs;
 - pre-disguise player appearance;
 - acquisition timestamp;
 - dead/unconscious source condition;
@@ -74,16 +74,17 @@ The release model multiplies native detection instead of replacing sight, distan
 | Same animation/familiarity group | 22% baseline before experience/role scaling |
 | Elite observer | Familiarity factor ×1.35 |
 | Close protection / protected target | Familiarity factor ×1.2 / ×1.45 |
-| Matching visible Security weapon family | 8% baseline scrutiny; same-unit familiarity may be higher |
-| Different ordinary Security weapon family | 22% scrutiny rather than immediate exposure |
-| Staff with visible weapon | Immediate exposure |
+| Any merely held weapon, weapon family or holster state | 0 additional identity risk for every tier |
 | Sprint | 75% scrutiny |
-| Aim, fire, reload, lock breaking, sabotage, body carry or violent native state | Immediate exposure |
+| Aim, lock breaking, sabotage, body carry or violent native state | Immediate exposure when the observer can perceive the action |
+| Reload alone | 0 additional identity risk |
+| Fire seen by this observer | Immediate local compromise; radio may propagate it |
+| Fire heard but not seen | Search position only; no player identity |
 | First 1.5 seconds after taking a uniform | 25% close scrutiny; real witnesses/body discovery remain authoritative |
 | Bloodied uniform | Minimum 28% scrutiny and an explicit acquisition warning |
 | Fresh nearby HCO evidence | Minimum 45% scrutiny for up to twelve seconds |
 | Repeated target lingering | 35% warning after four seconds, 65% danger after eight |
-| Native global combat | Full vanilla detection; disguise cannot suppress combat |
+| Global alert/combat elsewhere | No identity information; observer-local knowledge remains authoritative |
 | Locally informed observer | Immediate exposure to that observer |
 | Globally compromised uniform | Immediate exposure everywhere in the contract network |
 
@@ -142,7 +143,7 @@ RC34 is not allowed to advance unless all of the following remain green:
 - STAFF, SECURITY and ELITE SECURITY identities can be acquired and visibly switch the player variant.
 - Keycards and keychains reach the native player inventory.
 - Original appearance, active identity, used sources and compromise knowledge survive reload.
-- Lock breaking and reloading restore full detection; calm behavior reduces it without invisibility.
+- Lock breaking restores full detection when perceived; held weapons and reloading remain identity-neutral.
 - Same-unit scrutiny opens a real interruptible radio check.
 - Body discovery stays local until a completed radio transmission.
 - Drone discovery of the source identity compromises it globally.
@@ -151,7 +152,7 @@ RC34 is not allowed to advance unless all of the following remain green:
 
 ## RC35 live-balance correction
 
-The first reachable in-game disguise revealed that weapon and takeover scrutiny were too abrupt. RC35 therefore adds these non-negotiable regressions:
+The first reachable in-game disguise revealed that weapon and takeover scrutiny were too abrupt. RC35 introduced the following intermediate regressions; its weapon-family distinctions are superseded by RC36's fully weapon-neutral rule:
 
 - a visible weapon with the same native Security family does not immediately reveal a new identity;
 - a different ordinary Security weapon family creates mild scrutiny instead of an instant failure;
@@ -159,6 +160,18 @@ The first reachable in-game disguise revealed that weapon and takeover scrutiny 
 - same-unit and elite observers stay faster than unrelated guards without completing recognition in one ordinary glance;
 - the post-change window is short scrutiny, not three seconds of globally unmodified detection;
 - nearby guards cannot report the source body until the game's real body-sight event occurs.
+
+## RC36 observer-local correction
+
+The second live pass established a simpler product rule and exposed two engine-integration leaks. RC36 therefore makes these non-negotiable:
+
+- weapon model, weapon family, drawn/holstered state and reload never affect identity for STAFF, SECURITY or ELITE SECURITY;
+- an unobserved shot never compromises the disguise and never starts a global post-shot exposure timer;
+- persistent vanilla `getSeenPlayer()` memory is not current sight; direct witnesses must pass the native current vision AABB, FOV and world raycast at the firing event;
+- a direct visual witness recognizes the firing player locally and may propagate that knowledge through a valid radio;
+- global combat elsewhere never grants identity knowledge to an uninformed observer;
+- loud gunfire, guard damage and protection casualties mobilize responders toward an incident position without calling `setEnemyInSight` or attaching the player actor;
+- only confirmed sight, body/camera/drone evidence or completed communication can turn a location search into player-specific pursuit.
 
 ## Required live acceptance for this feature
 
@@ -169,8 +182,8 @@ Automated completion is not production acceptance. On Intravenous 2 `1.4.12HF3`,
 3. Confirm the action disappears from that body and remains consumed after quicksave/quickload.
 4. Repeat with an unarmed staff actor, normal guard and elite guard. The appearances and tier messages must differ where the map supplies distinct variants.
 5. Take a carried keycard/keychain identity and open the corresponding real door. A uniform without credentials must not fabricate the key.
-6. Walk normally with concealed/plausible equipment. Unrelated guards must inspect slowly; matching colleagues and elite guards must inspect materially faster.
-7. Sprint, aim, reload, lockpick, carry a body and fire while observed. Each behavior must visibly restore strong/native suspicion without breaking ordinary combat.
+6. Walk normally while holding several arbitrary weapons, including the player's normal silenced pistol. Holster/unholster and reload. None of those equipment states may change recognition; matching colleagues and elite guards may still inspect the identity materially faster.
+7. Fire one suppressed shot without any visual witness and relocate. Guards may investigate a heard impact/body according to native perception but must not identify the player. Then let one guard directly see aiming/firing and confirm only that observer knows until a real radio report completes.
 8. Remain close to the protected target, then leave. Scrutiny must rise after sustained lingering and recover after withdrawal.
 9. Expose the source corpse to one guard. Only that guard/nearby witnesses should know before its real radio completes. Disrupt or neutralize it and confirm no global compromise.
 10. Repeat and allow the radio to finish. Confirm the red compromise transition and full recognition by a previously uninformed guard.

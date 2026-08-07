@@ -242,6 +242,11 @@ setmetatable(player, {__index = playerActor})
 
 function player:getID() return self.id end
 function player:getPos() return self.x, self.y end
+function player:getCenter() return self.x, self.y end
+function player:getFixture()
+	self.fixture = self.fixture or {owner = self}
+	return self.fixture
+end
 function player:getState() return self.state end
 function player:getAiming() return self.aiming end
 function player:getSprinting() return self.sprinting end
@@ -310,6 +315,11 @@ local function createNPC(data)
 	function npc:getClass() return self.class end
 	function npc:getID() return self.id end
 	function npc:getPos() return self.x, self.y end
+	function npc:getCenter() return self.x, self.y end
+	function npc:getFixture()
+		self.fixture = self.fixture or {owner = self}
+		return self.fixture
+	end
 	function npc:isDead() return self.dead end
 	function npc:isUnconscious() return self.unconscious end
 	function npc:getActivePatrolRoute() return self.patrol end
@@ -349,7 +359,17 @@ local function createNPC(data)
 	function npc:setDetection(target, value) self.detection[target] = value end
 	function npc:getAlertnessStateID() return self.alertness end
 	function npc:getEnemyInSight() return self.enemyInSight == true end
-	function npc:getSeenPlayer() return self.enemyInSight == true end
+	function npc:getSeenPlayer() return self.seenPlayer == true or self.enemyInSight == true end
+	function npc:updateVisionData()
+		return {0, 0, 1, false, self.currentlySees == true}
+	end
+	function npc:isWithinView() return self.currentlySees == true end
+	function npc:runGenericRaycast(_, _, _, _, target)
+		if self.currentlySees == true then
+			return {fixture = target:getFixture(), fraction = 1}
+		end
+		return {fixture = {blocked = true}, fraction = 0.5}
+	end
 	function npc:getBestHunchTime() return self.hunchTime or 999 end
 	function npc:getBestHunch() return self.hunchX or self.x, self.hunchY or self.y end
 	function npc:getSightPos() return self.hunchX or self.x, self.hunchY or self.y end
@@ -664,12 +684,22 @@ assertTrue(validC:getDetection(player) < 0.5, "visible matching security weapon 
 namedStoryNPC:setDetection(player, 0)
 player.weapon.weaponType = 1
 namedStoryNPC:increaseDetection(player, 1)
-assertTrue(namedStoryNPC:getDetection(player) < 0.5, "different ordinary security weapon family creates scrutiny rather than instant exposure")
+assertTrue(namedStoryNPC:getDetection(player) < 0.5, "held weapon model and family do not affect an otherwise credible disguise")
 npcAlertnessStates.inCombat = true
 namedStoryNPC:setDetection(player, 0)
 namedStoryNPC:increaseDetection(player, 1)
-assertEqual(namedStoryNPC:getDetection(player), 1, "active native combat still defeats a weapon-plausible disguise")
+assertTrue(namedStoryNPC:getDetection(player) < 0.5, "global combat elsewhere does not give an uninformed observer magical identity knowledge")
 npcAlertnessStates.inCombat = false
+namedStoryNPC.seenPlayer = true
+events:fire(playerActor.EVENTS.FIRED_WEAPON)
+assertTrue(not state.localCompromisedDisguises[namedStoryNPC.id], "past sight memory cannot turn an unobserved shot into identity knowledge")
+namedStoryNPC.currentlySees = true
+events:fire(playerActor.EVENTS.FIRED_WEAPON)
+namedStoryNPC:setDetection(player, 0)
+namedStoryNPC:increaseDetection(player, 1)
+assertEqual(namedStoryNPC:getDetection(player), 1, "direct firing witness recognizes the disguised shooter locally")
+namedStoryNPC.currentlySees = false
+state.localCompromisedDisguises[namedStoryNPC.id] = nil
 player.weapon = nil
 player.weaponConcealed = true
 curTime = curTime + 3.1
@@ -717,7 +747,7 @@ assertEqual(validC:getDetection(player), 1, "native lock-breaking state immediat
 player.state = {id = "player_reloading"}
 validC:setDetection(player, 0)
 validC:increaseDetection(player, 1)
-assertEqual(validC:getDetection(player), 1, "native reload state immediately defeats social cover")
+assertTrue(validC:getDetection(player) < 0.5, "ordinary reloading does not defeat an armed identity")
 player.state = normalPlayerState
 
 validC:setDetection(player, 0.5)
@@ -998,6 +1028,12 @@ events:fire(weapons.EVENTS.FIRED, loudWeapon)
 events:fire(weapons.EVENTS.FIRED, loudWeapon)
 assertTrue(state.security.dronesTriggeredByGunfire, "loud player fire triggers drone escalation")
 assertEqual(state.security.droneMode, "AGGRESSIVE", "loud player fire switches drones to aggressive search")
+assertEqual(state.security.lastKnown.actor, nil, "sound-only escalation stores a search position without the player's identity")
+for _, data in ipairs(state.security.guards) do
+	if data.role ~= "close_protection" then
+		assertTrue(data.actor.enemyInSight ~= true, "sound-only escalation never marks response guards as seeing the player")
+	end
+end
 
 require("hco/bootstrap").start()
 assertEqual(#events.directReceivers[game.EVENTS.MAP_LOADED], 1, "duplicate lifecycle listener prevented")

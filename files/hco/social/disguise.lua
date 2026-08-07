@@ -27,10 +27,7 @@ local SUSPICIOUS_PLAYER_STATES = {
 	player_throwing_weapon = true,
 	player_throwing_item = true,
 	player_post_throw_cooldown = true,
-	player_taking_item_throwing = true,
-	player_reloading = true,
-	player_reload = true,
-	player_reloading_weapon = true
+	player_taking_item_throwing = true
 }
 
 local INTERACTION_SENTINEL = "hco_take_disguise_v1"
@@ -123,34 +120,6 @@ local function isGloballyCompromised(state)
 	return state.disguise and (state.disguise.compromised or state.compromisedDisguises[state.disguise.group])
 end
 
-local function visibleWeaponRisk(state, player)
-	local okWeapon, weapon = util.call(player, "getWeapon")
-	local okConcealed, concealed = util.call(player, "getWeaponConcealed")
-
-	if not okWeapon or not weapon or (okConcealed and concealed) then
-		return 0
-	end
-
-	local weaponType, weaponID = getWeaponIdentity(weapon)
-	local active = state.disguise
-
-	if active.tier == "staff" then
-		return config.DISGUISE_WRONG_WEAPON_DETECTION
-	end
-
-	-- Security uniforms are expected to carry weapons. Exact models do not
-	-- matter: the native weapon type is the stable family boundary (sidearm,
-	-- primary, gadget, and so on). A different but ordinary security family is
-	-- a mild inconsistency, never an instant reveal. Aiming, firing and native
-	-- combat remain fully exposing through getBehaviorRisk/observerFactor.
-	if active.weaponType == nil or weaponType == active.weaponType
-		or active.weaponID ~= nil and weaponID == active.weaponID then
-		return config.DISGUISE_MATCHING_WEAPON_DETECTION
-	end
-
-	return config.DISGUISE_SECURITY_WEAPON_DETECTION
-end
-
 function disguise.getBehaviorRisk(state, player)
 	if not state.disguise or isGloballyCompromised(state) then
 		return 1
@@ -159,10 +128,6 @@ function disguise.getBehaviorRisk(state, player)
 	local stateID = getPlayerStateID(player)
 
 	if stateID and SUSPICIOUS_PLAYER_STATES[stateID] then
-		return 1
-	end
-
-	if state.disguise.firedTime and (curTime or 0) - state.disguise.firedTime <= 5 then
 		return 1
 	end
 
@@ -191,7 +156,6 @@ function disguise.getBehaviorRisk(state, player)
 	end
 
 	return math.max(
-		visibleWeaponRisk(state, player),
 		tonumber(state.disguise.lingerRisk) or 0,
 		tonumber(state.disguise.disturbanceRisk) or 0,
 		state.disguise.bloodied and config.DISGUISE_BLOODIED_DETECTION or 0
@@ -203,7 +167,13 @@ local function observerFactor(state, observer, player)
 		return 1
 	end
 
-	if npcAlertnessStates and npcAlertnessStates.getCombat and npcAlertnessStates:getCombat() then
+	local _, enemyInSight = util.call(observer, "getEnemyInSight", player)
+	local _, currentDetection = util.call(observer, "getDetection", player)
+
+	-- Knowledge is observer-local. A global combat music/alert state never
+	-- identifies this disguised player by itself; an observer that already has
+	-- the player as its enemy remains authoritative.
+	if enemyInSight or tonumber(currentDetection) and currentDetection >= 1 then
 		return 1
 	end
 
@@ -260,10 +230,6 @@ end
 
 local function clearLowDetection(player)
 	if not game.worldObject or type(game.worldObject.getNPCs) ~= "function" then
-		return
-	end
-
-	if npcAlertnessStates and npcAlertnessStates.getCombat and npcAlertnessStates:getCombat() then
 		return
 	end
 
@@ -596,6 +562,46 @@ local function processPendingCompromises(state, dt)
 	end
 end
 
+local function hasCurrentVisualContact(observer, player)
+	local _, enemyInSight = util.call(observer, "getEnemyInSight", player)
+
+	if enemyInSight then
+		return true
+	end
+
+	-- getSeenPlayer() is persistent vanilla memory ("has ever seen the player"),
+	-- not proof that this observer saw this shot. Reuse the current native
+	-- vision AABB/FOV and generic world raycast instead.
+	local okVision, visionData = util.call(observer, "updateVisionData", player)
+	local okView, withinView = util.call(observer, "isWithinView", player)
+
+	if not okVision or type(visionData) ~= "table" or visionData[5] ~= true
+		or not okView or withinView ~= true then
+		return false
+	end
+
+	local okObserverCenter, ox, oy = util.call(observer, "getCenter")
+	local okPlayerCenter, px, py = util.call(player, "getCenter")
+
+	if not okObserverCenter then ox, oy = util.getPos(observer) end
+	if not okPlayerCenter then px, py = util.getPos(player) end
+	if not ox or not px then return false end
+
+	local okRay, hit = util.call(observer, "runGenericRaycast", ox, oy, px, py, player)
+
+	if not okRay or type(hit) ~= "table" then
+		return false
+	end
+
+	if tonumber(hit.fraction) and hit.fraction >= 0.999 then
+		return true
+	end
+
+	local okFixture, playerFixture = util.call(player, "getFixture")
+
+	return okFixture and playerFixture ~= nil and hit.fixture == playerFixture
+end
+
 local function compromiseDirectWitnesses(state)
 	local player = game and game.playerActor
 
@@ -603,15 +609,11 @@ local function compromiseDirectWitnesses(state)
 		return
 	end
 
-	state.disguise.firedTime = curTime or 0
 	local witnessed = false
 
 	for _, npc in ipairs(util.getNPCs(game.worldObject)) do
 		if util.isAlive(npc) then
-			local _, sees = util.call(npc, "getEnemyInSight", player)
-			local _, detection = util.call(npc, "getDetection", player)
-
-			if sees or tonumber(detection) and detection >= 0.8 then
+			if hasCurrentVisualContact(npc, player) then
 				witnessed = true
 				markLocalCompromise(state, npc, state.disguise.group)
 				queueRadioCompromise(state, npc, state.disguise.group)
