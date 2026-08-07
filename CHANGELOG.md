@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.1-rc35 — 2026-08-07
+
+- Rebalanced armed social stealth from the first live disguise pass. A visible weapon matching the stolen guard's native weapon family now carries only baseline scrutiny; a different ordinary Security weapon family raises mild suspicion rather than causing a near-instant reveal. STAFF identities still cannot openly carry a firearm.
+- Reduced same-unit, elite and close-protection recognition multipliers so colleagues remain the strongest inspectors without collapsing a fresh valid identity in one glance.
+- Replaced the blanket three-second full-exposure window after changing clothes with a short 1.5-second, 25% takeover-risk window. Actual witnesses, aiming, firing and active native combat still expose the player normally.
+- Removed HCO's distance-only corpse scan. Body evidence now enters the security network through the game's real `setSeenBody` investigation path or a physical drone cone/raycast, preventing guards from discovering bodies through walls.
+- Added regression coverage for visible matching and alternate Security weapon families plus full exposure during native combat.
+
 ## 0.14.0-rc34 — 2026-08-07
 
 - Rebuilt disguise acquisition on the engine's real interaction ownership path. HCO now re-enumerates Goon actions, advances the native bit tracker, refreshes interaction caches created before the mod, hooks death/choke/fallen/drop transitions and calls `postInteract` after a successful takeover.

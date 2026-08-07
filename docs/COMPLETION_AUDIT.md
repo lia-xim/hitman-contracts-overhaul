@@ -1,8 +1,8 @@
-# Completion Audit — 0.14.0-rc34
+# Completion Audit — 0.14.1-rc35
 
 **Audit date:** 2026-08-07
 **Goal status:** production-candidate code complete for the current feature surface; final live acceptance is not complete
-**Authority inspected:** RC34 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, decompiled `1.4.12HF3` interaction/actor/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces and user-supplied live screenshots/errors
+**Authority inspected:** RC35 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed `1.4.12HF3` interaction/actor/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -14,7 +14,7 @@
 | Safe campaign payout | Pass | Completion and reward observed after `studio` crash fix | Live pass |
 | Target/protection presence | Pass | Target and guards observed | Partial live pass; behavior/difficulty tuning remains |
 | Multi-contract isolation | Pass | Not yet proven across a full live mission | Live test required |
-| Disguise/social stealth | RC34 native interaction, three tiers, visuals, credentials, recognition, radio, compromise and persistence pass | Earlier build had no reachable identity action | RC34 real body-menu/appearance/behavior gate required |
+| Disguise/social stealth | RC35 native interaction, three tiers, visuals, credentials, armed-cover balance, recognition, radio, compromise and persistence pass | RC34 live pass exposed abrupt armed recognition | RC35 real body-menu/appearance/behavior gate required |
 | Save/reload semantics | Pass | Individual mission behavior observed, full matrix incomplete | Live test required |
 | Drone deployment/searchlight | Pass | Searchlight and movement observed | Live pass |
 | Native drone body | Seven-row atlas pass | Earlier native body visible in screenshot | RC22 row/scale/orientation pass pending |
@@ -32,13 +32,13 @@ The core optional-contract product exists and works far enough to be played. HCO
 
 1. Validate and tune the mobile target's retreat/escape behavior and protection-detail combat pressure on several real maps.
 2. Guarantee stronger mission-appropriate weapons and reliable active response for the protection tiers.
-3. Complete the RC34 fourteen-step live acceptance for the now-rebuilt disguise, credentials, identity checks, visual transitions, body evidence and radio compromise.
+3. Complete the RC35 fourteen-step live acceptance for the rebuilt and live-tuned disguise, credentials, armed cover, identity checks, visual transitions, body evidence and radio compromise.
 4. Live-test the implemented semantic drone perception for calm/risky identities, bodies and source-uniform compromise.
 5. Live-approve the retained native roof-map placement, outdoor footprint recovery, unaided complete-silhouette hits and the complete animated inert-wreck handoff; meaningful operator/radio dependency remains a future expansion.
 6. Treat thermal surveillance and additional systemic contract types as explicit post-1.0 expansions unless promoted into the release scope.
 7. Live-test and tune the implemented Pistol/SMG/Laser attacks. Every attack must remain telegraphed and counterable.
 8. Complete the live map, reload and compatibility matrix; localization/audio callouts remain post-candidate content work.
 
-## RC34 acceptance
+## RC35 acceptance
 
-RC34 is approved for local production-candidate testing, not yet as final `1.0`. Automated proof now traverses the real Goon option list instead of calling a hidden Lua action directly, captures identity before native inventory stripping, switches/persists all three tiers and renders the four world-space identity transitions. The next pass must prove that these behaviors are reachable and readable in a real mission while also confirming RC33's drone wreck progression. The exact promotion matrix is maintained in `PRODUCTION_READINESS.md`.
+RC35 is approved for local production-candidate testing, not yet as final `1.0`. It retains RC34's real Goon option path, pre-drop identity capture, three persistent tiers and world-space transitions, then corrects the first live recognition report: plausible Security weapons no longer cause abrupt exposure and corpse knowledge requires native sight. The next pass must prove these behaviors in a real mission while also confirming RC33's drone wreck progression. The exact promotion matrix is maintained in `PRODUCTION_READINESS.md`.

@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.0-rc34`  
+**Candidate:** `0.14.1-rc35`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -16,7 +16,7 @@ This document prevents future work from collapsing the product specification int
 | Mobile target and secure movement | `targets/controller.lua` | Implemented | Routine, threatened, sheltered, reselection, escape and watchdog cases | Long live route/reload pass on several maps |
 | Protection and response roles | `security/escort.lua`, `security/director.lua` | Implemented for close protection and autonomous response | Role ownership, fan-out, search and follower safety cases | Verify weapons, combat pressure and difficulty balance in game |
 | Knowledge and hunt phases | `security/director.lua` | Implemented | Local evidence, pressure, decay and stand-down cases | Verify no wall omniscience and readable convergence |
-| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | Implemented in RC34 | Native action enumeration, cached-body refresh, death-time identity capture, three switches | Must be accepted from the real body interaction wheel |
+| Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | Implemented in RC34, live-tuned in RC35 | Native action enumeration, cached-body refresh, death-time identity capture, three switches | Must be accepted from the real body interaction wheel |
 | Social recognition | `social/disguise.lua` | Implemented for the current uniform-class model | Calm, same-unit, experience/role, reload, lock breaking, weapon, access, evidence and compromise cases | Tune timing and readability in a real mission |
 | Credentials and restricted areas | Native `playerActor:addKey` and off-limits queries, coordinated by `social/disguise.lua` | Implemented for keycard and keychain IDs | Acquisition/reload and adjusted trespass-query cases | Verify actual mission doors and STAFF/SECURITY/ELITE areas |
 | Existing cameras | `security/sensors.lua` | Implemented | Camera risk scaling and disruption/break evidence in runtime fixtures | Live camera cone, disguise and wall/EMP pass |
@@ -71,15 +71,15 @@ The release model multiplies native detection instead of replacing sight, distan
 | Input | Result |
 | --- | --- |
 | Calm, distant, unrelated unit | 8% baseline native detection growth |
-| Same animation/familiarity group | 32% baseline before experience/role scaling |
-| Elite observer | Familiarity factor ×1.5 |
-| Close protection / protected target | Familiarity factor ×1.35 / ×1.6 |
-| Matching visible weapon | At least 15% scrutiny; never lower than same-unit familiarity |
-| Regular-security weapon mismatch | 65% scrutiny |
+| Same animation/familiarity group | 22% baseline before experience/role scaling |
+| Elite observer | Familiarity factor ×1.35 |
+| Close protection / protected target | Familiarity factor ×1.2 / ×1.45 |
+| Matching visible Security weapon family | 8% baseline scrutiny; same-unit familiarity may be higher |
+| Different ordinary Security weapon family | 22% scrutiny rather than immediate exposure |
 | Staff with visible weapon | Immediate exposure |
 | Sprint | 75% scrutiny |
 | Aim, fire, reload, lock breaking, sabotage, body carry or violent native state | Immediate exposure |
-| Three seconds after taking a uniform | Immediate exposure to represent the illicit body interaction |
+| First 1.5 seconds after taking a uniform | 25% close scrutiny; real witnesses/body discovery remain authoritative |
 | Bloodied uniform | Minimum 28% scrutiny and an explicit acquisition warning |
 | Fresh nearby HCO evidence | Minimum 45% scrutiny for up to twelve seconds |
 | Repeated target lingering | 35% warning after four seconds, 65% danger after eight |
@@ -102,6 +102,7 @@ The values are intentionally centralized in `config.lua`; live balancing changes
 ### Local knowledge, radio and compromise
 
 - A body investigator learns locally and informs nearby guards.
+- HCO never discovers a body by distance alone. A guard must enter the native `setSeenBody` investigation path; drone evidence requires the physical cone and world raycast.
 - The real NPC radio is opened; a disruption, unconscious/dead carrier, lost identity-check proximity or timeout cancels the transmission.
 - A completed body report compromises the uniform class globally.
 - Same-unit scrutiny can start an explicit, visible, interruptible identity check once native detection reaches 55%.
@@ -147,6 +148,17 @@ RC34 is not allowed to advance unless all of the following remain green:
 - Drone discovery of the source identity compromises it globally.
 - The player-world draw hook renders all acquisition/check/compromise transition primitives and the active faction insignia.
 - All existing contract, target, guard, reward, drone, visual, feedback and degraded-boot suites remain green.
+
+## RC35 live-balance correction
+
+The first reachable in-game disguise revealed that weapon and takeover scrutiny were too abrupt. RC35 therefore adds these non-negotiable regressions:
+
+- a visible weapon with the same native Security family does not immediately reveal a new identity;
+- a different ordinary Security weapon family creates mild scrutiny instead of an instant failure;
+- STAFF with a visible firearm, aiming, firing and native combat remain fully exposing;
+- same-unit and elite observers stay faster than unrelated guards without completing recognition in one ordinary glance;
+- the post-change window is short scrutiny, not three seconds of globally unmodified detection;
+- nearby guards cannot report the source body until the game's real body-sight event occurs.
 
 ## Required live acceptance for this feature
 

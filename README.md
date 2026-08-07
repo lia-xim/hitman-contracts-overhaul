@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.14.0-rc34`
+**Current build:** `0.14.1-rc35`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate test release. RC34 completes the native Disguise & Social Stealth implementation path: real body-menu registration, visible identity switching, three access tiers, credentials, behavior/same-unit scrutiny, interruptible identity checks, evidence compromise, persistence and world-space transition effects. It retains RC33's persistent drone wreck clock. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC35 retains RC34's native Disguise & Social Stealth implementation and applies the first live balance correction: plausible Security weapons no longer reveal the player immediately, same-unit scrutiny is readable rather than abrupt, and body evidence requires native sight instead of proximity through walls. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 

@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.14.0-rc34`
+**Candidate:** `0.14.1-rc35`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 
@@ -55,7 +55,7 @@ Run with the Cheat Trainer reset unless compatibility itself is being tested.
 2. One-, two- and three-contract activation where actor population allows it.
 3. At least one Easy/Normal and one Hard/True mission; confirm visibly different pressure without changing the five-bodyguard core.
 4. Routine patrol, loud-fire escalation, direct HCO-guard contact, body evidence and protection-casualty deployment paths.
-5. Complete the fourteen-step RC34 social-stealth matrix: real body selector, three tiers, visual transitions, keycard/keychain doors, behavior/equipment exposure, lingering/evidence, identity checks, local/global body compromise, drone source scan and clean/compromised reload.
+5. Complete the fourteen-step RC35 social-stealth matrix: real body selector, three tiers, visual transitions, plausible armed cover, keycard/keychain doors, behavior exposure, lingering/evidence, identity checks, local/global body compromise, drone source scan and clean/compromised reload.
 6. Scout plus every Light/Heavy Pistol, SMG and Laser row: silhouette, scale, heading, sound, attack cue, damage and cooldown.
 7. Player LOS loss, zero roofed/indoor spawns, wall/door/window steering, world-edge containment, wing separation, idle recovery and at least 30 seconds of aggressive search.
 8. EMP/disruption, Light one-hit destruction, Heavy two/three-hit destruction, outer-rotor hits, crash landing, wreck cleanup and crash-site response.

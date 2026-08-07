@@ -134,23 +134,21 @@ local function visibleWeaponRisk(state, player)
 	local weaponType, weaponID = getWeaponIdentity(weapon)
 	local active = state.disguise
 
-	if active.tier == "elite_security" then
-		if active.weaponType == nil or weaponType == active.weaponType or active.weaponID ~= nil and weaponID == active.weaponID then
-			return 0.15
-		end
-
-		return config.DISGUISE_VISIBLE_WEAPON_DETECTION
+	if active.tier == "staff" then
+		return config.DISGUISE_WRONG_WEAPON_DETECTION
 	end
 
-	if active.weaponType ~= nil and weaponType == active.weaponType then
-		return 0.15
+	-- Security uniforms are expected to carry weapons. Exact models do not
+	-- matter: the native weapon type is the stable family boundary (sidearm,
+	-- primary, gadget, and so on). A different but ordinary security family is
+	-- a mild inconsistency, never an instant reveal. Aiming, firing and native
+	-- combat remain fully exposing through getBehaviorRisk/observerFactor.
+	if active.weaponType == nil or weaponType == active.weaponType
+		or active.weaponID ~= nil and weaponID == active.weaponID then
+		return config.DISGUISE_MATCHING_WEAPON_DETECTION
 	end
 
-	if active.weaponID ~= nil and weaponID == active.weaponID then
-		return 0.15
-	end
-
-	return active.tier == "staff" and config.DISGUISE_WRONG_WEAPON_DETECTION or config.DISGUISE_VISIBLE_WEAPON_DETECTION
+	return config.DISGUISE_SECURITY_WEAPON_DETECTION
 end
 
 function disguise.getBehaviorRisk(state, player)
@@ -169,7 +167,11 @@ function disguise.getBehaviorRisk(state, player)
 	end
 
 	if state.disguise.illicitTime and (curTime or 0) - state.disguise.illicitTime <= config.DISGUISE_ILLICIT_ACTION_TIME then
-		return 1
+		-- The takeover remains suspicious at close range, but putting on a valid
+		-- uniform does not globally preserve the pre-takeover hostile identity.
+		-- Actual witnesses/body investigators are handled by native sight and
+		-- setSeenBody, which can still compromise this identity locally.
+		return config.DISGUISE_TAKEOVER_DETECTION
 	end
 
 	local okAim, aiming = util.call(player, "getAiming")
@@ -213,13 +215,13 @@ local function observerFactor(state, observer, player)
 	local elite = goonClass and goonClass.EXPERIENCE_LEVELS and goonClass.EXPERIENCE_LEVELS.ELITE
 
 	if elite and tonumber(experience) and experience >= elite then
-		factor = factor * 1.5
+		factor = factor * 1.35
 	end
 
 	if observer._hcoSecurityRole == "close_protection" then
-		factor = factor * 1.35
+		factor = factor * 1.2
 	elseif observer._hcoSecurityRole == "protected_target" then
-		factor = factor * 1.6
+		factor = factor * 1.45
 	end
 
 	return math.min(1, math.max(risk, factor))

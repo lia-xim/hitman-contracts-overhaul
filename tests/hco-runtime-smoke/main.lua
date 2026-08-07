@@ -653,6 +653,25 @@ assertEqual(state.identityFX.kind, "acquired", "identity takeover starts a nativ
 assertEqual(validA.postInteractCount, 1, "successful identity takeover refreshes native body menu")
 assertTrue(not disguiseOption.actionCheck(validA, player), "taken identity cannot be duplicated from the same body")
 assertTrue(player:hasKey("security-A"), "body keycard granted")
+player.weapon = {id = "player-sidearm", weaponType = 2}
+function player.weapon:getID() return self.id end
+function player.weapon:getType() return self.weaponType end
+player.weaponConcealed = false
+validC.animVar = acquiredFaction
+validC:setDetection(player, 0)
+validC:increaseDetection(player, 1)
+assertTrue(validC:getDetection(player) < 0.5, "visible matching security weapon does not instantly reveal a fresh disguise")
+namedStoryNPC:setDetection(player, 0)
+player.weapon.weaponType = 1
+namedStoryNPC:increaseDetection(player, 1)
+assertTrue(namedStoryNPC:getDetection(player) < 0.5, "different ordinary security weapon family creates scrutiny rather than instant exposure")
+npcAlertnessStates.inCombat = true
+namedStoryNPC:setDetection(player, 0)
+namedStoryNPC:increaseDetection(player, 1)
+assertEqual(namedStoryNPC:getDetection(player), 1, "active native combat still defeats a weapon-plausible disguise")
+npcAlertnessStates.inCombat = false
+player.weapon = nil
+player.weaponConcealed = true
 curTime = curTime + 3.1
 assertEqual(player:getOfflimits(), npcAlertnessStates.STATES.IDLE, "keycard disguise grants access reduction")
 assertEqual(player:getOfflimitsActive(), false, "native trespass-active query agrees with disguise-adjusted access")

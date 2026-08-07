@@ -341,23 +341,6 @@ function director.notifyBodyEvidence(state, observer, body)
 	drones.request(state, security.droneDoctrine.count or config.DRONE_DEPLOY_COUNT, "body-evidence")
 end
 
-local function scanBodyEvidence(state)
-	local security = state.security
-	if not security or not game.worldObject then return end
-	for _, body in ipairs(util.getNPCs(game.worldObject)) do
-		local bodyID = util.getID(body)
-		if body ~= state.target and bodyID and not security.seenBodies[bodyID] and not util.isAlive(body) then
-			for _, guard in ipairs(security.guards) do
-				if util.isAlive(guard.actor) and util.distance(guard.actor, body) <= 260 then
-					security.seenBodies[bodyID] = true
-					director.notifyBodyEvidence(state, guard.actor, body)
-					break
-				end
-			end
-		end
-	end
-end
-
 local function scanMissionContact(state, player)
 	local security = state.security
 	if not security or security.dronesTriggeredByContact or not game.worldObject then return end
@@ -509,7 +492,10 @@ function director.update(state, dt)
 		security.dronesTriggeredByContact = true
 		mobilizeProtection(state, nil, nil, lostGuard and "protection-casualty" or "protection-under-fire")
 	end
-	scanBodyEvidence(state)
+	-- Body discovery is owned by the native investigate-body sight/raycast
+	-- path. social/disguise hooks goon:setSeenBody and forwards only a real
+	-- discovery here. A distance-only scan would let guards recognize bodies
+	-- through walls and instantly burn a freshly acquired disguise.
 	scanMissionContact(state, player)
 	local actors = {{actor = state.target, role = "protected_target"}}
 
