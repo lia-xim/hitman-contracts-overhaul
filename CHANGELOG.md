@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.13-rc47 — 2026-08-07
+
+- Fixed the actual native-selection failure behind the missing disguise action. Some direct death/state paths left a visible eligible body outside the world's interaction quadtree, so `Q` could only discover its dropped weapon, ammunition or keycard regardless of body priority or cached actions.
+- Restores the engine's intended fallen-body interaction state after death, choking, falling, body drops and periodic checkpoint recovery. A valid body is inserted only when it is absent from the current world's interaction tree.
+- Detects stale `withinInteraction` state carried across a replaced `worldObject`/checkpoint quadtree and reconnects the body to the current selector without repeatedly inserting healthy entries.
+- Added a native-shaped regression in which `_die()` drops inventory but deliberately does not register the body. The suite now requires body presence in the selector quadtree, takeover as its first action and exactly one insertion across later refreshes.
+
 ## 0.14.12-rc46 — 2026-08-07
 
 - Corrected the live screenshot diagnosis: the native selector was displaying object `1. HS2000`; the unconscious body was object `2`, so its actions were intentionally hidden until the player cycled with `Q`.

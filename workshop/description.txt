@@ -66,7 +66,7 @@ Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a l
 The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.14.12-rc46[/b] — production-candidate release. RC46 selects an eligible body before overlapping dropped equipment, repairs independent render caches and recovers critical interaction hooks replaced by later-loaded mods. It retains stable native action IDs, cyan uniform markers and the principal/drone continuity fixes. Promotion to 1.0 follows the published crash-free live mission matrix.
+[b]0.14.13-rc47[/b] — production-candidate release. RC47 restores eligible fallen actors to the current native interaction quadtree, then selects the body before overlapping dropped equipment and exposes takeover as its first action. It retains stable action IDs, cache/hook recovery, cyan uniform markers and the principal/drone continuity fixes. Promotion to 1.0 follows the published crash-free live mission matrix.
 
 [h2]OPEN SOURCE[/h2]
 Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.

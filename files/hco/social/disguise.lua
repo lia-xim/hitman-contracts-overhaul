@@ -989,6 +989,44 @@ local function isEligibleBody(state, body, interactor)
 	return group ~= nil
 end
 
+local function needsBodyInteraction(state, body, interactor)
+	return isEligibleBody(state, body, interactor)
+		or state.disguise ~= nil and isBodyInteractionTarget(body, interactor)
+end
+
+local function isBodyInteractionEnabled(body)
+	local ok, enabled = util.call(body, "isInteractionEnabled")
+	if ok then enabled = enabled == true else enabled = body and body.withinInteraction == true end
+	if not enabled then return false end
+
+	-- A checkpoint can replace worldObject (and therefore its quadtree) while a
+	-- restored actor still carries the old withinInteraction flag. Native inserts
+	-- record the owning tree, so only accept membership in the current world.
+	local worldObject = game and game.worldObject
+	local treeOK, currentTree = util.call(worldObject, "getInteractionQuadTree")
+	if treeOK and currentTree and body.interactQuadTree ~= currentTree then return false end
+	return true
+end
+
+local function ensureBodyInteractionEnabled(state, body, interactor)
+	if not needsBodyInteraction(state, body, interactor) then return false end
+	if isBodyInteractionEnabled(body) then return true end
+
+	-- The native object selector can only see objects registered in the world's
+	-- interaction quadtree. Some direct death/state paths leave a fallen actor in
+	-- the body tree while never calling makeFallen(), so its cached options may be
+	-- correct but Q can only select the dropped weapon or keycard. Restore the
+	-- engine's intended fallen-body state once; never reinsert an enabled body.
+	local ok = util.call(body, "updateBodyInteractionState", true)
+	if not ok then
+		body.INTERACT = true
+		body.PLAYER_INTERACT = true
+		util.call(body, "enableInteraction")
+	end
+
+	return isBodyInteractionEnabled(body)
+end
+
 local function invalidateBodyInteractionCache(state, body)
 	if not body then return false end
 	local generation = state.hcoDisguiseInteractionGeneration or 0
@@ -1046,6 +1084,7 @@ end
 
 local function refreshBodyInteraction(state, body, interactor)
 	if not body or not interactor then return false end
+	local selectable = ensureBodyInteractionEnabled(state, body, interactor)
 	invalidateBodyInteractionCache(state, body)
 
 	-- Existing bodies cache their native option list. Updating that list after
@@ -1054,10 +1093,10 @@ local function refreshBodyInteraction(state, body, interactor)
 	if body._interactionList and type(body.updateInteractionList) == "function" then
 		local ok = util.call(body, "updateInteractionList", interactor)
 		reconcileVisibleBodyActions(state, body, interactor, body._interactionList)
-		return ok
+		return selectable or ok
 	end
 
-	return false
+	return selectable
 end
 
 local function refreshNearbyBodies(state, player, dt)

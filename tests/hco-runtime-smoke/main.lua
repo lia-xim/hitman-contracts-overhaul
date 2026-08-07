@@ -195,6 +195,27 @@ function goonClass:postInteract(interactor)
 	self:updateInteractionList(interactor)
 end
 
+function goonClass:isInteractionEnabled()
+	return self.withinInteraction == true
+end
+
+function goonClass:enableInteraction()
+	local tree = game.worldObject and game.worldObject:getInteractionQuadTree()
+	if tree then tree:insert(self) end
+end
+
+function goonClass:disableInteraction()
+	if not self.withinInteraction then return end
+	local tree = game.worldObject and game.worldObject:getInteractionQuadTree()
+	if tree then tree:remove(self) end
+end
+
+function goonClass:updateBodyInteractionState(value)
+	self.INTERACT = value == true
+	self.PLAYER_INTERACT = value == true
+	if value then self:enableInteraction() else self:disableInteraction() end
+end
+
 function goonClass:increaseDetection(target, amount)
 	self.detection[target] = math.min(1, (self.detection[target] or 0) + amount)
 
@@ -505,9 +526,24 @@ local world = {
 	npcs = {namedStoryNPC, stationaryNPC, validA, validB, validC, validD, objectiveCritical}
 }
 
+local interactionTree = {objects = {}, insertCount = {}}
+function interactionTree:insert(object)
+	self.objects[object] = true
+	self.insertCount[object] = (self.insertCount[object] or 0) + 1
+	object.withinInteraction = true
+	object.interactQuadTree = self
+end
+function interactionTree:remove(object)
+	self.objects[object] = nil
+	object.withinInteraction = false
+	object.interactQuadTree = nil
+end
+function interactionTree:contains(object) return self.objects[object] == true end
+
 function world:getMapID() return self.mapID end
 function world:getNPCs() return self.npcs end
 function world:getObjectsByClass() return {} end
+function world:getInteractionQuadTree() return interactionTree end
 function world:getActorTileOccupancy()
 	return {
 		adjustDestinationCoords = function(_, x, y) return x, y end
@@ -749,6 +785,9 @@ assertEqual(goonClass.actionTrackerID, 16, "native action tracker advances past 
 validA:_die()
 assertEqual(validA.keycard, nil, "native death path drops live keycard before body interaction")
 assertEqual(validA.weapon, nil, "native death path drops live weapon before body interaction")
+assertTrue(validA:isInteractionEnabled(), "direct death path restores the fallen body to native interaction")
+assertTrue(interactionTree:contains(validA), "fallen body is present in the selector's interaction quadtree")
+assertEqual(interactionTree.insertCount[validA], 1, "body is inserted into native interaction exactly once")
 local liveOptions = validA:getInteractOptions(player, true).options
 local liveDisguiseOption
 for _, option in ipairs(liveOptions) do
@@ -764,6 +803,8 @@ validA.currentActionBitmask = nativeBodyActionOne.id + disguiseOption.id
 local independentRenderOptions = validA:getInteractOptions(nil, false).options
 assertEqual(independentRenderOptions[1], disguiseOption, "render-only body menu self-heals even when its cache differs from the validation read")
 assertTrue(disguiseOption.actionCheck(validA, player), "disguise interaction available on body")
+require("hco/social/disguise").update(state, 0.6)
+assertEqual(interactionTree.insertCount[validA], 1, "periodic body refresh never duplicates a live quadtree entry")
 local acquiredFaction = validA.animVar
 local instantSightState = validC:getStateObject("goon_suspicion")
 namedStoryNPC:setDetection(player, 1)
@@ -924,9 +965,13 @@ local restartBody = createNPC({id = "restart-body", patrol = false, animVar = "b
 restartBody.dead = true
 restartBody.currentActionBitmask = 1
 restartBody._interactionList = {object = restartBody, options = {nativeBodyActionOne}}
+restartBody.withinInteraction = true
+restartBody.interactQuadTree = {stale = true}
 table.insert(world.npcs, restartBody)
 state.disguiseInteractionRefreshTime = 0
 require("hco/social/disguise").update(state, 0.1)
+assertTrue(interactionTree:contains(restartBody), "checkpoint body is rebound from a stale tree to the current selector quadtree")
+assertEqual(interactionTree.insertCount[restartBody], 1, "checkpoint quadtree recovery inserts the body exactly once")
 local restartHasDisguise = false
 for _, option in ipairs(restartBody:getInteractOptions(player, false).options) do
 	if option._hcoInteraction == "hco_take_disguise_v1" then restartHasDisguise = true end

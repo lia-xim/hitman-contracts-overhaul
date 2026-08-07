@@ -207,7 +207,7 @@ The native floor/roof evidence can classify both endpoints but offers no flying 
 
 The target remains a real Goon using its original patrol route and native movement states. RC41 samples route progress and reissues that existing route at a new index after nine stationary seconds; it does not teleport the actor or introduce parallel movement. Unsuppressed player fire already enters through `weapons.EVENTS.FIRED`; RC41 records a location-only incident for nearby principals before the established three-shot full-response threshold, leaving actor identity unset until normal sight/radio/drone evidence confirms it.
 
-The Goon interaction list is still the sole disguise UI owner. RC41 originally placed takeover/restoration at the first two class positions and re-enumerated every action; RC45–RC46 supersede that unsafe mutation by preserving existing IDs, appending unused powers of two and ordering only each eligible body's visible menu. The persistent identity shimmer reuses the already installed `playerActor:postDraw` world hook; restoring clothes writes through the same campaign disguise persistence path.
+The Goon interaction list is still the sole disguise UI owner. RC41 originally placed takeover/restoration at the first two class positions and re-enumerated every action; RC45–RC47 supersede that unsafe mutation by preserving existing IDs, appending unused powers of two and ordering only each eligible body's visible menu. The persistent identity shimmer reuses the already installed `playerActor:postDraw` world hook; restoring clothes writes through the same campaign disguise persistence path.
 
 ## RC42 drone identity and navigation evidence
 
@@ -294,3 +294,12 @@ Source: `game/object_selector.lua`, `game/gui/hud/object_interaction_descbox.lua
 - `ObjectInteractionDisplay:updateDescbox` renders option text only for the active object unless an option supplies custom setup text. The absent outfit line in that screenshot did not prove an absent body action; the body first had to be selected with `Q`.
 - RC46 returns priority `45` only while the nearby Goon is a dead/unconscious, unused, appearance-bearing body under an active HCO contract. This is above native `VHIGH=40`, but the body returns to its original priority immediately after takeover or whenever it is ineligible.
 - A stable class/action registry does not prove a stable method hook. The half-second binding verifier now also compares the current Goon menu/priority methods with HCO's wrapper identities and re-wraps later replacements without re-enumerating actions.
+
+## RC47 interaction-quadtree membership evidence
+
+Source: `game/object_selector.lua`, `game/entity.lua` and `game/actors/goon.lua`
+
+- `objectSelector:update` queries only `worldObject:getInteractionQuadTree()` before it evaluates object priority or body options. A visible body absent from that tree cannot be selected with `Q`; priority and cached menu repairs cannot affect it.
+- `entity:_enableInteraction` inserts the actor, then records both `withinInteraction=true` and the owning `interactQuadTree`. `goon:updateBodyInteractionState(true)` is therefore the native repair boundary for a fallen actor.
+- Some direct state/death paths can reach a dead body without the normal `makeFallen()` interaction update. RC47 restores that native state only for an eligible HCO body that is not already registered in the current tree.
+- A checkpoint may retain `withinInteraction=true` while `worldObject` owns a replacement tree. RC47 validates the recorded owner, not only the boolean, before deciding the body is selectable.
