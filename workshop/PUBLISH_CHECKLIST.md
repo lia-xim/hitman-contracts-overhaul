@@ -21,7 +21,7 @@
 6. Accept the Steam Workshop Legal Agreement and upload.
 7. Open the Workshop item in Steam. New items are private by default.
 8. Replace Steam's placeholder description (`Change the description!`) with the full contents of `description.txt`.
-9. Upload the five images from `artwork/release-gallery/` in numeric order and use `gallery-captions.txt` for their descriptions.
+9. Upload the eight optimized JPEGs from the prepared `gallery-upload/` folder in numeric order and use `gallery-captions.txt` for their descriptions.
 10. Add `changenote.txt` as the release/change note if Steam requests one.
 11. Confirm that the title, preview, description, tags and gallery render correctly.
 12. Set visibility to **Public** only after the checks below pass.

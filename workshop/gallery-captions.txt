@@ -1,14 +1,23 @@
-01 — THE CONTRACT WITHIN THE MISSION
-Recover intelligence, identify the moving target and choose how the operation ends.
+01 — HITMAN CONTRACTS OVERHAUL
+Targets. Disguises. Drones. Consequences.
 
-02 — THE DRONE RESPONSE NETWORK
-Seven physical Scout, Light and Heavy airframes patrol, search, fight and leave persistent wrecks.
+02 — HOW A CONTRACT UNFOLDS
+Recover field intelligence, reveal the moving target, choose infiltration or attack, and claim the campaign reward.
 
-03 — INTELLIGENCE TO PAYOUT
-Field intelligence reveals the live target marker. Complete the contract for campaign money while the original mission continues.
+03 — DRONE RESPONSE NETWORK
+Seven physical Scout, Light and Heavy airframes: surveillance, Pistol, SMG and Laser variants.
 
-04 — SECURITY ESCALATION
-Noise creates investigation. Evidence raises pressure. Confirmed identity mobilizes the protection detail and drone network.
+04 — SECURITY ESCALATED
+Routine patrol becomes confirmed contact, coordinated pursuit and destructible counterplay.
 
 05 — DISGUISE AND SOCIAL STEALTH
-Take an eligible uniform, inherit believable access and manage suspicion. Close scrutiny, overt behavior and discovered evidence can expose the lie.
+Take an eligible uniform, blend in and manage suspicion. Close scrutiny, overt behavior and discovered evidence can compromise the lie.
+
+06 — LIVE DRONE COMBAT
+Physical security drones coordinate their search cones and armed response inside a real mission.
+
+07 — CONTRACT COMPLETE
+Contract rewards are paid into the campaign while the original mission continues.
+
+08 — PERSISTENT DRONE WRECK
+Destroyed drones lose their sensors and weapons, crash with sparks and smoke, and remain as evidence in the world.
