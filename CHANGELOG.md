@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.17-rc51 — 2026-08-08
+
+- Replaced tiny target-only shuttle routes with deterministic map-wide principal routines. When a compatible mission exposes enough safe authored patrol nodes, HCO selects five to eight points across several eligible security sectors instead of keeping the target inside its original two/three-point pocket.
+- The expanded route is still native: it reuses real Intravenous 2 patrol-point objects, the Goon idle patrol state, asynchronous pathfinding, door interaction and the existing close-protection follower chain. HCO does not invent off-grid coordinates or teleport the principal.
+- Added 160-unit node deduplication, a 1,250-unit adjacent-leg budget, seed-based route variation and circular traversal only when the closing leg is also bounded. Sparse maps retain the original authored route rather than accepting unsafe points.
+- Checkpoint reload reconstructs the exact same routine from the persisted contract seed. Detach/rollback restores the untouched vanilla route, and RC50's path/cursor plus nine-second recovery rules remain authoritative for failed map legs.
+- Added regressions for five-plus-node coverage, three-sector diversity, meaningful map span, bounded adjacent legs, native path ownership and deterministic checkpoint reconstruction.
+
 ## 0.14.16-rc50 — 2026-08-08
 
 - Fixed the native patrol-cursor regression that left protected targets standing at one repeated route point. Intravenous 2's idle-state callback advances the route cursor while creating its path; HCO now primes that callback and preserves its resulting index instead of rewinding it behind the active destination.

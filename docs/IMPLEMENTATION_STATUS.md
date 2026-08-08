@@ -1,6 +1,6 @@
 # Hitman Contracts Overhaul — Implementation Status
 
-**Current version:** `0.14.16-rc50`
+**Current version:** `0.14.17-rc51`
 **Status date:** 2026-08-08
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md` remains the product and technical source of truth.
@@ -22,7 +22,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | --- | --- | --- |
 | Optional contracts | Implemented and seen live | Broader per-map compatibility and full one-to-three-contract live matrix |
 | Native objective, clue and target marker | Implemented and seen live | Imperfect-information variants beyond the current dead-drop reveal |
-| Mobile target | RC50 preserves both the path and the cursor advanced by the native patrol callback, retries physical movement from `CORNERED`, reacts to direct damage and owns all five close guards as one verified follower chain | Prove long patrol continuity, local-incident relocation, direct-hit flight and escape across several maps |
+| Mobile target | RC51 derives a deterministic five-to-eight-node map-wide routine from several safe authored Goon sectors; RC50 preserves native path/cursor recovery, `CORNERED` retry, direct-hit flight and the five-guard follower chain | Prove broad routine coverage, reload identity, local-incident relocation, direct-hit flight and escape across several maps |
 | Heavy protection detail | Five close guards plus difficulty-scaled 5/10/15/20 archetype response demand, bounded by safe actors | Guarantee mission-appropriate strong weapon upgrades and verify every response tier fights effectively |
 | Hunt and last-known-position search | Implemented | Tune pursuit pressure, containment and stand-down from real gameplay evidence |
 | Disguise and social stealth | RC47 candidate path: weapon-neutral distance cover, close scrutiny, point-blank exposure, current-world quadtree recovery, eligible-body-first native selection, independent render-cache recovery, stable native action IDs, replaced-hook repair, explicit rollback, body-availability stitches and persistent identity shimmer | Full real-mission pass in `SPECIFICATION_TRACEABILITY.md` |
@@ -40,7 +40,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Contract variety | Partial | Data theft, accidents, special weapon conditions, rescue/extraction and other systemic contract types |
 | Localization/audio callouts | Partial | English runtime text exists; translated strings and an authored localized radio-callout pack remain |
 
-## RC22 roster / RC23–RC49 live corrections
+## RC22 roster / RC23–RC51 live corrections
 
 - Airframe footprint reduced to roughly 27 world pixels and the generated art rotated by -90 degrees to match the native sensor/flight heading.
 - Hover bob, offset shadow, four-frame rotor animation, rotor pulse rings, state-colored sensor pulse and a short pixel wake make flight readable without adding a detached HUD layer.
@@ -70,13 +70,14 @@ Automated harnesses support these systems, but do not replace the remaining real
 - RC48 fixes a persisted failure state that made every HCO system disappear together. Failed unpaid attempts now rotate to a deterministic new contract identity on mission reload; successful paid attempts remain terminal and display one native explanatory notice.
 - RC49 fixes the armed discharge boundary. Native bullets now spawn beyond the complete 48/54-pixel carrier fixture and count only when the engine returns a projectile; both SMG weights must finish their configured bursts. Lasers retain immutable muzzle/impact endpoints for a readable glow/core/pixel beam and impact after cooldown or God Mode clears live aim/damage state.
 - RC50 fixes the deeper principal-movement regression: native `onPatrolRouteSet` advances the route cursor while creating the path, so HCO now preserves that result instead of writing the old index back. `CORNERED` retries real secure nodes under pressure, direct target damage mobilizes protection, and every recovery keeps path and cursor synchronized.
+- RC51 expands a principal's routine beyond its often tiny vanilla pocket. Five to eight deduplicated patrol-point objects are selected across several safe eligible Goon routes with bounded adjacent legs and seed-based variation, then handed back to the native idle/path/door system. Sparse maps fall back to the original route, checkpoint reload is deterministic and rollback never mutates vanilla routes.
 - Routine drones now consume social-stealth risk instead of treating every player silhouette identically. Their real cone/raycast can detect each exposed body once and compromise the stolen identity when its source is found.
 
 The Scout deliberately does not shoot. Six armed variants join escalated wings: light/heavy Pistol, SMG and Laser. Ballistic models use native bullets; laser models display an uninterrupted charge cue. No model attacks without confirmed line of sight, range, gimbal alignment and cooldown readiness.
 
 ## Immediate acceptance gate
 
-1. Completely restart the game and confirm `0.14.16-rc50` loads without traceback and without an internal RC render diagnostic on the HUD.
+1. Completely restart the game and confirm `0.14.17-rc51` loads without traceback and without an internal RC render diagnostic on the HUD.
 2. Observe multiple deployments and identify Scout, light and heavy silhouettes; heavy variants must be larger but remain actor-scaled.
 3. With the original/exposed identity, stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position. Repeat with clean cover beyond 205 units: the cone must remain amber and must not track, confirm or fire. Move inside 155 units during patrol or 205 during an alarm and verify progressive close scrutiny before red contact.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
@@ -98,4 +99,4 @@ The complete fourteen-step disguise/social-stealth live gate and its native engi
 
 ## Release boundary
 
-HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC50 repairs continuous principal patrol, sustained-pressure recovery and direct-hit flight, while retaining RC49's armed ballistic/Laser discharge, RC48's save-lifecycle replay and the prior disguise/drone corrections. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.
+HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC51 adds broad deterministic principal routines while preserving RC50 movement/flight recovery, RC49 armed ballistic/Laser discharge, RC48 save-lifecycle replay and the prior disguise/drone corrections. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.

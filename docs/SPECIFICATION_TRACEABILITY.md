@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.16-rc50`
+**Candidate:** `0.14.17-rc51`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -13,7 +13,7 @@ This document prevents future work from collapsing the product specification int
 | --- | --- | --- | --- | --- |
 | Native-first presentation | `contracts/objective.lua`, `feedback.lua`, native interaction lists, actor/world draw hooks | Implemented for the current feature surface | Boot, runtime, feedback and visual suites | Confirm no detached menu, overlapping banners or cursor capture |
 | Deterministic optional contracts | `contracts/core.lua`, `selector.lua`, `persistence.lua` | RC48 failed-attempt replay with successful-payout terminal protection | Runtime lifecycle, legacy migration, failed replay, completed terminal visibility, rollback and multi-contract cases | Reload the user's failed campaign save and test compatible campaign maps plus one unsupported map |
-| Mobile target and secure movement | `targets/controller.lua`, `security/director.lua` | RC50 native patrol path/cursor synchronization, routine and sustained-corner recovery, incident/direct-damage flight candidate | Native `onPatrolRouteSet` advance semantics, path/cursor synchronization, routine recovery, first-shot caution, direct damage, threatened, sheltered, incident reselection, escape and stuck-route cases | Long live route/reload/incident/direct-hit pass on several maps |
+| Mobile target and secure movement | `targets/controller.lua`, `security/director.lua` | RC51 five-to-eight-node multi-sector native routine plus RC50 path/cursor synchronization, sustained-corner recovery and incident/direct-damage flight candidate | Safe authored-node selection, spacing/leg/coverage bounds, deterministic reload, fallback, native `onPatrolRouteSet`, path/cursor recovery, first-shot caution, direct damage, shelter and escape cases | Five-location/60-second live route plus reload/incident/direct-hit pass on several maps |
 | Protection and response roles | `security/escort.lua`, `security/director.lua` | RC43 complete single-follower chain for close protection and autonomous response | Exact five-guard ownership chain, reconstruction, search and follower safety cases | Verify moving detail, weapons, combat pressure and difficulty balance in game |
 | Knowledge and hunt phases | `security/director.lua` | Implemented | Local evidence, pressure, decay and stand-down cases | Verify no wall omniscience and readable convergence |
 | Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | RC47 current-quadtree body recovery, body-first native object priority, first-visible takeover, independent render-cache repair, stable native action IDs, hook/lifecycle rebinding, explicit rollback, body-availability marker and persistent-state presentation candidate | Missing-body tree insertion, no duplicate insertion, eligible/consumed priority, stable-ID append, stale-generation reset, incomplete nil-render cache, replaced-method recovery, death-time identity capture, three switches, rollback and persistence cleanup | Must be accepted from the real body interaction wheel after fresh start and restart |
@@ -230,6 +230,14 @@ Second, a native yellow/red alert state or last-known hunch is not proof that an
 - `CORNERED` cannot be a permanent hold while threat remains active. The controller keeps the threat/evacuation clock running, periodically selects another validated secure point and enters physical evacuation when its established conditions are met.
 - Any direct principal health loss immediately mobilizes protection and target flight. The incident identifies the player only when the principal has real current native sight, preserving the location/evidence boundary for suppressed or unseen attacks.
 - Automated coverage proves native callback semantics, initial and recovered path/cursor synchronization, sustained-corner recovery and direct-hit flight. Live acceptance requires visible route travel, retreat, safe-point retry and evacuation without an unresolved stationary period longer than ten seconds.
+
+## RC51 map-wide principal routine
+
+- Candidate nodes come only from real patrol routes belonging to selector-approved Goons. HCO deduplicates positions within 160 world units, preserves the principal's own overlapping node as its home anchor and requires at least five usable points before replacing the vanilla route.
+- The contract seed deterministically chooses and orders at most eight nodes. Every adjacent leg is at most 1,250 units; a route is circular only when its closing leg also satisfies that bound. The selected set must span several safe security sectors where the map population permits it.
+- The runtime route contains the original native patrol-point objects. The engine's idle state, path-compute queue, door tasks and follower chain own actual movement; HCO supplies no arbitrary coordinate and never teleports. Sparse maps retain the untouched original route.
+- Checkpoint activation rebuilds the same ordered signature. Detach and failed transactional activation restore the original route object/index, while RC50's path/cursor synchronization and nine-second recovery apply to the derived route.
+- Automated coverage proves five-plus nodes, three source sectors, meaningful map coverage, bounded legs, native active-path ownership and deterministic reload. Live acceptance requires at least five visibly distinct locations during a 60-second routine on several structurally different maps.
 
 ## RC42 drone identity and navigation continuity
 

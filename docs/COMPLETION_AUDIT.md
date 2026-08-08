@@ -1,8 +1,8 @@
-# Completion Audit — 0.14.16-rc50
+# Completion Audit — 0.14.17-rc51
 
 **Audit date:** 2026-08-08
 **Goal status:** production-candidate code complete for the current feature surface; final live acceptance is not complete
-**Authority inspected:** RC50 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed/decompiled `1.4.12HF3` interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces, persisted HCO save records and user-supplied live screenshots/errors
+**Authority inspected:** RC51 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed/decompiled `1.4.12HF3` patrol-route/patrol-point/path-task/interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces, persisted HCO save records and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -12,7 +12,7 @@
 | Native optional contract | Pass | Objective and target contract appeared | Live pass |
 | Readable HUD feedback | Pass | Start overflow was found and corrected; completion banner observed | Live pass with ongoing polish |
 | Safe campaign payout | Pass | Completion and reward observed after `studio` crash fix | Live pass |
-| Target/protection presence | RC50 native patrol callback/path/cursor, routine watchdog, sustained-corner recovery, direct-target-damage flight and exact follower-chain regressions pass | Target and guards observed; current live report confirms the principal remains at one repeated point and does not react reliably | RC50 correction requires live pass |
+| Target/protection presence | RC51 five-to-eight-node, multi-sector, bounded-leg, deterministic-reload routine plus RC50 path/cursor, corner/direct-hit recovery and exact follower-chain regressions pass | RC50 live pass moved reliably but exposed a tiny A↔B shuttle confined to the target's original NPC pocket | RC51 broad-route correction requires live pass |
 | Multi-contract isolation | Pass | Not yet proven across a full live mission | Live test required |
 | Disguise/social stealth | RC47 current-quadtree recovery plus eligible-body priority, first-visible takeover, independent render-cache recovery, stable native IDs, replaced-hook/runtime rebind, explicit restore, nearby-body marker, persistent shimmer, three tiers, weapon-neutral distance cover, close scrutiny, point-blank exposure, radio and persistence pass | Live report proved the eligible marked body itself was missing from `Q`; only dropped equipment was discoverable | RC47 quadtree correction requires live pass |
 | Save/reload semantics | RC48 proves failed unpaid records rotate to a distinct new attempt while successful paid records remain terminal and explain their state | User's current save exposed permanent failed-record suppression | RC48 same-save live test required |
@@ -30,7 +30,7 @@
 
 The core optional-contract product exists and works far enough to be played. HCO is not specification-complete yet. The remaining substantive product work is:
 
-1. Live-validate RC50's continuous authored-route patrol, direct-hit flight, sustained-pressure safe-point retry and evacuation with its moving protection detail on several real maps.
+1. Live-validate RC51's five-plus-location multi-sector routine and deterministic reload, then RC50's direct-hit flight, sustained-pressure safe-point retry and evacuation with its moving protection detail on several real maps.
 2. Guarantee stronger mission-appropriate weapons and reliable active response for the protection tiers.
 3. Complete the RC47 live matrix for native body discovery, body-first selection, restart-safe action visibility/restore, eligible-body marker, persistent identity shimmer, drone disguise distance bands and fire continuity, direct witnesses, body evidence, radio compromise and reload; the user has accepted the core close-inspection/point-blank response.
 4. Live-test the implemented semantic drone perception for calm/risky identities, bodies and source-uniform compromise.

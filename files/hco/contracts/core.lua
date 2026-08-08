@@ -72,7 +72,7 @@ local function activateContext(root, context, record, selected, report)
 	selected.npc._hcoReservedTarget = record.contractID
 	escort.attach(context, report)
 	securityDirector.attach(context, report)
-	targetController.attach(context)
+	targetController.attach(context, report)
 	persistence.save(record)
 
 	if not objective.ensureActive(context) then

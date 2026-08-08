@@ -347,18 +347,30 @@ function player:onSightedByEnemy() return end
 
 game.playerActor = player
 
-local function createRoute(id)
+local function createRoute(id, customPoints)
 	local route = {id = id, points = {}}
 
-	for index, x in ipairs({100, 500, 900}) do
-		local point = {id = id .. "-" .. index, x = x, y = index * 20}
+	local positions = customPoints or {{100, 20}, {500, 40}, {900, 60}}
+	for index, position in ipairs(positions) do
+		local point = {id = id .. "-" .. index, x = position[1], y = position[2], index = math.floor(position[1] * 10000 + position[2])}
 		function point:getID() return self.id end
 		function point:getPos() return self.x, self.y end
+		function point:getIndex() return self.index end
+		function point:getLookAngle() return 0 end
+		function point:getLookAngleReverse() return 0 end
+		function point:getWaitLength() return 0 end
+		function point:getWaitLengthReverse() return 0 end
 		table.insert(route.points, point)
 	end
 
 	function route:getID() return self.id end
 	function route:getIndexes() return self.points end
+	function route:getCircular() return self.circular == true end
+	function route:setCircular(value) self.circular = value == true end
+	function route:setInUse(value) self.inUse = value == true end
+	function route:getInUse() return self.inUse end
+	function route:getPaths() return {} end
+	function route:getPath() return nil end
 	return route
 end
 
@@ -368,7 +380,7 @@ local function createNPC(data)
 		id = data.id,
 		dead = data.dead or false,
 		unconscious = data.unconscious or false,
-		patrol = data.patrol and createRoute("patrol-" .. data.id) or nil,
+		patrol = data.patrol and createRoute("patrol-" .. data.id, data.routePoints) or nil,
 		patrolIndex = 1,
 		radio = data.radio and {open = false, disrupted = false} or nil,
 		experience = data.experience or 1,
@@ -520,10 +532,10 @@ end
 
 local namedStoryNPC = createNPC({id = "story-boss", patrol = true, experience = 3, mapName = "Story Boss", x = 200})
 local stationaryNPC = createNPC({id = "stationary", patrol = false, experience = 1, weapon = false, animVar = "ped1", x = 250})
-local validA = createNPC({id = "guard-a", patrol = true, experience = 2, keycard = "security-A", animVar = "bandit2", x = 130})
-local validB = createNPC({id = "guard-b", patrol = true, experience = 3, radio = true, x = 150})
-local validC = createNPC({id = "guard-c", patrol = true, experience = 2, radio = true, x = 170})
-local validD = createNPC({id = "guard-d", patrol = true, experience = 2, x = 190})
+local validA = createNPC({id = "guard-a", patrol = true, experience = 2, keycard = "security-A", animVar = "bandit2", x = 130, routePoints = {{100, 100}, {360, 260}, {650, 420}}})
+local validB = createNPC({id = "guard-b", patrol = true, experience = 3, radio = true, x = 150, routePoints = {{150, 40}, {420, 120}, {700, 220}}})
+local validC = createNPC({id = "guard-c", patrol = true, experience = 2, radio = true, x = 170, routePoints = {{820, 500}, {1120, 640}, {1420, 780}}})
+local validD = createNPC({id = "guard-d", patrol = true, experience = 2, x = 190, routePoints = {{1550, 900}, {1800, 1080}, {2050, 1260}}})
 local objectiveCritical = createNPC({id = "objective-critical", patrol = true, experience = 3, x = 210})
 stationaryNPC.weapon = nil
 
@@ -693,7 +705,22 @@ assertTrue(state, "shared state was not created")
 assertEqual(state.targetID, "guard-b", "highest safe candidate selected")
 assertEqual(state.target._hcoContractTarget, true, "target marker installed")
 assertTrue(state.contract, "contract record created")
-assertTrue(state.target.path and state.target.path.route == state.targetAI.originalRoute, "target activation preserves the native patrol path created by onPatrolRouteSet")
+assertTrue(state.targetAI.routineExpanded, "target receives a deterministic map-wide routine when enough safe authored nodes exist")
+assertTrue(state.targetAI.routineRoute ~= state.targetAI.originalRoute, "expanded routine does not mutate the principal's vanilla route")
+assertTrue(#state.targetAI.routePoints >= 5, "expanded routine contains more than a two-point shuttle")
+assertTrue(state.targetAI.routineSources >= 3, "expanded routine spans several safe authored NPC sectors")
+assertTrue(state.targetAI.routineCoverage >= 1000, "expanded routine covers a meaningful portion of the map")
+local routineSignatureParts = {}
+for index, point in ipairs(state.targetAI.routePoints) do
+	table.insert(routineSignatureParts, tostring(math.floor(point.x)) .. ":" .. tostring(math.floor(point.y)))
+	if index > 1 then
+		local previousPoint = state.targetAI.routePoints[index - 1]
+		local dx, dy = point.x - previousPoint.x, point.y - previousPoint.y
+		assertTrue(math.sqrt(dx * dx + dy * dy) <= require("hco/config").TARGET_ROUTINE_MAX_LEG_DISTANCE, "expanded routine keeps every adjacent authored leg within its safety budget")
+	end
+end
+local routineSignatureBeforeReload = table.concat(routineSignatureParts, "|")
+assertTrue(state.target.path and state.target.path.route == state.targetAI.routineRoute, "target activation preserves the native patrol path created for the expanded route")
 assertEqual(state.target.path.index, state.target:getPatrolRouteIndex(), "target activation keeps the native path and patrol cursor synchronized")
 local activeProfile = require("hco/contracts/profiles").resolve(state.contract.seed, state.contract.archetype)
 assertEqual(state.target.animVar, activeProfile.targetVariant, "target receives archetype-native visual variant")
@@ -955,6 +982,9 @@ assertEqual(state.target, nil, "reset start clears actor references")
 assertEqual(player.animVar, "sean", "reset cleanup restores player visual")
 events:fire(game.EVENTS.RESET_FINISHED)
 assertEqual(state.targetID, selectedBeforeReload, "active contract rebinds same target")
+local reloadedRoutineParts = {}
+for _, point in ipairs(state.targetAI.routePoints) do table.insert(reloadedRoutineParts, tostring(math.floor(point.x)) .. ":" .. tostring(math.floor(point.y))) end
+assertEqual(table.concat(reloadedRoutineParts, "|"), routineSignatureBeforeReload, "checkpoint reload reconstructs the same deterministic map-wide routine")
 assertEqual(state.disguise.group, acquiredFaction, "active disguise restored from campaign persistence")
 assertEqual(player.animVar, acquiredFaction, "restored disguise is visible")
 assertEqual(state.disguise.originalAnimVar, "sean", "reload preserves the real pre-disguise player appearance")
@@ -1091,7 +1121,7 @@ state.target.path = nil
 local routineIndexBeforeRecovery = state.target:getPatrolRouteIndex()
 for step = 1, 10 do require("hco/targets/controller").update(state, 1) end
 assertTrue(state.targetAI.routineRecoveries > routineRecoveries, "stationary routine target is advanced to another native patrol node")
-assertTrue(state.target.path and state.target.path.route == state.targetAI.originalRoute, "routine recovery keeps the native patrol path alive instead of clearing it after reactivation")
+assertTrue(state.target.path and state.target.path.route == state.targetAI.routineRoute, "routine recovery keeps the expanded native patrol path alive instead of clearing it after reactivation")
 assertTrue(state.target:getPatrolRouteIndex() ~= routineIndexBeforeRecovery, "routine recovery advances exactly from the live native cursor")
 assertEqual(state.target.path.index, state.target:getPatrolRouteIndex(), "routine recovery never rewinds the cursor behind its native path")
 

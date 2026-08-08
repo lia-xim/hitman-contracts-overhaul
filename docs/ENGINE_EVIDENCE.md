@@ -280,6 +280,15 @@ Source: `game/actors/goon.lua` and `game/actors/states/goon/idle.lua`
 - Reassertion feeds the current cursor into the same native transition; it does not pre-advance and then let native idle advance a second time. Runtime coverage requires both a changed cursor and an exact path/index match.
 - `CORNERED` is now bounded recovery under continuing pressure. It periodically retries another validated secure point and keeps the evacuation clock active; it may return to routine only after the existing clear delay. Direct target health loss enters the same protection/flight pipeline, while actor identity remains unset unless native sight confirms the player.
 
+## RC51 composite native-routine evidence
+
+Source: `game/patrol/patrol_route.lua`, `game/patrol/patrol_point.lua`, `game/actors/states/goon/idle.lua` and `game/actors/states/tasks/get_path_task.lua`
+
+- Runtime idle patrol requires a route exposing `getIndexes`, `getCircular` and `setInUse`; each point supplies `getPos`, grid `getIndex`, forward/reverse look angles and waits. Return-to-route tasks resolve that point index through the native floor grid before queuing asynchronous pathfinding.
+- RC51 reuses complete existing `patrolPoint` objects collected only from selector-approved Goon routes. It wraps five to eight deduplicated points in a native `patrolRoute` instance when available (or an interface-identical route adapter) and hands it to the unchanged `goon:setActivePatrolRoute` boundary. Native idle, door tasks, path compute queue and follower movement remain authoritative.
+- The original relaxed/active route object is never modified. HCO's derived route has a contract-seeded order, bounded adjacent distances and optional circular closure only when the closing leg is also bounded. Detach restores the original object/index; checkpoint activation deterministically rebuilds the derived route after vanilla load.
+- If the selector cannot supply five safe distinct points, the feature fails closed to the target's original authored route. RC50's nine-second path/cursor watchdog advances beyond a failed derived leg without teleporting.
+
 ## RC44 authoritative body-selector query evidence
 
 Source: `game/entity.lua`

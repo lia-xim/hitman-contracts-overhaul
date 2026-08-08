@@ -64,6 +64,176 @@ local function getRoutePoints(route)
 	return points
 end
 
+local function pointDistance(a, b)
+	local dx, dy = a.x - b.x, a.y - b.y
+	return math.sqrt(dx * dx + dy * dy)
+end
+
+local function addRoutineCandidate(candidates, point, source, home)
+	local okPos, x, y = util.call(point, "getPos")
+	x, y = tonumber(x), tonumber(y)
+	if not okPos or not x or not y then return end
+
+	local spacing = config.TARGET_ROUTINE_NODE_SPACING or 160
+	for _, existing in ipairs(candidates) do
+		local dx, dy = x - existing.x, y - existing.y
+		if dx * dx + dy * dy < spacing * spacing then
+			-- Preserve the principal's own authored node when it overlaps a generic
+			-- map-sector candidate. It is the safest anchor for the expanded route.
+			if home and not existing.home then
+				existing.point = point
+				existing.x, existing.y = x, y
+				existing.source = source
+				existing.home = true
+			end
+			return
+		end
+	end
+
+	table.insert(candidates, {point = point, x = x, y = y, source = source, home = home == true})
+end
+
+local function collectRoutineCandidates(state, report, originalRoute)
+	local candidates = {}
+	local _, originalPoints = util.call(originalRoute, "getIndexes")
+	if type(originalPoints) == "table" then
+		for _, point in ipairs(originalPoints) do
+			addRoutineCandidate(candidates, point, state.targetID or "principal", true)
+		end
+	end
+
+	-- Every candidate below is an authored patrol node belonging to a Goon that
+	-- already passed HCO's story/objective/state safety filter. We reuse those
+	-- native points rather than inventing arbitrary coordinates or teleporting.
+	for _, entry in ipairs(report and report.eligible or {}) do
+		local okRoute, route = util.call(entry.npc, "getActivePatrolRoute")
+		local okPoints, points = util.call(route, "getIndexes")
+		if okRoute and okPoints and type(points) == "table" then
+			for _, point in ipairs(points) do
+				addRoutineCandidate(candidates, point, entry.data and entry.data.id or util.getID(entry.npc), entry.npc == state.target)
+			end
+		end
+	end
+
+	return candidates
+end
+
+local function selectRoutineCandidates(state, candidates, seed)
+	local minimum = config.TARGET_ROUTINE_MIN_NODES or 5
+	local maximum = math.max(minimum, config.TARGET_ROUTINE_MAX_NODES or 8)
+	local maxLeg = config.TARGET_ROUTINE_MAX_LEG_DISTANCE or 1250
+	if #candidates < minimum then return nil end
+
+	local targetX, targetY = util.getPos(state.target)
+	targetX, targetY = targetX or candidates[1].x, targetY or candidates[1].y
+	local first
+	for index, candidate in ipairs(candidates) do
+		if candidate.home then
+			local dx, dy = candidate.x - targetX, candidate.y - targetY
+			local distance = math.sqrt(dx * dx + dy * dy)
+			local jitter = util.stableHash(tostring(seed) .. ":routine-start:" .. tostring(index)) % 24
+			local score = distance + jitter
+			if not first or score < first.score then first = {candidate = candidate, score = score} end
+		end
+	end
+	if not first then first = {candidate = candidates[1], score = 0} end
+
+	local selected = {first.candidate}
+	local used = {[first.candidate] = true}
+	while #selected < maximum do
+		local previous = selected[#selected]
+		local best
+		for index, candidate in ipairs(candidates) do
+			if not used[candidate] then
+				local leg = pointDistance(previous, candidate)
+				if leg <= maxLeg then
+					local separation = math.huge
+					for _, chosen in ipairs(selected) do
+						separation = math.min(separation, pointDistance(chosen, candidate))
+					end
+					local jitter = util.stableHash(table.concat({tostring(seed), "routine", tostring(#selected), tostring(index), tostring(candidate.source)}, ":")) % 90
+					local score = separation * 1.35 + leg * 0.35 + jitter
+					if not best or score > best.score then best = {candidate = candidate, score = score} end
+				end
+			end
+		end
+
+		if not best then break end
+		used[best.candidate] = true
+		table.insert(selected, best.candidate)
+	end
+
+	if #selected < minimum then return nil end
+	return selected
+end
+
+local function createRoutineRoute(selected, seed)
+	local points = {}
+	local sourceMap = {}
+	local coverage = 0
+	for _, candidate in ipairs(selected) do
+		table.insert(points, candidate.point)
+		sourceMap[tostring(candidate.source)] = true
+		for _, other in ipairs(selected) do coverage = math.max(coverage, pointDistance(candidate, other)) end
+	end
+
+	local maxLeg = config.TARGET_ROUTINE_MAX_LEG_DISTANCE or 1250
+	local circular = #selected > 2 and pointDistance(selected[#selected], selected[1]) <= maxLeg
+	local route
+	if type(patrolRoute) == "table" and type(patrolRoute.new) == "function" then
+		local ok, nativeRoute = pcall(patrolRoute.new)
+		if ok and nativeRoute then
+			route = nativeRoute
+			route.indexes = points
+			route.indexesMap = {}
+			route.indexCoords = {}
+			route.paths = {}
+			route.pathMap = {}
+			for _, point in ipairs(points) do
+				local okIndex, index = util.call(point, "getIndex")
+				local okPos, x, y = util.call(point, "getPos")
+				if okIndex and index ~= nil then route.indexesMap[index] = point end
+				if okIndex and okPos and index ~= nil then route.indexCoords[index] = {x, y} end
+			end
+			util.call(route, "setID", "hco-principal-" .. tostring(seed))
+			util.call(route, "setCircular", circular)
+		end
+	end
+
+	if not route then
+		route = {id = "hco-principal-" .. tostring(seed), indexes = points, circular = circular, paths = {}, inUse = false}
+		function route:getID() return self.id end
+		function route:getIndexes() return self.indexes end
+		function route:getCircular() return self.circular end
+		function route:setCircular(value) self.circular = value == true end
+		function route:setInUse(value) self.inUse = value == true end
+		function route:getInUse() return self.inUse end
+		function route:getPaths() return self.paths end
+		function route:getPath() return nil end
+	end
+
+	local sourceCount = 0
+	for _ in pairs(sourceMap) do sourceCount = sourceCount + 1 end
+	return route, coverage, sourceCount, circular
+end
+
+local function buildRoutineRoute(state, report, originalRoute, seed)
+	if not originalRoute then return nil, {}, false, 0, 0 end
+	local originalPoints = getRoutePoints(originalRoute)
+	local selected = selectRoutineCandidates(state, collectRoutineCandidates(state, report, originalRoute), seed)
+	if not selected then return originalRoute, originalPoints, false, 1, 0 end
+
+	local route, coverage, sources, circular = createRoutineRoute(selected, seed)
+	local points = getRoutePoints(route)
+	util.log(config, table.concat({
+		"target routine expanded nodes=" .. tostring(#points),
+		"sources=" .. tostring(sources),
+		"coverage=" .. tostring(math.floor(coverage)),
+		"circular=" .. tostring(circular)
+	}, " "))
+	return route, points, true, sources, coverage
+end
+
 local function getEvacuationPoints(state)
 	local points = {}
 	local worldObject = game and game.worldObject
@@ -269,7 +439,8 @@ end
 local function activateRoutinePatrol(state, routeIndex)
 	local target = state.target
 	local ai = state.targetAI
-	if not target or not ai or not ai.originalRoute or #(ai.routePoints or {}) < 2 then return false end
+	local route = ai and (ai.routineRoute or ai.originalRoute)
+	if not target or not ai or not route or #(ai.routePoints or {}) < 2 then return false end
 	local index = math.max(1, math.min(#ai.routePoints, tonumber(routeIndex) or ai.originalRouteIndex or 1))
 	local okIdle, idleState = util.call(target, "getStateObject", target.IDLE_STATE or "goon_idle")
 	if okIdle and idleState then util.call(target, "setState", idleState, true) end
@@ -281,7 +452,7 @@ local function activateRoutinePatrol(state, routeIndex)
 	-- principal consequently walked at most once and then kept requesting its
 	-- current node. Prime the cursor before activation and never rewind it after.
 	util.call(target, "setPatrolRouteIndex", index)
-	local activated = util.call(target, "setActivePatrolRoute", ai.originalRoute, index)
+	local activated = util.call(target, "setActivePatrolRoute", route, index)
 	local _, activeIndex = util.call(target, "getPatrolRouteIndex")
 	activeIndex = tonumber(activeIndex) or index
 	ai.routineVisited[activeIndex] = true
@@ -570,7 +741,7 @@ end
 local function reassertRoutinePatrol(state)
 	local target = state.target
 	local ai = state.targetAI
-	if not ai.originalRoute or #(ai.routePoints or {}) < 2 then return false end
+	if not (ai.routineRoute or ai.originalRoute) or #(ai.routePoints or {}) < 2 then return false end
 	local _, currentIndex = util.call(target, "getPatrolRouteIndex")
 	-- setActivePatrolRoute invokes idle:onPatrolRouteSet, which advances once. Feed
 	-- it the current cursor rather than pre-advancing and skipping another node.
@@ -628,7 +799,7 @@ local function safeAreaBreached(state)
 	return evidencePenalty(state, point.x, point.y) > 0
 end
 
-function controller.attach(state)
+function controller.attach(state, report)
 	local target = state.target
 	local okRoute, route = util.call(target, "getActivePatrolRoute")
 	local okIndex, routeIndex = util.call(target, "getPatrolRouteIndex")
@@ -638,20 +809,29 @@ function controller.attach(state)
 	local _, originalHealth = util.call(target, "getHealth")
 	local _, originalMaxHealth = util.call(target, "getMaxHealth")
 	local x, y = util.getPos(target)
+	local seed = state.contract and state.contract.seed or util.stableHash(state.targetID)
+	local originalRoutePoints = okRoute and getRoutePoints(route) or {}
+	local originalRouteIndex = tonumber(routeIndex) or 1
+	if #originalRoutePoints > 0 then originalRouteIndex = math.max(1, math.min(#originalRoutePoints, originalRouteIndex)) end
+	local routineRoute, routinePoints, routineExpanded, routineSources, routineCoverage = buildRoutineRoute(state, report, okRoute and route or nil, seed)
 
 	state.targetAI = {
 		phase = "ROUTINE",
 		resumePhase = state.contract and state.contract.targetPhase or "ROUTINE",
-		seed = state.contract and state.contract.seed or util.stableHash(state.targetID),
+		seed = seed,
 		secureSwitches = state.contract and state.contract.secureSwitches or 0,
 		originalRoute = okRoute and route or nil,
-		originalRouteIndex = okIndex and routeIndex or 1,
+		originalRouteIndex = okIndex and originalRouteIndex or 1,
+		routineRoute = routineRoute,
+		routineExpanded = routineExpanded,
+		routineSources = routineSources,
+		routineCoverage = routineCoverage,
 		originalState = okState and originalState or nil,
 		originalExperience = originalExperience,
 		originalAnimVar = originalAnimVar,
 		originalHealth = originalHealth,
 		originalMaxHealth = originalMaxHealth,
-		routePoints = okRoute and getRoutePoints(route) or {},
+		routePoints = routinePoints,
 		evacuationPoints = {},
 		recentPoints = {},
 		lastX = x,
