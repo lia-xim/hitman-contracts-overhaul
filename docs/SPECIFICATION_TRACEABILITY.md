@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.15-rc49`
+**Candidate:** `0.14.16-rc50`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -13,7 +13,7 @@ This document prevents future work from collapsing the product specification int
 | --- | --- | --- | --- | --- |
 | Native-first presentation | `contracts/objective.lua`, `feedback.lua`, native interaction lists, actor/world draw hooks | Implemented for the current feature surface | Boot, runtime, feedback and visual suites | Confirm no detached menu, overlapping banners or cursor capture |
 | Deterministic optional contracts | `contracts/core.lua`, `selector.lua`, `persistence.lua` | RC48 failed-attempt replay with successful-payout terminal protection | Runtime lifecycle, legacy migration, failed replay, completed terminal visibility, rollback and multi-contract cases | Reload the user's failed campaign save and test compatible campaign maps plus one unsupported map |
-| Mobile target and secure movement | `targets/controller.lua` | RC43 native patrol-path preservation and routine/incident watchdog candidate | Native `onPatrolRouteSet` path creation/preservation, routine recovery, first-shot caution, threatened, sheltered, incident reselection, escape and stuck-route cases | Long live route/reload/incident pass on several maps |
+| Mobile target and secure movement | `targets/controller.lua`, `security/director.lua` | RC50 native patrol path/cursor synchronization, routine and sustained-corner recovery, incident/direct-damage flight candidate | Native `onPatrolRouteSet` advance semantics, path/cursor synchronization, routine recovery, first-shot caution, direct damage, threatened, sheltered, incident reselection, escape and stuck-route cases | Long live route/reload/incident/direct-hit pass on several maps |
 | Protection and response roles | `security/escort.lua`, `security/director.lua` | RC43 complete single-follower chain for close protection and autonomous response | Exact five-guard ownership chain, reconstruction, search and follower safety cases | Verify moving detail, weapons, combat pressure and difficulty balance in game |
 | Knowledge and hunt phases | `security/director.lua` | Implemented | Local evidence, pressure, decay and stand-down cases | Verify no wall omniscience and readable convergence |
 | Disguise acquisition and switching | `social/disguise.lua` plus native Goon interaction machinery | RC47 current-quadtree body recovery, body-first native object priority, first-visible takeover, independent render-cache repair, stable native action IDs, hook/lifecycle rebinding, explicit rollback, body-availability marker and persistent-state presentation candidate | Missing-body tree insertion, no duplicate insertion, eligible/consumed priority, stable-ID append, stale-generation reset, incomplete nil-render cache, replaced-method recovery, death-time identity capture, three switches, rollback and persistence cleanup | Must be accepted from the real body interaction wheel after fresh start and restart |
@@ -222,6 +222,14 @@ Second, a native yellow/red alert state or last-known hunch is not proof that an
 - One nearby unsuppressed shot writes only a location-level protection incident and cautious target threat. It cannot identify the shooter. Damage/casualties or confirmed evidence still produce full flight; a fresh local incident can invalidate a sheltered safe area.
 - Takeover is the first eligible native body action, restoration is the second HCO action, and a persistent world shimmer makes the active/compromised identity readable. Restoration returns the original player variant and clears campaign disguise fields while retaining copied credentials, consumed identities and previous compromise knowledge.
 - Automated coverage must prove bounded landing selection, transit sensing lockout, target routine recovery, first-shot caution, action order, removal and persistence cleanup. Live acceptance must prove geometry, native-AI movement and render behavior.
+
+## RC50 protected-target movement continuity
+
+- Native idle patrol activation advances the route cursor while creating the physical path. HCO must prime the cursor before activation, retain the post-callback value and require the path destination index to match it; no later write may rewind that pair.
+- The nine-second routine watchdog reasserts the authored route from the live cursor and lets native idle advance exactly once. It may neither reuse an already reached node nor double-advance past the next node.
+- `CORNERED` cannot be a permanent hold while threat remains active. The controller keeps the threat/evacuation clock running, periodically selects another validated secure point and enters physical evacuation when its established conditions are met.
+- Any direct principal health loss immediately mobilizes protection and target flight. The incident identifies the player only when the principal has real current native sight, preserving the location/evidence boundary for suppressed or unseen attacks.
+- Automated coverage proves native callback semantics, initial and recovered path/cursor synchronization, sustained-corner recovery and direct-hit flight. Live acceptance requires visible route travel, retreat, safe-point retry and evacuation without an unresolved stationary period longer than ten seconds.
 
 ## RC42 drone identity and navigation continuity
 

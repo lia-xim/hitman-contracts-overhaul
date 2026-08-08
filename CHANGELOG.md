@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.16-rc50 — 2026-08-08
+
+- Fixed the native patrol-cursor regression that left protected targets standing at one repeated route point. Intravenous 2's idle-state callback advances the route cursor while creating its path; HCO now primes that callback and preserves its resulting index instead of rewinding it behind the active destination.
+- Corrected the nine-second mobility watchdog to advance exactly once from the live native cursor. Reassertion no longer skips a waypoint or desynchronizes the current path and route index.
+- Made `CORNERED` a recovery phase instead of a permanent AFK state. A principal under sustained pressure periodically selects another authored secure point and proceeds to physical evacuation when the threat/escort thresholds demand it.
+- Direct damage to the principal now mobilizes protection and immediate flight even before the attacker is identified. Unseen or suppressed fire still supplies only location-level evidence and does not grant guards wall-omniscience.
+- Added native-shaped patrol-callback, path/cursor synchronization, sustained-corner recovery and direct-principal-damage regressions.
+
 ## 0.14.15-rc49 — 2026-08-07
 
 - Fixed armed ballistic drones spawning native bullets inside their own 48/54-pixel carrier hitboxes. Pistol and Light/Heavy SMG projectiles now originate beyond the complete physical fixture instead of being consumed by the firing drone.

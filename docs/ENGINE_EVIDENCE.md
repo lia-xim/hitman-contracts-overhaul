@@ -271,6 +271,15 @@ Source: `game/bullet.lua` and `game/weapon.lua`
 
 - Native ballistic creation requires an actor-shaped owner for hostility, sound and damage attribution. Runtime drones are camera carriers rather than Goon actors, so HCO selects one valid HCO world actor as a proxy. RC43 retains that valid object for the airframe lifetime even after it becomes a corpse; actor death no longer silently makes an intact drone weapon ownerless.
 
+## RC50 native patrol-cursor and sustained-flight evidence
+
+Source: `game/actors/goon.lua` and `game/actors/states/goon/idle.lua`
+
+- `goon:setActivePatrolRoute(route, index)` stores the supplied cursor and immediately invokes the active state's `onPatrolRouteSet`. Native idle does not merely create a path: it calls `advancePatrol`, increments/wraps the cursor, writes that new index and creates the destination/path for it.
+- Writing the supplied pre-callback index back after activation therefore separates the live path from the route cursor. The principal reaches one node, then repeatedly resolves the already reached/current node and appears permanently stationary. RC50 primes the cursor before activation and treats the callback's resulting cursor/path as the authoritative pair.
+- Reassertion feeds the current cursor into the same native transition; it does not pre-advance and then let native idle advance a second time. Runtime coverage requires both a changed cursor and an exact path/index match.
+- `CORNERED` is now bounded recovery under continuing pressure. It periodically retries another validated secure point and keeps the evacuation clock active; it may return to routine only after the existing clear delay. Direct target health loss enters the same protection/flight pipeline, while actor identity remains unset unless native sight confirms the player.
+
 ## RC44 authoritative body-selector query evidence
 
 Source: `game/entity.lua`

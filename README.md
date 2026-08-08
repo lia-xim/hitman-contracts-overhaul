@@ -4,9 +4,9 @@
 
 Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into systemic high-value-target operations. It adds optional native objectives, mobile targets, escalating protection details, field intelligence, disguises, credentials, social stealth, evidence-driven searches, physical drones, and campaign rewards without placing a separate menu over the game.
 
-**Current build:** `0.14.15-rc49`
+**Current build:** `0.14.16-rc50`
 **Target game:** Intravenous 2 `1.4.12HF3`
-**Status:** production-candidate test release. RC49 repairs the complete armed-drone discharge path: ballistic muzzle points clear the physical carrier, Light/Heavy SMG bursts require real native projectiles, and Laser models retain an independently rendered beam/impact after their damage call. RC48's failed-contract replay and paid-terminal protection remain intact. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
+**Status:** production-candidate test release. RC50 restores continuous protected-target movement by keeping the native patrol path and route cursor synchronized, prevents permanent `CORNERED` idle states, and makes direct principal damage trigger real flight and protection mobilization. RC49's armed-drone discharge corrections remain intact. Promotion to `1.0` remains gated by the documented crash-free live mission matrix.
 
 ## Highlights
 
@@ -14,7 +14,7 @@ Hitman Contracts Overhaul (HCO) turns compatible Intravenous 2 missions into sys
 - Executive, Broker, Fixer, and Commander archetypes with distinct appearance, rewards, drone doctrines, five close bodyguards, and 5/10/15/20 separate response units, constrained by the map's safe NPC population.
 - Native difficulty changes response strength, health, drone pressure, sensor performance, threat rating and payout instead of applying one hidden balance to every playthrough.
 - Stronger protected targets and elite guards with archetype-scaled health.
-- Mobile target phases, native authored-route patrol, one continuous close-protection follower chain, nearby-incident awareness, safe-area relocation, physical evacuation, and anti-stuck recovery without teleporting targets.
+- Mobile target phases, synchronized native authored-route patrol, one continuous close-protection follower chain, nearby-incident and direct-damage awareness, repeated safe-area recovery, physical evacuation, and anti-stuck recovery without teleporting targets.
 - Field-intelligence dead drops that reveal exact moving target markers.
 - Native body-menu identities with three tiers, visible actor variants, matching faction insignia, weapon-neutral cover, restricted areas, keycards/keychains, colleague recognition, bloodied-uniform risk, compromise, interruptible radio checks, and lifecycle repair after mission restarts or class/menu replacement.
 - Seven physical, actor-scaled drone models: one unarmed Scout plus light/heavy Pistol, SMG and Laser airframes.

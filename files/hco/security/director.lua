@@ -286,6 +286,8 @@ function director.attach(state, report)
 		droneCooldown = 0,
 		droneMode = "PATROL"
 	}
+	local _, targetHealth = util.call(state.target, "getHealth")
+	security.targetLastHealth = tonumber(targetHealth)
 	security.reportDroneBodyEvidence = function(observer, body)
 		director.notifyBodyEvidence(state, observer, body)
 		local root = state.root or state
@@ -531,6 +533,14 @@ function director.update(state, dt)
 	local lostGuard = false
 	local damagedGuard = false
 	local incidentX, incidentY
+	local _, targetHealth = util.call(state.target, "getHealth")
+	targetHealth = tonumber(targetHealth)
+	if targetHealth and security.targetLastHealth and targetHealth < security.targetLastHealth then
+		local targetX, targetY = util.getPos(state.target)
+		local okSight, sawPlayer = util.call(state.target, "getEnemyInSight", player)
+		mobilizeProtection(state, targetX, targetY, "target-under-fire", okSight and sawPlayer == true)
+	end
+	if targetHealth then security.targetLastHealth = targetHealth end
 	for _, guard in ipairs(security.guards or {}) do
 		local alive = util.isAlive(guard.actor)
 		local _, health = util.call(guard.actor, "getHealth")

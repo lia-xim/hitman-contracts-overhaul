@@ -272,18 +272,21 @@ local function activateRoutinePatrol(state, routeIndex)
 	if not target or not ai or not ai.originalRoute or #(ai.routePoints or {}) < 2 then return false end
 	local index = math.max(1, math.min(#ai.routePoints, tonumber(routeIndex) or ai.originalRouteIndex or 1))
 	local okIdle, idleState = util.call(target, "getStateObject", target.IDLE_STATE or "goon_idle")
-	if okIdle and idleState then util.call(target, "setState", idleState) end
+	if okIdle and idleState then util.call(target, "setState", idleState, true) end
 	util.call(target, "usePatrolSpeed")
 
-	-- setActivePatrolRoute calls the active native state's onPatrolRouteSet. That
-	-- callback owns the destination/path it just created. Clearing the path after
-	-- this call cancels the principal's promenade and leaves both VIP and follower
-	-- chain standing forever, so routine activation deliberately does not touch it.
-	local activated = util.call(target, "setActivePatrolRoute", ai.originalRoute, index)
+	-- The native idle callback advances from the supplied index, writes the new
+	-- route index and owns the path it creates. The old RC49 order wrote `index`
+	-- back after this callback, desynchronizing the path from the route cursor. The
+	-- principal consequently walked at most once and then kept requesting its
+	-- current node. Prime the cursor before activation and never rewind it after.
 	util.call(target, "setPatrolRouteIndex", index)
-	ai.routineVisited[index] = true
+	local activated = util.call(target, "setActivePatrolRoute", ai.originalRoute, index)
+	local _, activeIndex = util.call(target, "getPatrolRouteIndex")
+	activeIndex = tonumber(activeIndex) or index
+	ai.routineVisited[activeIndex] = true
 	ai.routineStuckTime = 0
-	ai.routineLastIndex = index
+	ai.routineLastIndex = activeIndex
 	return activated == true
 end
 
@@ -489,10 +492,11 @@ local function enterCornered(state)
 	local okFear, fearState = util.call(target, "getStateObject", target.FEAR_STATE or "goon_fear")
 
 	if okFear and fearState then
-		util.call(target, "setState", fearState)
+		util.call(target, "setState", fearState, true)
 	end
 
 	state.targetAI.safePoint = nil
+	state.targetAI.corneredRetryTime = 0
 	transition(state, "CORNERED")
 end
 
@@ -568,10 +572,11 @@ local function reassertRoutinePatrol(state)
 	local ai = state.targetAI
 	if not ai.originalRoute or #(ai.routePoints or {}) < 2 then return false end
 	local _, currentIndex = util.call(target, "getPatrolRouteIndex")
-	local nextIndex = ((tonumber(currentIndex) or ai.originalRouteIndex or 1) % #ai.routePoints) + 1
-	local activated = activateRoutinePatrol(state, nextIndex)
+	-- setActivePatrolRoute invokes idle:onPatrolRouteSet, which advances once. Feed
+	-- it the current cursor rather than pre-advancing and skipping another node.
+	local activated = activateRoutinePatrol(state, tonumber(currentIndex) or ai.originalRouteIndex or 1)
 	ai.routineRecoveries = (ai.routineRecoveries or 0) + 1
-	util.log(config, "target routine watchdog advanced patrol index=" .. tostring(nextIndex))
+	util.log(config, "target routine watchdog advanced patrol index=" .. tostring(ai.routineLastIndex))
 	return activated
 end
 
@@ -667,6 +672,7 @@ function controller.attach(state)
 		routineLastX = x,
 		routineLastY = y,
 		lastIncidentTime = -1,
+		corneredRetryTime = 0,
 		evacuationWarningTime = 0
 	}
 	local goonClass = actor.getClassData and actor.getClassData("goon")
@@ -840,11 +846,28 @@ function controller.update(state, dt)
 		end
 
 		updateStuckWatchdog(state, dt)
-	elseif ai.phase == "CORNERED" and level == 0 then
-		ai.clearTime = ai.clearTime + dt
+	elseif ai.phase == "CORNERED" then
+		if level == 0 then
+			ai.clearTime = ai.clearTime + dt
 
-		if ai.clearTime >= config.THREAT_CLEAR_DELAY then
-			restoreRoutine(state)
+			if ai.clearTime >= config.THREAT_CLEAR_DELAY then
+				restoreRoutine(state)
+			end
+		else
+			-- CORNERED is a recovery phase, never a permanent AFK state. Pressure
+			-- keeps the evacuation clock running and periodically retries a different
+			-- authored safe node while native fear AI continues looking for cover.
+			ai.clearTime = 0
+			ai.threatTime = ai.threatTime + dt
+			ai.corneredRetryTime = math.max(0, (ai.corneredRetryTime or 0) - dt)
+			if shouldEvacuate(state) then
+				enterEvacuation(state)
+			elseif ai.corneredRetryTime <= 0 then
+				ai.recoveries = 0
+				if not issueSecureMove(state, "THREATENED", true) then
+					ai.corneredRetryTime = config.TARGET_CORNERED_RETRY_INTERVAL or 3
+				end
+			end
 		end
 	end
 end

@@ -490,7 +490,13 @@ local function createNPC(data)
 				self.owner.nativeSightCombat = true
 			end
 			function stateObject:onPatrolRouteSet(route)
-				self.owner.path = route and {route = route, index = self.owner.patrolIndex} or nil
+				if route then
+					local points = route:getIndexes()
+					self.owner.patrolIndex = (self.owner.patrolIndex % #points) + 1
+					self.owner.path = {route = route, index = self.owner.patrolIndex}
+				else
+					self.owner.path = nil
+				end
 				self.owner.patrolActivationCount = (self.owner.patrolActivationCount or 0) + (route and 1 or 0)
 			end
 			function stateObject:goToFollow(leader, followID)
@@ -688,6 +694,7 @@ assertEqual(state.targetID, "guard-b", "highest safe candidate selected")
 assertEqual(state.target._hcoContractTarget, true, "target marker installed")
 assertTrue(state.contract, "contract record created")
 assertTrue(state.target.path and state.target.path.route == state.targetAI.originalRoute, "target activation preserves the native patrol path created by onPatrolRouteSet")
+assertEqual(state.target.path.index, state.target:getPatrolRouteIndex(), "target activation keeps the native path and patrol cursor synchronized")
 local activeProfile = require("hco/contracts/profiles").resolve(state.contract.seed, state.contract.archetype)
 assertEqual(state.target.animVar, activeProfile.targetVariant, "target receives archetype-native visual variant")
 assertEqual(#objectiveHandler.objectives, 2, "native objective injected beside vanilla objective")
@@ -1081,9 +1088,12 @@ state.targetAI.resumePhase = nil
 state.targetAI.safePoint = nil
 local routineRecoveries = state.targetAI.routineRecoveries or 0
 state.target.path = nil
+local routineIndexBeforeRecovery = state.target:getPatrolRouteIndex()
 for step = 1, 10 do require("hco/targets/controller").update(state, 1) end
 assertTrue(state.targetAI.routineRecoveries > routineRecoveries, "stationary routine target is advanced to another native patrol node")
 assertTrue(state.target.path and state.target.path.route == state.targetAI.originalRoute, "routine recovery keeps the native patrol path alive instead of clearing it after reactivation")
+assertTrue(state.target:getPatrolRouteIndex() ~= routineIndexBeforeRecovery, "routine recovery advances exactly from the live native cursor")
+assertEqual(state.target.path.index, state.target:getPatrolRouteIndex(), "routine recovery never rewinds the cursor behind its native path")
 
 state.target.alertness = npcAlertnessStates.STATES.ALERT
 state.target:setState(state.target:getStateObject("goon_alert"))
@@ -1108,6 +1118,33 @@ assertTrue(state.targetAI.safePoint, "secure destination selected")
 state.security.targetThreatLevel = 1
 require("hco/targets/controller").update(state, 0.2)
 assertEqual(state.targetAI.phase, "THREATENED", "confirmed protection incident escalates the principal from relocation to flight")
+
+state.targetAI.phase = "CORNERED"
+state.targetAI.safePoint = nil
+state.targetAI.recentPoints = {}
+state.targetAI.threatTime = 0
+state.targetAI.corneredRetryTime = 0
+state.security.targetThreatLevel = 1
+require("hco/targets/controller").update(state, 0.2)
+assertTrue(state.targetAI.phase == "THREATENED" or state.targetAI.phase == "EVACUATING", "cornered target immediately resumes physical flight under pressure")
+assertTrue(state.targetAI.safePoint, "cornered recovery creates a physical movement destination instead of an AFK hold")
+
+state.targetAI.phase = "ROUTINE"
+state.targetAI.safePoint = nil
+state.targetAI.resumePhase = nil
+state.security.targetThreatLevel = 0
+for _, guard in ipairs(state.security.guards) do
+	guard.actor.dead = false
+	guard.actor.unconscious = false
+	guard.wasAlive = true
+	guard.lastHealth = guard.actor:getHealth()
+end
+local targetHealthBeforeHit = state.target:getHealth()
+state.target:setHealth(targetHealthBeforeHit - 1)
+securityDirector.update(state, 0.6)
+require("hco/targets/controller").update(state, 0.2)
+assertEqual(state.security.protectionIncident.reason, "target-under-fire", "direct target damage mobilizes protection even before shooter identity is confirmed")
+assertEqual(state.targetAI.phase, "THREATENED", "a damaged principal immediately abandons routine and flees")
 
 state.target.x, state.target.y = state.targetAI.safePoint.x, state.targetAI.safePoint.y
 for _, updateState in ipairs(gameStateService.states) do updateState:update(0.2) end
@@ -1212,7 +1249,8 @@ assertEqual(validA.experience, 2, "objective attach failure restores guard exper
 assertEqual(validA.health, 75, "objective attach failure restores guard health")
 assertEqual(validA.maxHealth, 75, "objective attach failure restores guard maximum health")
 assertEqual(validA:getState().id, "goon_idle", "objective attach failure restores guard state")
-assertEqual(validB:getPatrolRouteIndex(), 1, "objective attach failure restores target patrol position")
+assertTrue(validB:getActivePatrolRoute() ~= nil, "objective attach failure restores the target's native patrol route")
+assertTrue(validB.path and validB.path.index == validB:getPatrolRouteIndex(), "objective rollback leaves the restored patrol path and cursor synchronized")
 objectiveHandler.objectives = activeObjectives
 
 resetNPC(validA, 130)
