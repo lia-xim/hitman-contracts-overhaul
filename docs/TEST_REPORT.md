@@ -354,7 +354,7 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
 - Workshop ZIP integrity: **PASS** — final delivered `Hitman-Contracts-Overhaul-0.14.18-rc52.zip` contains all 43 payload files below the required nested `files/` root and has reproducible SHA-256 `2C857874D14C902A65A149421BE8B2F1BFAD04D90F22CF562B3D2B81EF7566A9` across consecutive clean packaging runs.
 - Native Workshop staging: **PASS** — `mods_staging/Hitman-Contracts-Overhaul` contains the exact 43-file payload under `files/`, a 512 x 512 JPEG preview below the native 1 MiB limit and no unrelated metadata/item ID for the first publish.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.18-rc52 payload=43 workshop_tags=4 preview_bytes=87591`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.18-rc52 payload=43 workshop_tags=4 description_bytes=7609 preview_bytes=87591`.
 - Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 11:44:44; the game was not running, the current debug log was empty and the newest stored crash log at 2026-08-07 12:07:42 predates RC52.
 
 The markers above were collected from RC52 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

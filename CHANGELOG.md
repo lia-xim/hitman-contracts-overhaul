@@ -9,6 +9,7 @@
 - Added runtime and physical-drone regressions for maintained passive presence, exact-deficit replacement, failed-spawn recovery, automatic quiet stand-down and weapon/tracking cleanup. Existing target-route, social-stealth, combat, destruction, render and packaging suites remain mandatory.
 - Added the native Steam Workshop staging workflow with paste-ready title, tags, BBCode description, change note, preview validation, publication checklist and preservation of Steam's existing item metadata on later updates.
 - Made release ZIP creation byte-reproducible and extended the release gate to validate Workshop title, tag, description, preview-size and version metadata alongside the 43-file runtime payload.
+- Finalized the public Workshop presentation under `Hitman Contracts Overhaul | Drones, Targets and Stealth`, with an evidence-bound long description below Steam's 8,000-byte limit and matching captions for the five-image release gallery.
 
 ## 0.14.17-rc51 — 2026-08-08
 

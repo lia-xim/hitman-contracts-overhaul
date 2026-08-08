@@ -2,25 +2,26 @@
 
 ## Prepared fields
 
-- **Title:** `Hitman Contracts Overhaul | HVTs, Drones & Disguises`
+- **Title:** `Hitman Contracts Overhaul | Drones, Targets and Stealth`
 - **Tags:** `Gameplay`, `Objects`, `Audio`, `Graphics`
 - **Version:** `0.14.18-rc52`
 - **Game version:** Intravenous 2 `1.4.12HF3`
 - **Preview:** `preview.jpg` (512 x 512, below the native 1 MiB limit)
 - **Description:** `description.txt` (Steam BBCode)
 - **Change note:** `changenote.txt`
+- **Gallery captions:** `gallery-captions.txt`
 
-## First publish in Intravenous 2
+## Publish or update in Intravenous 2
 
 1. Fully close and restart Intravenous 2 after preparing the staging directory.
-2. Open **Mods > Steam Workshop > Create mod**.
+2. Open **Mods > Steam Workshop**. For an existing item, open your created mods and choose **Update**; otherwise choose **Create mod**.
 3. Select `Hitman-Contracts-Overhaul` from `mods_staging`.
 4. Select `preview.jpg`.
-5. Paste the title above and select the four tags above.
+5. Paste the title above and keep only the four listed tags. Deselect `Weapons`, `Levels` and `Miscellaneous` if an earlier upload retained them.
 6. Accept the Steam Workshop Legal Agreement and upload.
-7. Open the newly created Workshop item in Steam. New items are private by default.
+7. Open the Workshop item in Steam. New items are private by default.
 8. Replace Steam's placeholder description (`Change the description!`) with the full contents of `description.txt`.
-9. Upload the five images from `artwork/release-gallery/` in numeric order.
+9. Upload the five images from `artwork/release-gallery/` in numeric order and use `gallery-captions.txt` for their descriptions.
 10. Add `changenote.txt` as the release/change note if Steam requests one.
 11. Confirm that the title, preview, description, tags and gallery render correctly.
 12. Set visibility to **Public** only after the checks below pass.

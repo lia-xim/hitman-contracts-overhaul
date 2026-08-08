@@ -1,77 +1,121 @@
 [h1]HITMAN CONTRACTS OVERHAUL[/h1]
-[b]Intravenous 2 meets Hitman: optional HVT contracts, mobile targets, heavy protection details, disguises, social stealth and physical security-drone wings — integrated into the native game.[/b]
+[b]Drones. Moving targets. Social stealth. A second mission is now hiding inside your mission.[/b]
 
-[h2]CURRENT RELEASE — CONTRACTS, SOCIAL STEALTH & DRONE SECURITY[/h2]
+HCO adds optional high-value-target operations to compatible Intravenous 2 missions. A protected executive, broker, commander or fixer enters the map with close guards, a response force and airborne security. Find the intelligence, locate the moving target and decide how the operation ends.
+
+Infiltrate in a stolen uniform, disable the drones and strike quietly—or start a firefight and watch the map become a coordinated hunt. Contracts live inside the normal campaign through native objectives, actors, interactions, weapons and saves.
+
+[h2]THE CONTRACT[/h2]
+
+Compatible missions generate one to three deterministic optional contracts. The target is not revealed for free.
+
+[olist]
+[*][b]Recover intelligence.[/b] Find the marked dead drop.
+[*][b]Identify the target.[/b] Intel reveals a live moving marker.
+[*][b]Study the protection.[/b] Five close guards protect the principal; additional units search and attack.
+[*][b]Choose an approach.[/b] Use a disguise, isolate the target, disrupt security or fight.
+[*][b]Finish the contract.[/b] Neutralize the target, collect campaign money and continue the mission.
+[/olist]
+
+Contracts and rewards persist across reloads. Completed contracts cannot pay twice; failed unpaid attempts can produce a fresh operation later.
+
+[h2]TARGETS THAT ACTUALLY MOVE[/h2]
+
+HCO builds a deterministic five-to-eight-point routine from safe native patrol sectors. The principal uses the game's pathfinding and doors while close protection follows nearby.
+
+Nearby unsuppressed gunfire creates caution without identifying the shooter. Injured guards, casualties or confirmed contact drive the principal toward safety. Under pressure the detail can shelter or physically evacuate the target—never teleport it.
+
+Four archetypes alter appearance, reward, protection and drone doctrine. Difficulty scales health, response size, sensors, drone pressure, threat rating and payout together.
+
+[h2]DISGUISES AND SOCIAL STEALTH[/h2]
+
+Dead or unconscious characters can provide Staff, Security or Elite Security disguises through the normal body menu. A cyan stitch marker shows an available uniform. Taking it changes your visible identity and can transfer native keycard credentials.
+
+A disguise permits plausible behavior. It does not make you permanently invisible.
+
 [list]
-[*]Aggressive search no longer means instant knowledge of a clean disguised identity
-[*]Long-range clean cover produces amber suspicion; close cone/raycast scrutiny is required before red confirmation
-[*]Shared guard/drone knowledge is tied to the actually observed outfit, so changing disguise invalidates stale tracking and fire authority
-[*]Stable wall following and destination-progress recovery stop drones shuffling indefinitely without getting closer
-[*]Drones steer first, then visibly hop narrow walls/gates only between verified outdoor cells
-[*]Barrier hops are movement-only: no scan, relay or weapon fire until the drone lands
-[*]Wide buildings, roofs and unreachable void remain forbidden
-[*]Protected targets recover stalled patrols and react to nearby audible incidents without magically learning who fired
-[*]Take Disguise is the first body action; Restore Original Identity removes it again
-[*]A persistent cyan/red world shimmer makes active or compromised cover readable on the player
-[*]Easy/Normal/Hard/True/Custom difficulty now changes guards, targets, response size, drone pressure, sensor strength, threat rating and payout together
-[*]Threat ratings I–V appear in the compact native contract announcement
-[*]Global twelve-drone fleet ceiling plus per-contract Heavy/Laser limits keep multi-contract missions readable
-[*]One unarmed Scout plus light/heavy Pistol, SMG and Laser drone designs
-[*]Distinct native-scale pixel silhouettes, family-colored effects, hover/rotor animation, movement wakes and independent sensor gimbals
-[*]Stable standoff tracking instead of blindly orbiting or flying through the player
-[*]Varied map-safe deployment, native floor-grid endpoint validation and wing separation
-[*]Pistol/SMG drones fire native projectiles; Laser drones expose a cancellable 0.9/1.4-second charge
-[*]Light drones die in one hit; heavy drones in two or three ordinary hits, with high-caliber weapons tearing through faster
-[*]Full-airframe impact tint, expanding spark ring, remaining-armor pips and louder spatial metal impacts
-[*]Model-sized self-repairing hitboxes cover the complete rotating airframe, including Heavy rotor edges
-[*]Destroyed drones tumble, trail pixel smoke and sparks, strike the ground and remain as dark wrecks
-[*]Real cone-and-raycast body scans; exposed bodies escalate security and can compromise a stolen uniform
-[*]Calm disguises delay routine drone identification while suspicious behavior restores full scrutiny
-[*]Light/heavy rotor profiles, separate laser sounds, EMP disruption and bullet destruction
+[*]Normal walking and any carried weapon can preserve cover at a believable distance.
+[*]Running, aiming, firing, lockpicking, carrying bodies and restricted access build suspicion.
+[*]Close colleagues and elite guards inspect unfamiliar faces faster.
+[*]Sustained close scrutiny can reveal the deception; point-blank recognition is especially dangerous.
+[*]An unseen shot creates an investigation at its location without identifying the shooter.
+[*]A witness can start a radio report. Interrupt it before recognition becomes global compromise.
+[*]Finding the body that supplied your uniform can compromise that disguise across the network.
 [/list]
 
-[h2]CONTRACT SYSTEM[/h2]
+A cyan shimmer confirms active cover and turns red when compromised. Use [b]Restore original identity[/b] in a body menu to remove the disguise; stolen credentials remain.
+
+[h2]A PHYSICAL DRONE SECURITY NETWORK[/h2]
+
+Drones exist before combat, patrol valid outdoor areas and maintain security around active contracts. When an alarm clears, survivors return to patrol.
+
+The roster contains seven physical airframes:
+
 [list]
-[*]One to three deterministic optional contracts on sufficiently populated maps
-[*]Executive, Broker, Commander and Fixer targets with distinct native appearance and security doctrine
-[*]Moving targets, routine patrol recovery, local-incident awareness, safer fallback positions and physical evacuation — no teleporting bosses
-[*]Five close bodyguards remain with the principal while separate response units search and attack
-[*]Field-intelligence dead drops reveal exact moving target markers
-[*]Compact completion banner, campaign-money payout, audio feedback and reload persistence
+[*][b]Scout[/b] — unarmed surveillance and network relay.
+[*][b]Light Pistol / SMG / Laser[/b] — fast and fragile.
+[*][b]Heavy Pistol / SMG / Laser[/b] — slower, armored weapons platforms.
 [/list]
 
-[h2]DISGUISE & SOCIAL STEALTH[/h2]
+Each model has its own silhouette, scale, rotor sound, movement, sensor and wreck. Search cones use an independent gimbal. Pistols and SMGs fire native projectiles; lasers expose an aim line and charge window before discharge.
+
+The network shares confirmed sightings and observed appearance, not supernatural knowledge. A clean distant disguise creates amber suspicion. Sustained close cone-and-raycast contact is required for confirmation. Changing identity invalidates an old match; overt behavior restores rapid detection.
+
+Drones are real targets. Light airframes usually fall to one hit; heavy models take roughly two or three depending on the weapon. Electronic disruption also works. Destroyed drones lose cone and weapons, tumble with sparks and smoke, then remain as evidence-producing wrecks.
+
+A drone may cross a narrow verified exterior barrier only after steering fails. During the hop it cannot scan, relay or fire. Buildings, void and unsafe edges remain forbidden. Fleet limits allow seven drones per contract and twelve across the map.
+
+[h2]SECURITY ESCALATION[/h2]
+
+HCO separates noise, evidence and confirmed identity.
+
 [list]
-[*]Take Staff, Security or Elite disguises as the first native body action
-[*]Restore your original identity from a body menu without losing stolen credentials
-[*]Normal walking and any held/holstered weapon preserve cover at believable distance
-[*]Persistent cyan/red player shimmer communicates active or compromised cover
-[*]Running, aiming, firing, lockpicking, carrying bodies and restricted access expose you
-[*]Close colleagues identify false uniforms faster
-[*]Stolen keycards use the game's real credential system
-[*]Body evidence begins locally; interrupt the real radio report before compromise spreads globally
+[*]Suspicious sound creates a local investigation.
+[*]A body or wounded guard raises pressure and can request drones.
+[*]Three unsuppressed player shots within eight seconds trigger aggression; suppressed shots and NPC fire do not.
+[*]Confirmed contact shares last position and observed identity.
+[*]The principal and close guards move toward safety while response units hunt the player.
+[*]Once evidence and threat clear, the network stands down and can react again.
 [/list]
+
+Security can know where something happened without knowing the disguised person walking past caused it.
 
 [h2]NATIVE-FIRST DESIGN[/h2]
-There is no cheat menu, F-key overlay, separate currency or external progression screen. HCO uses native objectives, moving markers, actors, patrol routes, radios, credentials, projectiles, damage, security-camera carriers, world quadtrees and campaign saves.
 
-Unsafe missions and story-critical actors are skipped instead of being forced into a contract. Drone attacks require confirmed tracking, line of sight, range, gimbal alignment, a visible cue and a cooldown. Every model remains shootable or electronically disruptable.
+There is no HCO hotkey, detached screen, invented currency or permanent overlay. The mod uses native objectives, markers, body actions, patrols, radios, credentials, projectiles, damage and campaign persistence.
 
-[h2]HOW TO START[/h2]
-Start a compatible mission from the beginning. No hotkey is required. Follow the optional intelligence objective, recover the marked dead drop and infiltrate or fight through the target's protection.
+Unsafe mission states and story-critical actors are skipped. The original mission stays active.
 
-[h2]LANGUAGE[/h2]
-HCO's custom objectives, notifications and interaction labels are currently in English. The mod works with other game-language settings.
+[h2]HOW TO PLAY[/h2]
+
+Start a compatible mission [b]from the beginning[/b]. If enough safe actors exist, the intelligence objective appears beneath the normal objective.
+
+Recover the intel and follow the moving target. Mid-mission saves may require a mission restart.
 
 [h2]COMPATIBILITY[/h2]
-Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a local and Workshop copy are enabled, the first-loaded version wins.
 
-The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
+[list]
+[*]Built and tested for Intravenous 2 [b]1.4.12HF3[/b].
+[*]No external dependency is required.
+[*]Custom HCO text is currently English; other game-language settings still work.
+[*]Enable only one HCO copy. Local and Workshop copies must not run together.
+[*]The Ultimate Cheat Trainer is supported. Reset cheats before judging combat balance.
+[/list]
 
-[h2]CURRENT VERSION[/h2]
-[b]0.14.18-rc52[/b] — public release candidate. RC52 maintains archetype-scaled passive drone patrols from contract start, retries temporarily unavailable safe outdoor spawns, replaces missing patrol airframes within the existing fleet caps and returns a cleared alarmed wing to ordinary patrol. RC51's deterministic five-to-eight-point principal routines and prior movement/weapon corrections remain intact. Please report the map, game version and full traceback if you encounter a crash.
+After subscribing, restart the game completely and begin a compatible mission from its start.
+
+[h2]CURRENT RELEASE[/h2]
+
+[b]0.14.18-rc52[/b] — Public Release Candidate
+
+RC52 maintains passive patrols from contract start, retries unavailable safe spawns, replaces missing airframes within fleet limits and returns cleared wings to patrol. It includes expanded target routines, repaired social stealth, ballistic and laser weapons, shootable drones, wrecks and reload-safe contracts.
+
+Seven LÖVE suites cover the simulated runtime. Source, installation, Workshop staging and archive have exact payload parity. Map actors and navigation still affect live behavior. Reports should include map, game version and traceback.
 
 [h2]OPEN SOURCE[/h2]
-Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.
 
-[url=https://github.com/lia-xim/hitman-contracts-overhaul]Source code, issue tracker and documentation[/url]
+The repository contains source, specification, native-interface evidence, tests, history and issue tracker. Code is MIT; original HCO media is CC0.
+
+[url=https://github.com/lia-xim/hitman-contracts-overhaul]GitHub — Source, documentation and bug reports[/url]
+
+[i]Hitman Contracts Overhaul is an unofficial fan-made mod for Intravenous 2. It is not affiliated with Explosive Squat Games, HypeTrain Digital or IO Interactive.[/i]

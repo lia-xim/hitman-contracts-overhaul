@@ -13,6 +13,7 @@ if ($match.Groups[1].Value -ne $version) { throw "VERSION/config mismatch: $vers
 $workshopRoot = Join-Path $repoRoot 'workshop'
 $workshopTitle = (Get-Content -LiteralPath (Join-Path $workshopRoot 'title.txt') -Raw).Trim()
 $workshopDescription = Get-Content -LiteralPath (Join-Path $workshopRoot 'description.txt') -Raw
+$workshopDescriptionBytes = [System.Text.Encoding]::UTF8.GetByteCount($workshopDescription)
 $workshopTags = @(Get-Content -LiteralPath (Join-Path $workshopRoot 'tags.txt') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 $workshopChangeNote = (Get-Content -LiteralPath (Join-Path $workshopRoot 'changenote.txt') -Raw).Trim()
 $workshopPreview = Get-Item -LiteralPath (Join-Path $workshopRoot 'preview.jpg')
@@ -23,6 +24,7 @@ foreach ($tag in $workshopTags) {
     if ($allowedTags -notcontains $tag) { throw "Unsupported Workshop tag: $tag" }
 }
 if ([string]::IsNullOrWhiteSpace($workshopChangeNote)) { throw 'Workshop change note is empty.' }
+if ($workshopDescriptionBytes -gt 8000) { throw "Workshop description exceeds Steam's 8000-byte limit: $workshopDescriptionBytes bytes" }
 if ($workshopPreview.Length -gt 1048576) { throw "Workshop preview exceeds the native 1 MiB limit: $($workshopPreview.Length) bytes" }
 if ($workshopDescription -notmatch [regex]::Escape("[b]$version[/b]")) { throw "Workshop description does not identify current version $version." }
 if ($workshopDescription -match 'NEW IN RC42') { throw 'Workshop description still contains the stale RC42 release heading.' }
@@ -66,5 +68,5 @@ finally {
 }
 
 $archiveHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
-Write-Output "HCO_RELEASE_CHECK_PASS version=$version payload=$($sourceFiles.Count) workshop_tags=$($workshopTags.Count) preview_bytes=$($workshopPreview.Length) sha256=$archiveHash"
+Write-Output "HCO_RELEASE_CHECK_PASS version=$version payload=$($sourceFiles.Count) workshop_tags=$($workshopTags.Count) description_bytes=$workshopDescriptionBytes preview_bytes=$($workshopPreview.Length) sha256=$archiveHash"
 Write-Output $archive

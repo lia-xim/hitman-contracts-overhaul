@@ -75,5 +75,5 @@ $metadataMode = if ($null -ne $metadataBackup) { 'existing-item metadata preserv
 Write-Output "HCO_WORKSHOP_STAGE_PASS files=$($sourceFiles.Count) preview_bytes=$($previewInfo.Length) mode=$metadataMode"
 Write-Output "Staging: $stagingRoot"
 Write-Output "Preview SHA256: $previewHash"
-Write-Output 'Title: Hitman Contracts Overhaul | HVTs, Drones & Disguises'
+Write-Output 'Title: Hitman Contracts Overhaul | Drones, Targets and Stealth'
 Write-Output 'Tags: Gameplay, Objects, Audio, Graphics'
