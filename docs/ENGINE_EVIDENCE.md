@@ -289,6 +289,15 @@ Source: `game/patrol/patrol_route.lua`, `game/patrol/patrol_point.lua`, `game/ac
 - The original relaxed/active route object is never modified. HCO's derived route has a contract-seeded order, bounded adjacent distances and optional circular closure only when the closing leg is also bounded. Detach restores the original object/index; checkpoint activation deterministically rebuilds the derived route after vanilla load.
 - If the selector cannot supply five safe distinct points, the feature fails closed to the target's original authored route. RC50's nine-second path/cursor watchdog advances beyond a failed derived leg without teleporting.
 
+## RC52 native-carrier lifecycle evidence
+
+Source: `security_camera`, finalized roof obstruction data, dynamic-object lifecycle and HCO's registered airframe owner
+
+- A live HCO drone is still an engine-created `security_camera` instance whose behavior delegates to the registered airframe. Ambient maintenance therefore counts the valid native carriers already owned by each contract; it never creates a detached visual-only overlay.
+- Native camera creation and safe placement can be temporarily unavailable during map finalization or capacity pressure. RC52 preserves unfulfilled demand and retries with bounded backoff instead of consuming the request or placing an armed object before the roof map is authoritative.
+- Broken/safety-retired carriers leave the live list while their wreck airframes retain their independent terminal lifecycle. The supervisor requests only the passive deficit, preserving the seven-per-contract/twelve-global limits and allowing the existing wreck to remain without counting as active coverage.
+- Stand-down reuses the same carriers. It clears HCO tracking, weapon and destination state and restores the native camera light to routine cyan; no despawn/respawn or duplicate world actor is needed merely to leave combat search.
+
 ## RC44 authoritative body-selector query evidence
 
 Source: `game/entity.lua`

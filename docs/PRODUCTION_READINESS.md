@@ -1,6 +1,6 @@
 # Production Readiness Gate
 
-**Candidate:** `0.14.17-rc51`
+**Candidate:** `0.14.18-rc52`
 **Target:** Intravenous 2 `1.4.12HF3`  
 **Decision:** code-complete production candidate; not promoted to `1.0` until the live matrix below passes.
 
@@ -22,6 +22,7 @@ Drones are pressure tools, not bullet sponges. Scout and Light airframes die in 
 
 - Maximum seven active drones per contract and twelve across the whole mission.
 - Maximum two Heavy and two Laser airframes per contract.
+- Each active contract maintains half of its scaled doctrine (rounded up) as a passive baseline. Missing carriers are replaced by exact deficit only; failed safe spawns use capped backoff and ambient replacement never bypasses roof, hitbox or fleet limits.
 - Baseline identity acquisition is 0.55 seconds before model, doctrine, mode and difficulty modifiers.
 - A calm valid disguise reduces routine acquisition to 22% speed; aggressive security never falls below 72% speed.
 - Every attack requires a completed native geometry trace, an outdoor roof-map footprint, a valid visible airframe, a centered physical bullet target, range, gimbal alignment, a readable aim/charge cue and cooldown readiness.
@@ -31,6 +32,7 @@ Drones are pressure tools, not bullet sponges. Scout and Light airframes die in 
 - Patrol/search destinations remain committed until arrival or an explicit tactical/idle transition. Invalid/current-position authored sectors are exhausted before deterministic outdoor fallbacks; if the map offers no route, the sensor performs a continuous 360-degree scan instead of becoming inert.
 - A stalled drone may cross only a narrow obstructed span between two verified outdoor footprints. During the eased transition the inherited camera update, HCO sensing, evidence scan and every weapon are disabled; wide roofed structures and void have no valid landing and remain impassable.
 - Confirmed drone contact is map-network evidence: all active HCO wings enter a visible red aggressive search and all contract response teams receive the reported position. Weapons remain local and fail closed behind geometry.
+- A network with no remaining knowledge or target threat for twelve seconds cancels queued fire/tracking and returns surviving airframes to cyan patrol; the next independent contact or loud-fire incident can escalate again.
 - Disguise transitions remain world-space and the active identity adds a restrained persistent cyan/red player shimmer. A small stitch marker identifies unused nearby uniforms. Eligible bodies are restored to the current world's native interaction quadtree before they temporarily outrank overlapping dropped equipment, so takeover is immediately visible; consumed bodies return to vanilla priority. Both HCO actions use unused bit IDs so native/third-party class action identities never change. No separate menu or cursor is introduced.
 - RC51 constructs a target routine only from real patrol-point objects belonging to safe selector-approved Goons. Five to eight nodes, at least 160 units apart and connected by at most 1,250-unit adjacent legs, span several security sectors when the mission supports them; otherwise HCO retains the vanilla route. Native idle owns every destination/path and advances its cursor. HCO preserves the callback result, rebuilds the same seed-derived route after reload and reasserts a stationary routine after nine seconds. `CORNERED` retries a different physical secure point under sustained pressure and escalates to evacuation rather than remaining AFK. All five close guards remain one verified follower chain.
 - A nearby unsuppressed shot creates location-only caution; confirmed protection incidents escalate flight and can invalidate an occupied shelter without granting magical player identity.
@@ -63,7 +65,7 @@ Run with the Cheat Trainer reset unless compatibility itself is being tested.
 1. Fresh mission and checkpoint reload on at least three structurally different maps.
 2. One-, two- and three-contract activation where actor population allows it.
 3. At least one Easy/Normal and one Hard/True mission; confirm visibly different pressure without changing the five-bodyguard core.
-4. Routine patrol, loud-fire escalation, direct HCO-guard contact, body evidence and protection-casualty deployment paths.
+4. Passive patrol from contract start, exact one-for-one replacement after destruction, a temporarily blocked/late safe spawn, loud-fire escalation, cleared-alarm return to cyan patrol, direct HCO-guard contact, body evidence and protection-casualty deployment paths.
 5. Complete the RC47 social-stealth matrix: fallen body present in the native selector after death/restart, eligible body selected ahead of overlapping equipment, takeover first, three tiers, persistent active shimmer, explicit original-identity restore, arbitrary armed distance cover, survivable brief close pass, sustained close exposure, immediate point-blank hostile handoff, unobserved-shot isolation, direct-witness recognition, credentials, behavior exposure, local/global radio compromise, drone source scan and reload.
 6. Scout plus every Light/Heavy Pistol, SMG and Laser row: silhouette, scale, heading, sound, attack cue, damage and cooldown.
 7. Player LOS loss, zero roofed/indoor spawns, ordinary wall steering, one successful narrow exterior hop, one rejected wide/roofed crossing, no sensing/fire during hop, world-edge containment, wing separation, committed patrol travel, invalid-sector fallback, rotating boxed-in scan and at least 30 seconds of aggressive search.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.18-rc52 — 2026-08-08
+
+- Turned routine drone deployment into a maintained ambient security layer. Every active contract now records an archetype/difficulty-scaled passive baseline; a bounded supervisor removes stale carriers and quietly replaces only missing airframes without exceeding the existing seven-per-contract or twelve-global fleet ceilings.
+- Fixed one-shot deployment loss. A temporarily unavailable native camera carrier or safe outdoor spawn no longer consumes the request: remaining airframes stay queued with capped exponential retry backoff, while roof-map readiness and global-cap waits remain fail-closed and non-spamming.
+- Added an eight-second ambient replacement ceiling so a destroyed or safety-retired patrol does not wait through the full 28-second combat-wave cooldown before the network can restore coverage.
+- Added a real alarm stand-down lifecycle. After security knowledge and target threat remain clear for twelve seconds, surviving drones cancel tracking, stale destinations, queued bursts/laser charge and red search presentation, then resume ordinary map patrol. Contact/gunfire gates are rearmed for a later independent incident.
+- Added runtime and physical-drone regressions for maintained passive presence, exact-deficit replacement, failed-spawn recovery, automatic quiet stand-down and weapon/tracking cleanup. Existing target-route, social-stealth, combat, destruction, render and packaging suites remain mandatory.
+
 ## 0.14.17-rc51 — 2026-08-08
 
 - Replaced tiny target-only shuttle routes with deterministic map-wide principal routines. When a compatible mission exposes enough safe authored patrol nodes, HCO selects five to eight points across several eligible security sectors instead of keeping the target inside its original two/three-point pocket.

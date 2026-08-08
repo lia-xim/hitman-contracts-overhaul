@@ -224,6 +224,15 @@ function droneWeapons.update(drone, player, visible, aimError, dt, canAttack)
 	return false
 end
 
+function droneWeapons.standDown(drone)
+	if not drone or drone.broken or drone.hcoWeaponDisabled then return end
+	drone.hcoBurstLeft, drone.hcoBurstWait = 0, 0
+	drone.hcoLaserCharge, drone.hcoMuzzleFlash, drone.hcoLaserPulse = 0, 0, 0
+	clearLaserBeam(drone)
+	drone.hcoAimTargetX, drone.hcoAimTargetY = nil, nil
+	drone.hcoWeaponState = "IDLE"
+end
+
 function droneWeapons.disable(drone)
 	if not drone then return end
 	drone.hcoWeaponDisabled = true

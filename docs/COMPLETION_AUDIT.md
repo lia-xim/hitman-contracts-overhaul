@@ -1,8 +1,8 @@
-# Completion Audit — 0.14.17-rc51
+# Completion Audit — 0.14.18-rc52
 
 **Audit date:** 2026-08-08
 **Goal status:** production-candidate code complete for the current feature surface; final live acceptance is not complete
-**Authority inspected:** RC51 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed/decompiled `1.4.12HF3` patrol-route/patrol-point/path-task/interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces, persisted HCO save records and user-supplied live screenshots/errors
+**Authority inspected:** RC52 source, `SPECIFICATION.md`, `SPECIFICATION_TRACEABILITY.md`, current smoke harnesses, installed/decompiled `1.4.12HF3` patrol-route/patrol-point/path-task/interaction/actor/state/vision/weapon/off-limits/follower/camera/projectile/damage/outline/physics/path-grid/roof interfaces, persisted HCO save records and user-supplied live screenshots/errors
 
 ## Evidence classification
 
@@ -16,7 +16,7 @@
 | Multi-contract isolation | Pass | Not yet proven across a full live mission | Live test required |
 | Disguise/social stealth | RC47 current-quadtree recovery plus eligible-body priority, first-visible takeover, independent render-cache recovery, stable native IDs, replaced-hook/runtime rebind, explicit restore, nearby-body marker, persistent shimmer, three tiers, weapon-neutral distance cover, close scrutiny, point-blank exposure, radio and persistence pass | Live report proved the eligible marked body itself was missing from `Q`; only dropped equipment was discoverable | RC47 quadtree correction requires live pass |
 | Save/reload semantics | RC48 proves failed unpaid records rotate to a distinct new attempt while successful paid records remain terminal and explain their state | User's current save exposed permanent failed-record suppression | RC48 same-save live test required |
-| Drone deployment/searchlight | RC41 committed patrol, invalid-sector fallback, bounded inert barrier hop, 360-degree scan and shared map alarm pass | Live pass exposed stalls at separated exterior areas | RC41 correction requires live pass |
+| Drone deployment/searchlight | RC52 maintained passive baseline, exact-deficit replacement, failed-spawn retry and cleared-alarm stand-down plus RC41 committed patrol, bounded inert barrier hop, 360-degree scan and shared map alarm pass | Earlier live passes showed drones mainly during combat and stalls at separated exterior areas | RC52 pre-combat/replacement/stand-down lifecycle and RC41 navigation require live pass |
 | Native drone body | Seven-row atlas pass | Earlier native body visible in screenshot | RC22 row/scale/orientation pass pending |
 | Drone detection relay | Strict-raycast plus RC41 all-contract propagation and transition lockout pass | One-way detection/fire during inaccessible transitions would be unfair | RC41 red-network search, barrier lockout and local-fire authority require live proof |
 | Drone tracking/gimbal | RC22 pass in harness | Earlier cone swept away from player | Live fix confirmation required |
@@ -34,7 +34,7 @@ The core optional-contract product exists and works far enough to be played. HCO
 2. Guarantee stronger mission-appropriate weapons and reliable active response for the protection tiers.
 3. Complete the RC47 live matrix for native body discovery, body-first selection, restart-safe action visibility/restore, eligible-body marker, persistent identity shimmer, drone disguise distance bands and fire continuity, direct witnesses, body evidence, radio compromise and reload; the user has accepted the core close-inspection/point-blank response.
 4. Live-test the implemented semantic drone perception for calm/risky identities, bodies and source-uniform compromise.
-5. Live-approve RC41's committed patrol travel, bounded disarmed wall/gate hop, rejected roof crossing, outdoor fallback, stationary 360-degree scan, all-wing alarm propagation, unaided complete-silhouette hits and animated inert-wreck handoff; meaningful operator/radio dependency remains a future expansion.
+5. Live-approve RC52's passive pre-combat baseline, exact replacement and cleared-alarm patrol return together with RC41's committed travel, bounded disarmed wall/gate hop, rejected roof crossing, outdoor fallback, stationary 360-degree scan, all-wing alarm propagation, unaided complete-silhouette hits and animated inert-wreck handoff; meaningful operator/radio dependency remains a future expansion.
 6. Treat thermal surveillance and additional systemic contract types as explicit post-1.0 expansions unless promoted into the release scope.
 7. Live-test and tune the implemented Pistol/SMG/Laser attacks. Every attack must remain telegraphed and counterable.
 8. Complete the live map, reload and compatibility matrix; localization/audio callouts remain post-candidate content work.

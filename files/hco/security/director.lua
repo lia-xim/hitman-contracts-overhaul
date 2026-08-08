@@ -64,6 +64,7 @@ local function mobilizeProtection(state, x, y, reason, confirmedPlayer)
 	security.targetThreatLevel = 1
 	security.huntPhase = "PRESSURE"
 	security.droneMode = "AGGRESSIVE"
+	security.droneStandDownTime = 0
 	if confirmedPlayer then confirmPlayerIdentity(state, security, reason) end
 	if not security.fullResponseAnnounced then
 		security.fullResponseAnnounced = true
@@ -284,6 +285,10 @@ function director.attach(state, report)
 		seenBodies = {},
 		drones = {},
 		droneCooldown = 0,
+		droneAmbientCheckTime = 0,
+		droneAmbientRetryTime = 0,
+		droneAmbientRetryCount = 0,
+		droneStandDownTime = 0,
 		droneMode = "PATROL"
 	}
 	local _, targetHealth = util.call(state.target, "getHealth")
@@ -309,6 +314,8 @@ function director.attach(state, report)
 		detect = sourceDoctrine.detect or 1,
 		armor = sourceDoctrine.armor or 1
 	}
+	security.droneAmbientDesired = math.max(1, math.min(config.DRONE_MAX_COUNT,
+		math.ceil((security.droneDoctrine.count or config.DRONE_DEPLOY_COUNT) * 0.5)))
 	local escortLookup = {}
 
 	for index, escortData in ipairs(state.escorts or {}) do
@@ -324,7 +331,7 @@ function director.attach(state, report)
 
 	state.target._hcoSecurityRole = "protected_target"
 	state.security = security
-	drones.request(state, math.max(1, math.ceil((security.droneDoctrine.count or config.DRONE_DEPLOY_COUNT) * 0.5)), "routine-protection", true)
+	drones.request(state, security.droneAmbientDesired, "routine-protection", true)
 
 	if state.contract and state.contract.metrics then
 		state.contract.metrics.initialEscortCount = math.max(state.contract.metrics.initialEscortCount or 0, #state.escorts)
@@ -636,6 +643,14 @@ function director.update(state, dt)
 	end
 
 	updateHuntPhase(security, maxConfidence)
+	if security.droneMode == "AGGRESSIVE" and security.huntPhase == "STAND_DOWN" and security.targetThreatLevel <= 0.05 then
+		security.droneStandDownTime = (security.droneStandDownTime or 0) + elapsed
+		if security.droneStandDownTime >= config.DRONE_AMBIENT_STAND_DOWN_DELAY then
+			drones.setPatrolMode(state, "network-clear")
+		end
+	else
+		security.droneStandDownTime = 0
+	end
 	issueSearchOrders(state, elapsed)
 
 	if state.contract and state.contract.metrics then

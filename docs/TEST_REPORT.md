@@ -1,11 +1,19 @@
-# Automated Test Report — 0.14.17-rc51
+# Automated Test Report — 0.14.18-rc52
+
+## RC52 maintained ambient drone lifecycle
+
+- Runtime coverage requires every contract to derive and store a passive baseline equal to half its difficulty-scaled doctrine, rounded up, while retaining `PATROL` before any incident.
+- The physical-drone harness launches that baseline with no combat request, breaks one carrier and requires exactly one replacement after the bounded ambient delay. Healthy wings may not grow from repeated supervisor ticks.
+- A simulated native `security_camera` creation failure must leave the request queued, apply the configured three-second first retry and successfully recover when the carrier becomes available. A failed safe spawn is never silently consumed.
+- Stand-down coverage starts with aggressive tracking, a queued ballistic burst, partial Laser charge and a stale destination. Returning to patrol must atomically clear all of them, restore the routine sensor state and rearm contact/gunfire gates for a later incident.
+- All seven LÖVE suites pass against `0.14.18-rc52`. Archive and exact local-install parity are recorded in Final results; live confirmation remains mandatory.
 
 ## RC51 map-wide principal routine
 
 - The runtime fixture supplies distinct authored patrol sectors for several safe eligible Goons. HCO must construct a separate target routine with at least five nodes, at least three source sectors and more than 1,000 world units of coverage instead of retaining the target's local shuttle.
 - Every adjacent selected leg must remain within the configured 1,250-unit budget. The route owns native patrol-point objects and the active path must reference the expanded route without mutating the vanilla route.
 - A checkpoint reset must reconstruct the identical ordered point signature from the persisted contract seed. RC50's path/cursor synchronization and routine watchdog are re-run against the expanded route.
-- All seven LÖVE suites must pass against `0.14.17-rc51`; archive and exact local-install parity are recorded in Final results after packaging. Live confirmation remains mandatory.
+- RC51's route assertions remain part of the RC52 seven-suite gate. Live confirmation remains mandatory.
 
 ## RC50 protected-target patrol and flight recovery
 
@@ -334,18 +342,18 @@ Expected marker: `HCO_TEST_EVIDENCE_READY` followed by the report path.
 
 ## Final results
 
-- Lua syntax: **PASS** — all 33 Lua modules parse, including RC51's deterministic map-wide target routine, RC50's patrol/flight recovery and RC49's weapon/beam correction.
+- Lua syntax: **PASS** — all 33 Lua modules parse, including RC52's ambient supervisor/stand-down, RC51's deterministic map-wide target routine, RC50's patrol/flight recovery and RC49's weapon/beam correction.
 - Full simulated runtime: **PASS** — `HCO_RUNTIME_SMOKE_PASS`.
 - Boot/failure isolation: **PASS** — `HCO_BOOT_FAILURE_ISOLATION_PASS`.
 - Drone orchestration: **PASS** — `HCO_DRONE_SMOKE_PASS`.
 - Seven-model flight/weapon behavior: **PASS** — `HCO_DRONE_ROSTER_SMOKE_PASS`.
 - Native airframe rendering: **PASS** — `HCO_AIRFRAME_SMOKE_PASS`.
 - Portable repository batch: **PASS** — `HCO_TEST_SUITE_PASS suites=7`; no harness contains a machine-local source path.
-- Post-test installation audit: **PASS** — installed `0.14.17-rc51`, 43 source payload files, 43 installed payload files and 0 mismatches or extras. The game was not running during installation.
+- Post-test installation audit: **PASS** — installed `0.14.18-rc52`, 43 source payload files, 43 installed payload files and 0 mismatches or extras. The game was not running during installation.
 - Source/output/install relative-file parity: **PASS** — 43 payload files including 33 Lua modules and ten runtime media files.
 - Source/output/install SHA-256 parity: **PASS** — zero missing, extra or mismatched files across all three trees.
-- Workshop ZIP integrity: **PASS** — `Hitman-Contracts-Overhaul-0.14.17-rc51.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `F9A101F4995311CCB26BB3B5F0A1BEE5FBF832357D27E0B839520217045A3FC4`.
-- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.17-rc51 payload=43`.
-- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 11:22:32; the game was not running, the current debug log was empty and the newest stored crash log at 2026-08-07 12:07:42 predates RC51.
+- Workshop ZIP integrity: **PASS** — final delivered `Hitman-Contracts-Overhaul-0.14.18-rc52.zip` contains all 43 payload files below the required nested `files/` root and has SHA-256 `E441826F96B1125A9889A3346DFF32C5A04FF279ABBD6F21500CCD45009EF7FF`.
+- Repository release gate: **PASS** — `HCO_RELEASE_CHECK_PASS version=0.14.18-rc52 payload=43`.
+- Post-install evidence collector: **PASS** — installed 33/33 Lua files with zero mismatches at 11:44:44; the game was not running, the current debug log was empty and the newest stored crash log at 2026-08-07 12:07:42 predates RC52.
 
-The markers above were collected from RC51 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.
+The markers above were collected from RC52 source and its exact local installation. Automated results prove internal behavior, packaging and failure handling only; they do not replace the final live-mission pass.

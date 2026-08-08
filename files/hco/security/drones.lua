@@ -914,13 +914,71 @@ local function updateRenderDiagnostic(security, dt)
 	feedback.show("HCO RC33 DRONE ROSTER — quadtree " .. (rendered and "ACTIVE" or "NOT DRAWN") .. ", batches " .. (stats.batchReady and stats.wreckBatchReady and "READY" or "MISSING") .. ", live/wreck sprites " .. (stats.spriteReady and stats.wreckSpriteReady and "READY" or "MISSING") .. ", bodies " .. tostring(stats.airframes))
 end
 
+local function pruneLiveDrones(security)
+	local live = {}
+	for _, drone in ipairs(security.drones or {}) do
+		if drone and not drone.broken and util.isValid(drone) then table.insert(live, drone) end
+	end
+	security.drones = live
+	return live
+end
+
+function drones.setPatrolMode(context, reason)
+	local security = context and context.security
+	if not security then return false end
+	local changed = security.droneMode ~= "PATROL"
+	security.droneMode = "PATROL"
+	security.droneStandDownTime = 0
+	security.droneSighting = nil
+	security.confirmedIdentityToken = nil
+	security.confirmedIdentityAt = nil
+	security.confirmedIdentitySource = nil
+	security.dronesTriggeredByContact = false
+	security.dronesTriggeredByGunfire = false
+	security.playerGunshots = 0
+	security.gunfireWindowStarted = nil
+	security.fullResponseAnnounced = false
+	security.droneRaidAnnounced = nil
+	for _, drone in ipairs(pruneLiveDrones(security)) do
+		drone.hcoDetect, drone.hcoTracking, drone.hcoSightGrace = 0, 0, 0
+		drone.hcoObservedIdentityToken = nil
+		drone.hcoConfirmedIdentityToken = nil
+		drone.hcoLastConfirmedAt = -100
+		drone.hcoDestX, drone.hcoDestY = nil, nil
+		drone.hcoDestRefreshAt = 0
+		drone.hcoNextFlankAt, drone.hcoNextSearchAt = nil, nil
+		drone.hcoTrackSlotAngle = nil
+		drone.lightColorCurrent = drone.lightColor
+		if type(drone.updateCastColor) == "function" then pcall(drone.updateCastColor, drone) end
+		droneWeapons.standDown(drone)
+	end
+	local root = context.root or context
+	local allPatrolling = true
+	for _, networkContext in ipairs(type(root.contracts) == "table" and root.contracts or {context}) do
+		if networkContext.security and networkContext.security.droneMode ~= "PATROL" then allPatrolling = false break end
+	end
+	if allPatrolling then root.hcoDroneRaidAnnounced = nil end
+	if changed then util.log(config, "drone network returned to patrol slot=" .. tostring(context.slot or 1) .. " reason=" .. tostring(reason)) end
+	return changed
+end
+
 function drones.request(context, count, reason, quiet)
 	local security = context and context.security
 	if not security then return end
+	local hadPending = (security.droneDeploymentRequested or 0) > 0
 	security.droneDeploymentRequested = math.max(security.droneDeploymentRequested or 0, count or (security.droneDoctrine and security.droneDoctrine.count) or config.DRONE_DEPLOY_COUNT)
 	security.droneDeploymentReason = reason
-	security.droneDeploymentQuiet = quiet == true
-	if not quiet then security.droneCooldown = 0 end
+	if hadPending then
+		security.droneDeploymentQuiet = security.droneDeploymentQuiet == true and quiet == true
+	else
+		security.droneDeploymentQuiet = quiet == true
+	end
+	if not quiet then
+		security.droneCooldown = 0
+		security.droneAmbientRetryTime = 0
+	elseif reason == "ambient-replacement" then
+		security.droneCooldown = math.min(security.droneCooldown or 0, config.DRONE_AMBIENT_REPLACEMENT_DELAY)
+	end
 	if not quiet and not security.droneRequestNoticeShown then
 		security.droneRequestNoticeShown = true
 		feedback.show("DRONE SUPPORT INBOUND — " .. tostring(reason or "security escalation"))
@@ -936,42 +994,67 @@ function drones.update(context, dt)
 	if not security then return end
 	updateRenderDiagnostic(security, dt)
 	security.droneCooldown = math.max(0, (security.droneCooldown or 0) - dt)
+	security.droneAmbientCheckTime = math.max(0, (security.droneAmbientCheckTime or 0) - dt)
+	security.droneAmbientRetryTime = math.max(0, (security.droneAmbientRetryTime or 0) - dt)
+	local live = pruneLiveDrones(security)
+	if security.droneAmbientCheckTime <= 0 then
+		security.droneAmbientCheckTime = config.DRONE_AMBIENT_SUPERVISOR_INTERVAL
+		local desired = math.max(0, math.min(config.DRONE_MAX_COUNT, security.droneAmbientDesired or 0))
+		if #live < desired and (security.droneDeploymentRequested or 0) <= 0 and security.droneAmbientRetryTime <= 0 then
+			drones.request(context, desired - #live, "ambient-replacement", true)
+		end
+	end
 	local wanted = security.droneDeploymentRequested or 0
-	if wanted <= 0 or security.droneCooldown > 0 then return end
+	if wanted <= 0 or security.droneCooldown > 0 or security.droneAmbientRetryTime > 0 then return end
 	-- Keep the request queued until Intravenous 2 has finalized roof obstruction
 	-- data. Consuming it earlier was the source of indoor/locked-room spawns.
 	if not flight.roofMapReady() then return end
-	security.drones = security.drones or {}
-	local live = {}
-	for _, drone in ipairs(security.drones) do if drone and not drone.broken then table.insert(live, drone) end end
-	security.drones = live
 	local globalActive = airframes.diagnostics().airframes
 	local room = math.max(0, math.min(config.DRONE_MAX_COUNT - #live, config.DRONE_GLOBAL_MAX_COUNT - globalActive))
+	if room <= 0 then return end
 	local launched = 0
 	local lastError
+	local requestReason = security.droneDeploymentReason
+	local requestQuiet = security.droneDeploymentQuiet == true
 	security.droneGeneration = (security.droneGeneration or 0) + 1
 	security.droneWaveFirstIndex = #live + 1
 	for index = 1, math.min(wanted, room) do local drone, spawnError = spawn(context, #live + index) if drone then table.insert(security.drones, drone) launched = launched + 1 else lastError = spawnError end end
-	security.droneDeploymentRequested = 0
-	security.droneCooldown = config.DRONE_REDEPLOY_COOLDOWN
-	security.droneRequestNoticeShown = false
+	local remaining = math.max(0, wanted - launched)
+	security.droneDeploymentRequested = remaining
 	if launched > 0 then
 		security.droneRenderDiagnostic = {remaining = 1.5, startPasses = airframes.diagnostics().drawPasses}
-		if sound and type(sound.play) == "function" then pcall(sound.play, sound, "radio_disrupt_end") end
-		if security.droneMode == "PATROL" or security.droneDeploymentQuiet then
-			feedback.show(string.upper((security.droneDoctrine and security.droneDoctrine.name) or "WATCH DRONE") .. " PATROL ACTIVE")
-		else
-			feedback.show(string.upper((security.droneDoctrine and security.droneDoctrine.name) or "SECURITY DRONES") .. " DEPLOYED — Aggressive search active")
+		security.droneFailureShown = false
+		if requestReason ~= "ambient-replacement" then
+			if sound and type(sound.play) == "function" then pcall(sound.play, sound, "radio_disrupt_end") end
+			if security.droneMode == "PATROL" or requestQuiet then
+				feedback.show(string.upper((security.droneDoctrine and security.droneDoctrine.name) or "WATCH DRONE") .. " PATROL ACTIVE")
+			else
+				feedback.show(string.upper((security.droneDoctrine and security.droneDoctrine.name) or "SECURITY DRONES") .. " DEPLOYED — Aggressive search active")
+			end
 		end
 		util.log(config, "drone deployment launched slot=" .. tostring(context.slot or 1) .. " count=" .. tostring(launched))
+	end
+	if remaining > 0 then
+		security.droneAmbientRetryCount = (security.droneAmbientRetryCount or 0) + 1
+		local delay = math.min(config.DRONE_AMBIENT_RETRY_MAX,
+			config.DRONE_AMBIENT_RETRY_BASE * 2 ^ math.max(0, security.droneAmbientRetryCount - 1))
+		security.droneAmbientRetryTime = delay
+		security.droneCooldown = 0
+		util.log(config, "drone deployment retry slot=" .. tostring(context.slot or 1) .. " remaining=" .. tostring(remaining) .. " delay=" .. tostring(delay) .. " error=" .. tostring(lastError or "capacity"))
+		if lastError and not requestQuiet and security.droneAmbientRetryCount >= 3 and not security.droneFailureShown then
+			security.droneFailureShown = true
+			feedback.show("HCO DRONE SUPPORT DELAYED — " .. tostring(lastError):sub(1, 145))
+		end
 	elseif lastError then
 		util.log(config, "drone deployment failed slot=" .. tostring(context.slot or 1) .. " error=" .. tostring(lastError))
-		if not security.droneFailureShown then
-			security.droneFailureShown = true
-			feedback.show("HCO DRONE SUPPORT OFFLINE — " .. tostring(lastError):sub(1, 150))
-		end
+	else
+		security.droneAmbientRetryCount = 0
+		security.droneAmbientRetryTime = 0
+		security.droneCooldown = config.DRONE_REDEPLOY_COOLDOWN
+		security.droneRequestNoticeShown = false
+		security.droneDeploymentReason = nil
+		security.droneDeploymentQuiet = false
 	end
-	security.droneDeploymentQuiet = false
 end
 
 function drones.detach(context)

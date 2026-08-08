@@ -60,6 +60,7 @@ function base:remove() self.removed=true end
 
 objects={registered={security_camera=base}}
 local failCustomCreate=false
+local failNativeCameraCreate=false
 function objects.getClassData(id) return objects.registered[id] end
 function objects.registerNew(data, inherit)
 	data.baseClass=objects.registered[inherit]
@@ -69,6 +70,7 @@ function objects.registerNew(data, inherit)
 end
 function objects.create(id)
 	if id=="hco_search_drone" and failCustomCreate then error("late class unavailable") end
+	if id=="security_camera" and failNativeCameraCreate then error("temporary native camera failure") end
 	local class=objects.registered[id]
 	local instance=setmetatable({}, class.mtindex)
 	instance:init()
@@ -372,8 +374,40 @@ heavy.hcoDetect,heavy.hcoTracking,heavy.hcoWeaponState=0.4,2,"AIMING"
 heavy:update(0.8)
 assertTrue(heavy.broken and heavy.hcoSafetyRetired and heavy.hcoDetect==0 and heavy.hcoWeaponState=="DESTROYED","persistently unhittable drone is terminally inert and safely retired before it can attack")
 
+local ambientContext={slot=4,target=actorObject(180,180),security={sectorPoints={{x=620,y=620}},guards={},drones={},droneCooldown=0,droneMode="PATROL",droneAmbientDesired=2,droneAmbientCheckTime=0,droneAmbientRetryTime=0}}
+drones.update(ambientContext,0.1)
+assertTrue(#ambientContext.security.drones==2,"ambient supervisor launches the configured passive baseline without combat evidence")
+ambientContext.security.drones[1].broken=true
+ambientContext.security.droneAmbientCheckTime=0
+drones.update(ambientContext,0.1)
+assertTrue(ambientContext.security.droneDeploymentRequested==1 and ambientContext.security.droneCooldown<=config.DRONE_AMBIENT_REPLACEMENT_DELAY,"missing patrol queues a replacement without waiting for the full combat redeploy cooldown")
+drones.update(ambientContext,config.DRONE_AMBIENT_REPLACEMENT_DELAY+0.1)
+assertTrue(#ambientContext.security.drones==2,"ambient supervisor replaces exactly one missing patrol airframe")
+
+local retryContext={slot=5,target=actorObject(200,200),security={sectorPoints={{x=660,y=660}},guards={},drones={},droneCooldown=0,droneMode="PATROL",droneAmbientDesired=1,droneAmbientCheckTime=0,droneAmbientRetryTime=0}}
+failNativeCameraCreate=true
+drones.update(retryContext,0.1)
+assertTrue(#retryContext.security.drones==0 and retryContext.security.droneDeploymentRequested==1,"failed ambient spawn remains queued instead of being silently consumed")
+assertTrue(retryContext.security.droneAmbientRetryCount==1 and retryContext.security.droneAmbientRetryTime==config.DRONE_AMBIENT_RETRY_BASE,"failed ambient spawn receives bounded retry backoff")
+failNativeCameraCreate=false
+retryContext.security.droneAmbientRetryTime=0
+drones.update(retryContext,0.1)
+assertTrue(#retryContext.security.drones==1 and retryContext.security.droneDeploymentRequested==0,"queued ambient spawn recovers after the native carrier becomes available")
+
+local standDownProbe=retryContext.security.drones[1]
+retryContext.security.droneMode="AGGRESSIVE"
+retryContext.security.dronesTriggeredByContact=true
+retryContext.security.dronesTriggeredByGunfire=true
+retryContext.security.confirmedIdentityToken="original"
+standDownProbe.hcoTracking,standDownProbe.hcoDetect,standDownProbe.hcoSightGrace=2,0.5,0.4
+standDownProbe.hcoBurstLeft,standDownProbe.hcoLaserCharge=3,0.5
+standDownProbe.hcoDestX,standDownProbe.hcoDestY=999,999
+assertTrue(drones.setPatrolMode(retryContext,"smoke-clear"),"aggressive network can explicitly stand down")
+assertTrue(retryContext.security.droneMode=="PATROL" and not retryContext.security.dronesTriggeredByContact and not retryContext.security.dronesTriggeredByGunfire,"stand-down rearms later alarms while preserving passive patrol")
+assertTrue(standDownProbe.hcoTracking==0 and standDownProbe.hcoDetect==0 and standDownProbe.hcoDestX==nil and standDownProbe.hcoWeaponState=="IDLE" and standDownProbe.hcoBurstLeft==0,"stand-down clears stale tracking, navigation and queued weapon fire")
+
 envController={getRoofReady=function() return false end}
-local pendingContext={slot=4,target=actorObject(160,160),security={sectorPoints={{x=600,y=600}},guards={},drones={},droneCooldown=0}}
+local pendingContext={slot=6,target=actorObject(160,160),security={sectorPoints={{x=600,y=600}},guards={},drones={},droneCooldown=0}}
 drones.request(pendingContext,1,"roof-readiness-test",true)
 drones.update(pendingContext,0.1)
 assertTrue(#pendingContext.security.drones==0 and pendingContext.security.droneDeploymentRequested==1,"deployment remains queued until the native roof map is finalized")

@@ -1,6 +1,6 @@
 # Specification traceability
 
-**Candidate:** `0.14.17-rc51`
+**Candidate:** `0.14.18-rc52`
 **Target runtime:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md`  
 **Rule:** `Automated` means the controlled LÖVE harness exercised the contract. It never means the behavior has been accepted in a real mission.
@@ -20,7 +20,7 @@ This document prevents future work from collapsing the product specification int
 | Social recognition | `social/disguise.lua` plus instantiated native Goon sight states | Implemented for the observer-local uniform-class model | Instant-bypass interception, 150-unit timed close scrutiny, 72-unit point-blank exposure, native hostile handoff, arbitrary held weapon, witnessed/unwitnessed fire, access, evidence and compromise cases | Prove distance bands and native response in a real mission |
 | Credentials and restricted areas | Native `playerActor:addKey` and off-limits queries, coordinated by `social/disguise.lua` | Implemented for keycard and keychain IDs | Acquisition/reload and adjusted trespass-query cases | Verify actual mission doors and STAFF/SECURITY/ELITE areas |
 | Existing cameras | `security/sensors.lua` | Implemented | Camera risk scaling and disruption/break evidence in runtime fixtures | Live camera cone, disguise and wall/EMP pass |
-| Physical drone system | `security/drones.lua` and drone modules | RC43 appearance-scoped sensing, live-LOS reacquisition, stable projectile attribution, progress watchdog, stable wall following, bounded inert barrier hop, outdoor fallback and shared map alarm candidate | Dedicated drone, roster and airframe suites, including stale-location and post-casualty fire continuity | RC43 live disguise-distance/patrol/barrier/network/combat-continuity matrix remains mandatory |
+| Physical drone system | `security/drones.lua` and drone modules | RC52 maintained passive baseline, exact-deficit replacement, bounded failed-spawn retry and cleared-alarm stand-down plus RC43 appearance-scoped sensing, live-LOS reacquisition, stable attribution, barrier hop, outdoor fallback and shared map alarm | Dedicated drone, roster and airframe suites, including ambient launch/replacement/retry/stand-down, stale-location and post-casualty fire continuity | Prove pre-combat presence, replacement, alarm return, disguise-distance/patrol/barrier/network/combat continuity live |
 | Rewards and persistence | `contracts/rewards.lua`, `persistence.lua` | Implemented | Exactly-once reward, active reload, terminal reload and bundle cases | Campaign save/reload across mission transitions |
 | Authored map profiles | Contract archetypes provide visual/doctrine identity; per-map authored safe-area profiles remain partial | Partial | Profile selection and deterministic doctrine cases | Author and approve high-value mission profiles |
 | Expanded contract families | Eliminate/neutralize plus bonus conditions are present; theft, extraction and authored accidents are not | Partial expansion | Current contract-resolution cases | New families require their own engine proofs |
@@ -238,6 +238,13 @@ Second, a native yellow/red alert state or last-known hunch is not proof that an
 - The runtime route contains the original native patrol-point objects. The engine's idle state, path-compute queue, door tasks and follower chain own actual movement; HCO supplies no arbitrary coordinate and never teleports. Sparse maps retain the untouched original route.
 - Checkpoint activation rebuilds the same ordered signature. Detach and failed transactional activation restore the original route object/index, while RC50's path/cursor synchronization and nine-second recovery apply to the derived route.
 - Automated coverage proves five-plus nodes, three source sectors, meaningful map coverage, bounded legs, native active-path ownership and deterministic reload. Live acceptance requires at least five visibly distinct locations during a 60-second routine on several structurally different maps.
+
+## RC52 ambient drone lifecycle
+
+- Contract activation derives a passive baseline from the already difficulty-scaled archetype doctrine and stores it independently from escalation-wave demand. The supervisor counts only valid, non-broken native carriers and requests exactly the deficit, so it cannot grow a healthy wing every update.
+- A failed `security_camera` creation, placement or airframe attachment no longer consumes the request. Remaining demand stays queued with a three-to-twenty-four-second exponential backoff; roof-map readiness and fleet-cap exhaustion continue waiting without unsafe fallback placement or repeated HUD errors.
+- Ambient replacements shorten only the remaining deployment cooldown to eight seconds. They still pass the native roof footprint, visible-airframe, physical-hitbox and global/per-contract limits used by every armed deployment.
+- Twelve seconds of `STAND_DOWN` knowledge with target threat at or below 0.05 returns the wing to `PATROL`. This clears appearance confirmation, tracking, destinations, queued ballistic bursts, Laser charge/beam and red light state, then rearms contact/gunfire triggers for a genuinely new incident.
 
 ## RC42 drone identity and navigation continuity
 

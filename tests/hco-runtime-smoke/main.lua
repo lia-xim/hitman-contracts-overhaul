@@ -731,6 +731,7 @@ assertTrue(#state.escorts >= 2, "elite escort selected")
 assertEqual(state.escorts[1].actor._hcoFactionVisual, activeProfile.visualIndex, "protection detail receives faction identity")
 assertEqual(state.security.droneDoctrine.name, activeProfile.drone.name, "contract receives archetype-specific drone doctrine")
 assertEqual(state.security.droneMode, "PATROL", "contract starts with passive drone patrol")
+assertEqual(state.security.droneAmbientDesired, math.max(1, math.ceil(state.security.droneDoctrine.count * 0.5)), "contract records a maintained passive drone baseline")
 local followerLeader = state.target
 local liveFollower = followerLeader:getFollower()
 assertTrue(liveFollower and liveFollower._hcoFollowLeader == followerLeader, "close protection records native leader ownership")
@@ -772,6 +773,27 @@ state.security.lastKnown = nil
 state.security.targetThreatLevel = 0
 state.security.huntPhase = "STAND_DOWN"
 state.security.searchOrderTime = 0
+
+for _, npc in ipairs(world.npcs) do
+	npc:setEnemyInSight(false, player)
+	npc.seenPlayer = false
+	npc.currentlySees = false
+	npc.alertness = npcAlertnessStates.STATES.IDLE
+	npc.hunchTime = 999
+	npc.hunchX, npc.hunchY = nil, nil
+end
+
+state.security.droneMode = "AGGRESSIVE"
+state.security.droneStandDownTime = 0
+state.security.dronesTriggeredByContact = true
+state.security.dronesTriggeredByGunfire = true
+state.security.confirmedIdentityToken = "original"
+for _ = 1, math.ceil(require("hco/config").DRONE_AMBIENT_STAND_DOWN_DELAY / require("hco/config").KNOWLEDGE_SAMPLE_INTERVAL) + 1 do
+	curTime = curTime + require("hco/config").KNOWLEDGE_SAMPLE_INTERVAL
+	securityDirector.update(state, require("hco/config").KNOWLEDGE_SAMPLE_INTERVAL)
+end
+assertEqual(state.security.droneMode, "PATROL", "quiet security network automatically returns drones to passive patrol")
+assertTrue(not state.security.dronesTriggeredByContact and not state.security.dronesTriggeredByGunfire and state.security.confirmedIdentityToken==nil, "stand-down clears one-shot alarm gates for a later incident")
 
 for _, guard in ipairs(state.security.guards) do
 	if guard.actor == validA then

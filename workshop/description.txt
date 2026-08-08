@@ -66,7 +66,7 @@ Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a l
 The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.14.17-rc51[/b] — production-candidate release. RC51 replaces tiny target-only shuttle routes with deterministic five-to-eight-point principal routines spanning several safe authored security sectors. Targets still use native Goon pathfinding, doors and close-protection followers; sparse maps fall back safely, unreachable legs are recovered, and checkpoint reload rebuilds the same route. RC50 movement/flight and RC49 drone-weapon fixes remain intact. Promotion to 1.0 follows the published crash-free live mission matrix.
+[b]0.14.18-rc52[/b] — production-candidate release. RC52 maintains archetype-scaled passive drone patrols from contract start, retries temporarily unavailable safe outdoor spawns, replaces missing patrol airframes within the existing fleet caps and returns a cleared alarmed wing to ordinary patrol. RC51's deterministic five-to-eight-point principal routines and prior movement/weapon corrections remain intact. Promotion to 1.0 follows the published crash-free live mission matrix.
 
 [h2]OPEN SOURCE[/h2]
 Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.

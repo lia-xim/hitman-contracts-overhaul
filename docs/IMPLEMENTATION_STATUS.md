@@ -1,6 +1,6 @@
 # Hitman Contracts Overhaul — Implementation Status
 
-**Current version:** `0.14.17-rc51`
+**Current version:** `0.14.18-rc52`
 **Status date:** 2026-08-08
 **Target game:** Intravenous 2 `1.4.12HF3`  
 **Authority:** `SPECIFICATION.md` remains the product and technical source of truth.
@@ -28,7 +28,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Disguise and social stealth | RC47 candidate path: weapon-neutral distance cover, close scrutiny, point-blank exposure, current-world quadtree recovery, eligible-body-first native selection, independent render-cache recovery, stable native action IDs, replaced-hook repair, explicit rollback, body-availability stitches and persistent identity shimmer | Full real-mission pass in `SPECIFICATION_TRACEABILITY.md` |
 | Credentials and radio propagation | RC34 keycard/keychain capture before native drop, consistent off-limits queries, interruptible identity/body reports and reload restoration | Verify real mission doors, radio audio/range and checkpoint matrix |
 | Multi-contract persistence and payout | RC48 replays failed unpaid attempts with a distinct persisted identity while keeping completed paid attempts terminal | Live failed-save restart plus active/terminal reload matrix and multi-target exactly-once payout |
-| Drone presence and patrol | Seven-model roster plus RC41 committed patrol, bounded barrier hop, invalid-sector fallback and stationary 360-degree scan implemented | Live-approve sustained movement, exterior transitions and boxed-in fallback |
+| Drone presence and patrol | Seven-model roster plus RC52 maintained passive baseline, bounded spawn retry/replacement and alarm-to-patrol stand-down; RC41 committed patrol, barrier hop, invalid-sector fallback and stationary 360-degree scan remain | Live-approve baseline visibility before combat, replacement timing, cleared-alarm return, sustained movement, exterior transitions and boxed-in fallback |
 | Drone detection and response relay | Stable pursuit, independent gimbal, strict geometry authority, map-wide alarm, transition lockout and RC43 post-LOS/post-casualty combat continuity implemented | Prove red network search, LOS loss/reacquisition, no overflight fire and response convergence |
 | Drone disruption and destruction | Implemented across all seven models; RC33 mission-ticked wreck animation, durable native wreck batch, full first-shot sweep and terminal weapon/light cleanup | Live-test frame 1→2→3→4 progression, free fire without right-click, EMP lockout and crash-site response |
 | Drone perception semantics | Implemented for observer-local behavior risk, compromised identity and body/source-uniform evidence; held weapons are neutral | Live-test routine versus aggressive identity timing, body concealment and source-uniform compromise |
@@ -40,7 +40,7 @@ Automated harnesses support these systems, but do not replace the remaining real
 | Contract variety | Partial | Data theft, accidents, special weapon conditions, rescue/extraction and other systemic contract types |
 | Localization/audio callouts | Partial | English runtime text exists; translated strings and an authored localized radio-callout pack remain |
 
-## RC22 roster / RC23–RC51 live corrections
+## RC22 roster / RC23–RC52 live corrections
 
 - Airframe footprint reduced to roughly 27 world pixels and the generated art rotated by -90 degrees to match the native sensor/flight heading.
 - Hover bob, offset shadow, four-frame rotor animation, rotor pulse rings, state-colored sensor pulse and a short pixel wake make flight readable without adding a detached HUD layer.
@@ -71,13 +71,14 @@ Automated harnesses support these systems, but do not replace the remaining real
 - RC49 fixes the armed discharge boundary. Native bullets now spawn beyond the complete 48/54-pixel carrier fixture and count only when the engine returns a projectile; both SMG weights must finish their configured bursts. Lasers retain immutable muzzle/impact endpoints for a readable glow/core/pixel beam and impact after cooldown or God Mode clears live aim/damage state.
 - RC50 fixes the deeper principal-movement regression: native `onPatrolRouteSet` advances the route cursor while creating the path, so HCO now preserves that result instead of writing the old index back. `CORNERED` retries real secure nodes under pressure, direct target damage mobilizes protection, and every recovery keeps path and cursor synchronized.
 - RC51 expands a principal's routine beyond its often tiny vanilla pocket. Five to eight deduplicated patrol-point objects are selected across several safe eligible Goon routes with bounded adjacent legs and seed-based variation, then handed back to the native idle/path/door system. Sparse maps fall back to the original route, checkpoint reload is deterministic and rollback never mutates vanilla routes.
+- RC52 makes that pre-combat air security durable: every contract maintains its intended passive count, failed native/safe spawns remain queued with capped retry, missing airframes are replaced within eight seconds after the normal supervisor pass, and a fully cleared alarm cancels tracking/fire before surviving drones resume cyan patrol.
 - Routine drones now consume social-stealth risk instead of treating every player silhouette identically. Their real cone/raycast can detect each exposed body once and compromise the stolen identity when its source is found.
 
 The Scout deliberately does not shoot. Six armed variants join escalated wings: light/heavy Pistol, SMG and Laser. Ballistic models use native bullets; laser models display an uninterrupted charge cue. No model attacks without confirmed line of sight, range, gimbal alignment and cooldown readiness.
 
 ## Immediate acceptance gate
 
-1. Completely restart the game and confirm `0.14.17-rc51` loads without traceback and without an internal RC render diagnostic on the HUD.
+1. Completely restart the game and confirm `0.14.18-rc52` loads without traceback and without an internal RC render diagnostic on the HUD.
 2. Observe multiple deployments and identify Scout, light and heavy silhouettes; heavy variants must be larger but remain actor-scaled.
 3. With the original/exposed identity, stand visibly inside the cone: the cone should enter contact state and response guards should move to the reported position. Repeat with clean cover beyond 205 units: the cone must remain amber and must not track, confirm or fire. Move inside 155 units during patrol or 205 during an alarm and verify progressive close scrutiny before red contact.
 4. Break line of sight behind solid geometry: the drone must not keep perfect live tracking through the wall.
@@ -86,7 +87,7 @@ The Scout deliberately does not shoot. Six armed variants join escalated wings: 
 7. Watch one light and one heavy destruction: firing, aim cue, rotor loop and light cone must stop immediately; the airframe must visibly change into damaged frames, tumble for roughly 0.78/0.95 seconds, trail smoke/sparks, produce a landing ring/debris burst and remain as an asymmetric inert wreck. Response actors should investigate that landing point.
 8. Trigger an armed wing: verify a Pistol/SMG native projectile and a Laser that holds its aim line for 0.9/1.4 seconds before firing.
 9. Circle a tracking drone: the gimbal should follow first, then the body should yaw; the drone must hold a standoff slot instead of flying through or endlessly orbiting the player.
-10. Observe patrol and aggressive wings for at least 30 seconds: drones must keep their route long enough to visibly travel, choose alternate outdoor sectors when an authored point is invalid, keep one wall-follow direction and abandon any route that produces shuffling without destination progress. Only a genuinely boxed-in drone may hover, and it must continue a full rotating scan.
+10. Before firing, observe the configured passive wing for at least 30 seconds: it must exist and travel without combat. Destroy one patrol and confirm exactly one replacement appears after a short delay. Then trigger and escape an alarm; once knowledge clears, surviving drones must cancel red attack state and resume cyan patrol. Drones must keep routes long enough to travel, choose alternate outdoor sectors when an authored point is invalid, keep one wall-follow direction and abandon shuffling without destination progress. Only a genuinely boxed-in drone may hover, and it must continue a full rotating scan.
 11. Observe initial deployment and draw a drone toward exterior separation: no armed drone may spawn beneath a native roof. It should steer first, then visibly hop a narrow wall/gate between verified outdoor cells without scanning or firing during transit. It must refuse a roofed building or wide inaccessible span.
 12. Keep response units in combat/search long enough for follower instruction timers to advance; no `getWatchBack` traceback may occur.
 13. Confirm normal weapon fire, vanilla objectives, mission completion, checkpoint reload and return to menu still work.
@@ -99,4 +100,4 @@ The complete fourteen-step disguise/social-stealth live gate and its native engi
 
 ## Release boundary
 
-HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC51 adds broad deterministic principal routines while preserving RC50 movement/flight recovery, RC49 armed ballistic/Laser discharge, RC48 save-lifecycle replay and the prior disguise/drone corrections. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.
+HCO is a code-complete production candidate for its current contract/stealth/drone feature surface, not yet a proven `1.0`. RC52 maintains ambient drone coverage and adds retry/replacement/stand-down lifecycle; RC51 broad principal routines, RC50 movement recovery, RC49 armed discharge, RC48 save replay and prior disguise/drone corrections remain. Promotion requires both live matrices; optional future systems such as dedicated operators, thermal cameras and new contract families remain explicitly outside this candidate rather than being silently claimed.
