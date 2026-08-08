@@ -81,6 +81,14 @@ Do not enable both a local and Workshop copy at the same time.
 
 The release check validates Lua/payload rules, enforces `VERSION`/runtime parity, packages the nested `files/` root and compares every archived file to source by SHA-256.
 
+Prepare the exact native Workshop staging layout with:
+
+```powershell
+./scripts/prepare-workshop.ps1
+```
+
+This writes `mods_staging/Hitman-Contracts-Overhaul/files/`, copies the native-size preview and verifies every staged payload file by SHA-256. If Intravenous 2 has already created `files/metadata` for a published item, the script preserves its Workshop item ID. The paste-ready title, tags, description, change note and publication checklist are in `workshop/`.
+
 Run the complete simulated regression suite with LÖVE 11.5:
 
 ```powershell

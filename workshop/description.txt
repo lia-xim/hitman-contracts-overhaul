@@ -1,7 +1,7 @@
 [h1]HITMAN CONTRACTS OVERHAUL[/h1]
 [b]Intravenous 2 meets Hitman: optional HVT contracts, mobile targets, heavy protection details, disguises, social stealth and physical security-drone wings — integrated into the native game.[/b]
 
-[h2]NEW IN RC42 — DRONE SOCIAL STEALTH & CLEANER NAVIGATION[/h2]
+[h2]CURRENT RELEASE — CONTRACTS, SOCIAL STEALTH & DRONE SECURITY[/h2]
 [list]
 [*]Aggressive search no longer means instant knowledge of a clean disguised identity
 [*]Long-range clean cover produces amber suspicion; close cone/raycast scrutiny is required before red confirmation
@@ -60,13 +60,18 @@ Unsafe missions and story-critical actors are skipped instead of being forced in
 [h2]HOW TO START[/h2]
 Start a compatible mission from the beginning. No hotkey is required. Follow the optional intelligence objective, recover the marked dead drop and infiltrate or fight through the target's protection.
 
+[h2]LANGUAGE[/h2]
+HCO's custom objectives, notifications and interaction labels are currently in English. The mod works with other game-language settings.
+
 [h2]COMPATIBILITY[/h2]
 Built for Intravenous 2 [b]1.4.12HF3[/b]. Install only one HCO copy. If both a local and Workshop copy are enabled, the first-loaded version wins.
 
 The Intravenous 2 Cheat Trainer is supported. For a meaningful combat test, use [b]Reset all cheats[/b] first; God Mode still prevents drone damage.
 
 [h2]CURRENT VERSION[/h2]
-[b]0.14.18-rc52[/b] — production-candidate release. RC52 maintains archetype-scaled passive drone patrols from contract start, retries temporarily unavailable safe outdoor spawns, replaces missing patrol airframes within the existing fleet caps and returns a cleared alarmed wing to ordinary patrol. RC51's deterministic five-to-eight-point principal routines and prior movement/weapon corrections remain intact. Promotion to 1.0 follows the published crash-free live mission matrix.
+[b]0.14.18-rc52[/b] — public release candidate. RC52 maintains archetype-scaled passive drone patrols from contract start, retries temporarily unavailable safe outdoor spawns, replaces missing patrol airframes within the existing fleet caps and returns a cleared alarmed wing to ordinary patrol. RC51's deterministic five-to-eight-point principal routines and prior movement/weapon corrections remain intact. Please report the map, game version and full traceback if you encounter a crash.
 
 [h2]OPEN SOURCE[/h2]
 Source, specification, engine evidence, testing boundary and licenses are maintained in the public project repository. Code is MIT; original HCO runtime media is CC0.
+
+[url=https://github.com/lia-xim/hitman-contracts-overhaul]Source code, issue tracker and documentation[/url]

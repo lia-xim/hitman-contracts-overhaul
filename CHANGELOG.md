@@ -7,6 +7,8 @@
 - Added an eight-second ambient replacement ceiling so a destroyed or safety-retired patrol does not wait through the full 28-second combat-wave cooldown before the network can restore coverage.
 - Added a real alarm stand-down lifecycle. After security knowledge and target threat remain clear for twelve seconds, surviving drones cancel tracking, stale destinations, queued bursts/laser charge and red search presentation, then resume ordinary map patrol. Contact/gunfire gates are rearmed for a later independent incident.
 - Added runtime and physical-drone regressions for maintained passive presence, exact-deficit replacement, failed-spawn recovery, automatic quiet stand-down and weapon/tracking cleanup. Existing target-route, social-stealth, combat, destruction, render and packaging suites remain mandatory.
+- Added the native Steam Workshop staging workflow with paste-ready title, tags, BBCode description, change note, preview validation, publication checklist and preservation of Steam's existing item metadata on later updates.
+- Made release ZIP creation byte-reproducible and extended the release gate to validate Workshop title, tag, description, preview-size and version metadata alongside the 43-file runtime payload.
 
 ## 0.14.17-rc51 — 2026-08-08
 

@@ -1,0 +1,10 @@
+Public release candidate 0.14.18-rc52
+
+- Adds optional HVT contracts with moving targets, five close bodyguards and separate response teams.
+- Adds native body-menu disguises, social stealth, credentials, suspicion and identity compromise.
+- Adds seven physical Scout/Light/Heavy drone models with patrol, search, ranged weapons, destruction and persistent wrecks.
+- Maintains ambient drone patrols from mission start, retries unavailable safe spawns and returns cleared wings to normal patrol.
+- Expands protected-target routines to deterministic five-to-eight-point native routes.
+- Includes campaign rewards, field intelligence, completion feedback and reload persistence.
+
+Built and tested for Intravenous 2 1.4.12HF3. Start a compatible mission from the beginning and enable only one HCO copy.

@@ -10,6 +10,23 @@ $match = [regex]::Match($configText, 'VERSION\s*=\s*"([^"]+)"')
 if (-not $match.Success) { throw 'Runtime config version is missing.' }
 if ($match.Groups[1].Value -ne $version) { throw "VERSION/config mismatch: $version vs $($match.Groups[1].Value)" }
 
+$workshopRoot = Join-Path $repoRoot 'workshop'
+$workshopTitle = (Get-Content -LiteralPath (Join-Path $workshopRoot 'title.txt') -Raw).Trim()
+$workshopDescription = Get-Content -LiteralPath (Join-Path $workshopRoot 'description.txt') -Raw
+$workshopTags = @(Get-Content -LiteralPath (Join-Path $workshopRoot 'tags.txt') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$workshopChangeNote = (Get-Content -LiteralPath (Join-Path $workshopRoot 'changenote.txt') -Raw).Trim()
+$workshopPreview = Get-Item -LiteralPath (Join-Path $workshopRoot 'preview.jpg')
+$allowedTags = @('Gameplay', 'Weapons', 'Levels', 'Graphics', 'Objects', 'Audio', 'Miscellaneous')
+if ([string]::IsNullOrWhiteSpace($workshopTitle) -or $workshopTitle.Length -gt 129) { throw "Workshop title must contain 1-129 characters: $($workshopTitle.Length)" }
+if ($workshopTags.Count -lt 1) { throw 'At least one Workshop tag is required.' }
+foreach ($tag in $workshopTags) {
+    if ($allowedTags -notcontains $tag) { throw "Unsupported Workshop tag: $tag" }
+}
+if ([string]::IsNullOrWhiteSpace($workshopChangeNote)) { throw 'Workshop change note is empty.' }
+if ($workshopPreview.Length -gt 1048576) { throw "Workshop preview exceeds the native 1 MiB limit: $($workshopPreview.Length) bytes" }
+if ($workshopDescription -notmatch [regex]::Escape("[b]$version[/b]")) { throw "Workshop description does not identify current version $version." }
+if ($workshopDescription -match 'NEW IN RC42') { throw 'Workshop description still contains the stale RC42 release heading.' }
+
 & (Join-Path $PSScriptRoot 'verify.ps1')
 $archiveOutput = & (Join-Path $PSScriptRoot 'package.ps1') -OutputDirectory $OutputDirectory
 $archive = @($archiveOutput)[-1]
@@ -49,5 +66,5 @@ finally {
 }
 
 $archiveHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
-Write-Output "HCO_RELEASE_CHECK_PASS version=$version payload=$($sourceFiles.Count) sha256=$archiveHash"
+Write-Output "HCO_RELEASE_CHECK_PASS version=$version payload=$($sourceFiles.Count) workshop_tags=$($workshopTags.Count) preview_bytes=$($workshopPreview.Length) sha256=$archiveHash"
 Write-Output $archive
